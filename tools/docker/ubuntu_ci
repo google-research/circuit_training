@@ -1,0 +1,57 @@
+# Run the following commands in order:
+#
+# docker build --tag circuit_training:ci -f tools/docker/ubuntu_ci tools/docker/
+#
+# Test that everything worked:
+# docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:ci bash
+# python3.9 -m circuit_training.environment.environment_test
+
+FROM ubuntu:18.04
+
+LABEL maintainer="tobyboyd@google.com"
+
+ARG python_version="python 3.7 python3.8 python3.9"
+ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
+
+# Installs basics including add-apt.
+RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
+        software-properties-common \
+        curl \
+        less
+
+# Adds repository to pull versions of python from.
+RUN add-apt-repository ppa:deadsnakes/ppa
+
+# Installs various versions of python and then cleans up apt.
+RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
+        python3.7-dev \
+        python3.8-dev \
+        python3.9-dev \
+        # python >= 3.8 needs distutils for packaging.
+        python3.8-distutils \
+        python3.9-distutils \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Downloads the placement cost utility binary nto /usr/local/bin.
+RUN curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main \
+     -o  /usr/local/bin/plc_wrapper_main
+
+RUN chmod 555 /usr/local/bin/plc_wrapper_main
+
+RUN curl -O https://bootstrap.pypa.io/get-pip.py
+
+ARG pip_dependencies=' \
+      pytest \
+      tox'
+
+# No need to install tf-agents as that should be part of the test setup.
+# Doing it for now to test.
+RUN for python in ${python_version}; do \
+    $python get-pip.py && \
+    $python -mpip --no-cache-dir install $pip_dependencies; \
+  done
+
+
+CMD ["/bin/bash"]

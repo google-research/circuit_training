@@ -1,0 +1,36 @@
+# Placement file for Circuit Training
+# Source input file(s) : circuit_training/environment/test_data/sample_clustered/netlist.pb.txt
+# This file : circuit_training/environment/test_data/sample_clustered/initial.plc
+# Date : 2022-03-13 09:30:00
+# Columns : 2  Rows : 2
+# Width : 500.000  Height : 500.000
+# Area : 17603.53279986302
+# Wirelength : 1083.000
+# Wirelength cost : 0.2707
+# Congestion cost : 0.3492
+# Density cost : 0.2305
+# Project : circuit_training
+# Block : sample_macros
+# Routes per micron, hor : 27.500  ver : 22.500
+# Routes used by macros, hor : 20.000  ver : 15.000
+# Smoothing factor : 2
+# Overlap threshold : 0.004
+#
+#
+#
+# Counts of node types:
+# HARD_MACROs     :         2
+# HARD_MACRO_PINs :         4
+# MACROs          :         3
+# MACRO_PINs      :         6
+# PORTs           :         2
+# SOFT_MACROs     :         1
+# SOFT_MACRO_PINs :         2
+# STDCELLs        :         0
+#
+# node_index x y orientation fixed
+0 0 100 - 1
+1 499 499 - 1
+2 125 375 N 0
+3 375 375 N 0
+8 170 310 N 0
