@@ -9,8 +9,8 @@
 # Wirelength cost : 0.0
 # Congestion cost : 0.0
 # Block : macro_tiles_10x10
-# Routes per micron, hor : 27.500  ver : 22.500
-# Routes used by macros, hor : 20.000  ver : 15.000
+# Routes per micron, hor : 70.33  ver : 74.51
+# Routes used by macros, hor : 51.79  ver : 51.79
 # Smoothing factor : 2
 # Overlap threshold : 0.004
 #

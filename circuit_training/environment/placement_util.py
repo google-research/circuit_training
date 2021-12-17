@@ -147,20 +147,24 @@ def fix_port_coordinates(plc: plc_client.PlacementCost):
     plc.fix_node_coord(node)
 
 
-# The default technology numbers are extracted from
-# https://en.wikichip.org/wiki/7_nm_lithography_process
+# The routing capacities are calculated based on the public information about
+# 7nm technology (https://en.wikichip.org/wiki/7_nm_lithography_process)
+# with an arbitary, yet reasonable, assumption of 18% of the tracks for
+# the power grids.
 def create_placement_cost(
     netlist_file: Text,
     init_placement: Optional[Text] = None,
     overlap_threshold: float = 4e-3,
     congestion_smooth_range: int = 2,
+    # TODO(b/211039937): Increase macro spacing to 3-5um, after matching the
+    # performance for Ariane.
     macro_macro_x_spacing: float = 0.1,
     macro_macro_y_spacing: float = 0.1,
     boundary_check: bool = False,
-    horizontal_routes_per_micron: float = 27.5,
-    vertical_routes_per_micron: float = 22.5,
-    macro_horizontal_routing_allocation: float = 20.0,
-    macro_vertical_routing_allocation: float = 15.0,
+    horizontal_routes_per_micron: float = 70.33,
+    vertical_routes_per_micron: float = 74.51,
+    macro_horizontal_routing_allocation: float = 51.79,
+    macro_vertical_routing_allocation: float = 51.79,
 ) -> plc_client.PlacementCost:
   """Creates a placement_cost object.
 

@@ -5,14 +5,14 @@
 # Columns : 2  Rows : 2
 # Width : 500.000  Height : 500.000
 # Area : 17603.53279986302
-# Wirelength : 1083.000
-# Wirelength cost : 0.2707
-# Congestion cost : 0.3492
+# Wirelength : 0.0
+# Wirelength cost : 0.0
+# Congestion cost : 0.0
 # Density cost : 0.2305
 # Project : circuit_training
-# Block : sample_macros
-# Routes per micron, hor : 27.500  ver : 22.500
-# Routes used by macros, hor : 20.000  ver : 15.000
+# Block : sample_clustered
+# Routes per micron, hor : 70.33 ver : 74.51
+# Routes used by macros, hor : 51.79  ver : 51.79
 # Smoothing factor : 2
 # Overlap threshold : 0.004
 #
