@@ -6,13 +6,12 @@
 # docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:core bash
 # python3 -m circuit_training.environment.environment_test
 #
-# For GPUs
-# docker build --build-arg base_image=nvidia/cuda:11.4.2-cudnn8-runtime-ubuntu20.04 \
+# For GPUs. devel version is needed to support xla.
+# docker build --build-arg base_image=nvidia/cuda:11.4.2-cudnn8-devel-ubuntu20.04 \
 #   --tag circuit_training:core -f tools/docker/ubuntu_circuit_training tools/docker/
 ARG base_image="ubuntu:20.04"
 
 FROM $base_image
-FROM ubuntu:20.04
 
 LABEL maintainer="tobyboyd@google.com"
 
