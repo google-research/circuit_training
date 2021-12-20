@@ -60,7 +60,6 @@ def main(_):
 
   cost_fn = functools.partial(
       environment.cost_fn,
-      plc=plc,
       wirelength_weight=1.0,
       density_weight=0.1,
       congestion_weight=0.1)

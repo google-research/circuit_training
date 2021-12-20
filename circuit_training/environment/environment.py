@@ -15,7 +15,6 @@
 """Circuit training Environmnet with gin config."""
 
 import datetime
-import functools
 import math
 import os
 from typing import Any, Dict, Text, Tuple
@@ -271,7 +270,7 @@ class CircuitEnv(object):
     # Plc modified by CD will be reset at the end of the episode.
     cd = cd_placer.CoordinateDescentPlacer(
         plc=self._plc,
-        cost_fn=functools.partial(cost_fn, plc=self._plc),
+        cost_fn=cost_fn,
         use_stdcell_placer=True,
         optimize_only_orientation=True)
     cd.place()
