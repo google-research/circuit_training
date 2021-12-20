@@ -1,4 +1,4 @@
-# proto-file: third_party/tensorflow/core/framework/graph.proto
+# proto-file: tensorflow/core/framework/graph.proto
 # proto-message: tensorflow.GraphDef
 node {
   name: "P0"
