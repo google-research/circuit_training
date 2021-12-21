@@ -20,6 +20,10 @@ ARG python_version="python3"
 ARG tf_agents_version="tf-agents[reverb]"
 ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
 
+# Stops tzdata from asking about timezones and blocking install on user input.
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Los_Angeles
+
 # Installs basics including add-apt.
 RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
         software-properties-common \
