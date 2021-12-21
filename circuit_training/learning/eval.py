@@ -37,7 +37,7 @@ FLAGS = flags.FLAGS
 def main(_):
   root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))
 
-  if FLAGS.output_placement_save_path:
+  if FLAGS.output_placement_save_dir:
     output_plc_file = os.path.join(
         FLAGS.output_placement_save_dir, 'rl_opt_placement.plc')
   else:
