@@ -17,7 +17,7 @@
 import datetime
 import math
 import os
-from typing import Any, Dict, Text, Tuple
+from typing import Any, Dict, Text, Tuple, Optional
 
 from absl import logging
 from circuit_training.environment import coordinate_descent_placer as cd_placer
@@ -27,6 +27,7 @@ from circuit_training.environment import placement_util
 import gin
 import gym
 import numpy as np
+import tensorflow as tf
 from tf_agents.environments import suite_gym
 from tf_agents.environments import wrappers
 
@@ -118,7 +119,8 @@ class CircuitEnv(object):
                save_best_cost: bool = False,
                output_plc_file: Text = '',
                make_soft_macros_square: bool = True,
-               cd_finetune: bool = False):
+               cd_finetune: bool = False,
+               train_step: Optional[tf.Variable] = None):
     """Creates a CircuitEnv.
 
     Args:
@@ -127,8 +129,8 @@ class CircuitEnv(object):
         and canas size.
       std_cell_placer_mode: Options for fast std cells placement: `fd` (uses the
         force-directed algorithm).
-      global_seed: Global seed for initializing graph embedding. This seed
-        should be the same across actors.
+      global_seed: Global seed for initializing env features. This seed
+        should be the same across actors. Not used currently.
       is_eval: If set, save the final placement in output_dir.
       save_best_cost: Boolean, if set, saves the palcement if its cost is better
         than the previously saved palcement.
@@ -137,7 +139,10 @@ class CircuitEnv(object):
         before using analytical std cell placers like FD.
       cd_finetune: If True, runs coordinate descent to finetune macro
         orientations. Supposed to run in eval only, not training.
+      train_step: A tf.Variable indicating the training step, only used for
+        saving plc files in the evaluation.
     """
+    del global_seed
     if not netlist_file:
       raise ValueError('netlist_file must be provided.')
 
@@ -149,6 +154,7 @@ class CircuitEnv(object):
     self._output_plc_dir = os.path.dirname(output_plc_file)
     self._make_soft_macros_square = make_soft_macros_square
     self._cd_finetune = cd_finetune
+    self._train_step = train_step
 
     self._plc = placement_util.create_placement_cost(
         netlist_file=netlist_file, init_placement=init_placement)
@@ -168,8 +174,6 @@ class CircuitEnv(object):
     self._grid_cols, self._grid_rows = self._plc.get_grid_num_columns_rows()
     self._canvas_width, self._canvas_height = self._plc.get_canvas_width_height(
     )
-
-    num_macros = len(self._plc.get_macro_indices())
 
     self._hard_macro_indices = [
         m for m in self._plc.get_macro_indices()
@@ -287,12 +291,17 @@ class CircuitEnv(object):
     if not self._save_best_cost or (cost < self._saved_cost and
                                     (math.fabs(cost - self._saved_cost) /
                                      (cost) > 5e-3)):
-      placement_util.save_placement(self._plc, self._output_plc_file)
+      user_comments = ''
+      if self._train_step:
+        user_comments = f'Train step : {self._train_step.numpy()}'
+
+      placement_util.save_placement(self._plc, self._output_plc_file,
+                                    user_comments)
       ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
       ppo_snapshot_file = os.path.join(
           self._output_plc_dir,
           f'snapshot_ppo_opt_placement_timestamp_{ts}_cost_{cost:.4f}.plc')
-      placement_util.save_placement(self._plc, ppo_snapshot_file)
+      placement_util.save_placement(self._plc, ppo_snapshot_file, user_comments)
       self._saved_cost = cost
 
       # Only runs CD if this is the best RL placement seen so far.
@@ -302,9 +311,10 @@ class CircuitEnv(object):
         cd_snapshot_file = os.path.join(
             self._output_plc_dir,
             f'snapshot_ppo_cd_placement_timestamp_{ts}_cost_{cost:.4f}.plc')
-        placement_util.save_placement(self._plc, cd_snapshot_file)
+        placement_util.save_placement(self._plc, cd_snapshot_file,
+                                      user_comments)
         cd_plc_file = os.path.join(self._output_plc_dir, 'ppo_cd_placement.plc')
-        placement_util.save_placement(self._plc, cd_plc_file)
+        placement_util.save_placement(self._plc, cd_plc_file, user_comments)
 
   def reset(self) -> ObsType:
     """Restes the environment.

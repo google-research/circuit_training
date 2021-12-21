@@ -27,8 +27,11 @@ from tf_agents.drivers import py_driver
 from tf_agents.environments import tf_py_environment
 from tf_agents.policies import random_py_policy
 from tf_agents.specs import array_spec
+from tf_agents.train.utils import train_utils
 from tf_agents.trajectories import policy_step
 from tf_agents.trajectories import time_step as ts
+
+# Internal gfile dependencies
 
 FLAGS = flags.FLAGS
 
@@ -90,23 +93,15 @@ class EnvironmentTest(test_utils.TestCase):
   # Internal circuit training docs link.
   """
 
-  def test_obs_space_and_save(self):
+  def test_create_and_obs_space(self):
     test_netlist_dir = ('circuit_training/'
                         'environment/test_data/sample_clustered')
     netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
                                 'netlist.pb.txt')
     init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
                                   'initial.plc')
-    output_dir = self.create_tempdir()
-    output_plc_file = os.path.join(output_dir, 'ppo_opt_placement.plc')
-    output_cd_file = os.path.join(output_dir, 'ppo_cd_placement.plc')
     env = environment.CircuitEnv(
-        netlist_file=netlist_file,
-        init_placement=init_placement,
-        is_eval=True,
-        save_best_cost=True,
-        output_plc_file=output_plc_file,
-        cd_finetune=True)
+        netlist_file=netlist_file, init_placement=init_placement)
 
     obs = env.reset()
     self.assertTrue(env.observation_space.contains(obs))
@@ -118,8 +113,41 @@ class EnvironmentTest(test_utils.TestCase):
       self.assertIsInstance(reward, float)
       self.assertIsInstance(done, bool)
 
+  def test_save_file_train_step(self):
+    test_netlist_dir = ('circuit_training/'
+                        'environment/test_data/sample_clustered')
+    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+                                'netlist.pb.txt')
+    init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+                                  'initial.plc')
+    output_dir = self.create_tempdir()
+    output_plc_file = os.path.join(output_dir, 'ppo_opt_placement.plc')
+    output_cd_file = os.path.join(output_dir, 'ppo_cd_placement.plc')
+
+    train_step = train_utils.create_train_step()
+    train_step.assign(1234)
+
+    env = environment.CircuitEnv(
+        netlist_file=netlist_file,
+        init_placement=init_placement,
+        is_eval=True,
+        save_best_cost=True,
+        output_plc_file=output_plc_file,
+        cd_finetune=True,
+        train_step=train_step)
+
+    obs = env.reset()
+    done = False
+    while not done:
+      action = random_action(obs['mask'])
+      obs, _, done, _ = env.step(action)
+
     self.assertTrue(os.path.exists(output_plc_file))
+    with open(output_plc_file) as f:
+      self.assertIn('Train step : 1234', f.read())
     self.assertTrue(os.path.exists(output_cd_file))
+    with open(output_cd_file) as f:
+      self.assertIn('Train step : 1234', f.read())
 
   def test_action_space(self):
     bindings = """

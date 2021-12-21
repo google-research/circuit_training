@@ -15,7 +15,6 @@
 """Eval job using a variable container to fetch the weights of the policy."""
 
 import collections
-import functools
 import os
 import statistics
 import time
@@ -96,8 +95,6 @@ class InfoMetric(py_metric.PyStepMetric):
 
 def evaluate(root_dir, variable_container_server_address, create_env_fn):
   """Evaluates greedy policy."""
-  # Create the environment.
-  env = create_env_fn()
 
   # Create the path for the serialized greedy policy.
   policy_saved_model_path = os.path.join(root_dir,
@@ -120,6 +117,9 @@ def evaluate(root_dir, variable_container_server_address, create_env_fn):
   # Create the variable container.
   train_step = train_utils.create_train_step()
   model_id = common.create_variable('model_id')
+
+  # Create the environment.
+  env = create_env_fn(train_step=train_step)
   variables = {
       reverb_variable_container.POLICY_KEY: policy.variables(),
       reverb_variable_container.TRAIN_STEP_KEY: train_step,
