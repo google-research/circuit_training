@@ -49,7 +49,7 @@ flags.DEFINE_string('variable_container_server_address', None,
 flags.DEFINE_integer('num_iterations', 10000,
                      'Total number train/eval iterations to perform.')
 flags.DEFINE_integer(
-    'sequence_length', 41,
+    'sequence_length', 134,
     'The sequence length to estimate shuffle size. Depends on the environment.'
     'Max horizon = T translates to sequence_length T+1 because of the '
     'additional boundary step (last -> first).')

@@ -46,7 +46,7 @@ flags.DEFINE_integer(
     'Collect jobs with tas ID smaller than this value writes '
     'summaries only.')
 flags.DEFINE_integer(
-    'max_sequence_length', 401,
+    'max_sequence_length', 134,
     'The sequence length for Reverb replay buffer. Depends on the environment.')
 flags.DEFINE_integer(
     'global_seed', 111,
