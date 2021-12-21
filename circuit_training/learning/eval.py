@@ -26,11 +26,22 @@ from circuit_training.learning import eval_lib
 from tf_agents.policies import greedy_policy  # pylint: disable=unused-import
 from tf_agents.system import system_multiprocessing as multiprocessing
 
+# TODO(b/211519018): Remove after the optimal placement can be written in GCS.
+flags.DEFINE_string('output_placement_save_dir', '',
+                    'File path to the output placement directory. If not set,'
+                    'defaults to root_dir/global_seed.')
+
 FLAGS = flags.FLAGS
 
 
 def main(_):
   root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))
+
+  if FLAGS.output_placement_save_path:
+    output_plc_file = os.path.join(
+        FLAGS.output_placement_save_dir, 'rl_opt_placement.plc')
+  else:
+    output_plc_file = os.path.join(root_dir, 'rl_opt_placement.plc')
 
   create_env_fn = functools.partial(
       environment.create_circuit_environment,
@@ -38,7 +49,7 @@ def main(_):
       init_placement=FLAGS.init_placement,
       is_eval=True,
       save_best_cost=True,
-      output_plc_file=os.path.join(root_dir, 'rl_opt_placement.plc'),
+      output_plc_file=output_plc_file,
       global_seed=FLAGS.global_seed,
   )
 
