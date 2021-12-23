@@ -30,6 +30,9 @@ from tf_agents.system import system_multiprocessing as multiprocessing
 flags.DEFINE_string('output_placement_save_dir', '',
                     'File path to the output placement directory. If not set,'
                     'defaults to root_dir/global_seed.')
+flags.DEFINE_bool(
+    'cd_finetune', False, 'runs coordinate descent to finetune macro '
+    'orientations. Supposed to run in eval only, not training.')
 
 FLAGS = flags.FLAGS
 
@@ -51,6 +54,7 @@ def main(_):
       save_best_cost=True,
       output_plc_file=output_plc_file,
       global_seed=FLAGS.global_seed,
+      cd_finetune=FLAGS.cd_finetune
   )
 
   eval_lib.evaluate(
