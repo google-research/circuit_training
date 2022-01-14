@@ -22,10 +22,9 @@ O., Nazi, A. and Pak, J., 2021. Nature, 594(7862), pp.207-212. [[PDF]](https://w
 Our hope is that *Circuit Training* will foster further collaborations between
 academia and industry, and enable advances in deep reinforcement learning for
 Electronic Design Automation, as well as, general combinatorial and decision
-making optimization problems. Capable of optimizing chip blocks with over
-hundreds of macros, *Circuit Training* automatically generates floor plans in
-hours, whereas baseline methods often require human experts in the loop and can
-take months
+making optimization problems. Capable of optimizing chip blocks with hundreds of
+macros, *Circuit Training* automatically generates floor plans in hours, whereas
+baseline methods often require human experts in the loop and can take months.
 
 Circuit training is built on top of [TF-Agents](https://github.com/tensorflow/agents)
 and [TensorFlow 2.x](https://www.tensorflow.org/) with support for
@@ -51,7 +50,7 @@ collection scaling to 100s of actors.
 * Places netlists with hundreds of macros and millions of stdcells (in clustered format).
 * Computes both macro location and orientation (flipping).
 * Optimizes multiple objectives including wirelength, congestion, and density.
-* Supports blockages on the grid, to model clock strap or macro blockage.
+* Supports alignment of blocks to the grid, to model clock strap or macro blockage.
 * Supports macro-to-macro, macro-to-boundary spacing constraints.
 * Allows users to specify their own technology parameters, e.g. and routing resources (in routes per micron) and macro routing allocation.
 * **Coming soon**: Tools for generating a clustered netlist given a netlist in common formats (Bookshelf and LEF/DEF).
@@ -67,7 +66,7 @@ Circuit Training requires:
    * Downloading the placement cost binary into your system path.
    * Downloading the circuit-training code.
 
-Using the code at `HEAD` with the nightly release of tf-agents is recommended.
+Using the code at `HEAD` with the nightly release of TF-Agents is recommended.
 
 ```shell
 # Installs TF-Agents with nightly versions of Reverb and TensorFlow 2.x
@@ -188,22 +187,21 @@ $  python3 -m circuit_training.learning.ppo_collect \
 <a id='Results'></a>
 ## Results
 
-The results below are for from scratch training, since the pre-trained policy
-cannot be shared at this time.
+The results below are reported for training from scratch, since the pre-trained
+model cannot be shared at this time.
 
 ### Ariane RISC-V CPU
 
 View the full details of the Ariane experiment on our [details page](./docs/ARIANE.md).
-With this code we are able to get similar results using from scratch training as
-the fine-tuned results published in the
-[paper](https://www.nature.com/articles/s41586-021-03544-w.epdf?sharing_token=tYaxh2mR5EozfsSL0WHZLdRgN0jAjWel9jnR3ZoTv0PW0K0NmVrRsFPaMa9Y5We9O4Hqf_liatg-lvhiVcYpHL_YQpqkurA31sxqtmA-E1yNUWVMMVSBxWSp7ZFFIWawYQYnEXoBE4esRDSWqubhDFWUPyI5wK_5B_YIO-D_kS8%3D).
-At the time the paper was published, the fine-tuned results were better than the
-from scratch result for a block of Ariane RISC-V. Improvements to the code have
-resulted in 50% less resources used and a 2x walltime speedup in from scratch
-training. The results below using this code base are the mean of 9 runs with 3
-different seeds. This deviates from the papers 8 runs with 8 different seeds.
-This approach was used to transparently show variation between seeds and run to
-run with the same seed.
+With this code we are able to get comparable or better results training from
+scratch as fine-tuning a pre-trained model. At the time the paper was published,
+training from a pre-trained model resulted in better results than training from
+scratch for the Ariane RISC-V. Improvements to the code have also resulted in
+50% less GPU resources needed and a 2x walltime speedup even in training from
+scratch. Below are the mean and standard deviation for 3 different seeds run 3
+times each. This is slightly different than what was used in the paper (8 runs
+each with a different seed), but better captures the different sources of
+variability.
 
 || Proxy Wirelength | Proxy Congestion | Proxy Density |
 |------|------------|------------------|---------------|
@@ -211,8 +209,10 @@ run with the same seed.
 | **std**  | 0.0036     | 0.0647           | 0.0568
 
 
-Summary of the [Paper](https://www.nature.com/articles/s41586-021-03544-w.epdf?sharing_token=tYaxh2mR5EozfsSL0WHZLdRgN0jAjWel9jnR3ZoTv0PW0K0NmVrRsFPaMa9Y5We9O4Hqf_liatg-lvhiVcYpHL_YQpqkurA31sxqtmA-E1yNUWVMMVSBxWSp7ZFFIWawYQYnEXoBE4esRDSWqubhDFWUPyI5wK_5B_YIO-D_kS8%3D)
-results from 8 runs with 8 different using fine-tuning.
+The table below summarizes the
+[paper](https://www.nature.com/articles/s41586-021-03544-w.epdf?sharing_token=tYaxh2mR5EozfsSL0WHZLdRgN0jAjWel9jnR3ZoTv0PW0K0NmVrRsFPaMa9Y5We9O4Hqf_liatg-lvhiVcYpHL_YQpqkurA31sxqtmA-E1yNUWVMMVSBxWSp7ZFFIWawYQYnEXoBE4esRDSWqubhDFWUPyI5wK_5B_YIO-D_kS8%3D)
+result for fine-tuning from a pre-trained model over 8 runs with each one using
+a different seed.
 
 || Proxy Wirelength | Proxy Congestion | Proxy Density |
 |------|------------|------------------|---------------|
@@ -244,7 +244,7 @@ $  docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_trainin
 <a id='Releases'></a>
 ## Releases
 
-While we recommend running at `HEAD` we have tagged the code base to mark
+While we recommend running at `HEAD`, we have tagged the code base to mark
 compatibility with stable releases of the underlying libraries.
 
 Release | Branch / Tag                                               | TF-Agents
@@ -259,7 +259,7 @@ $  git clone https://github.com/google-research/circuit-training.git
 $  cd circuit-training
 # Checks out the tagged version listed in the table in the releases section.
 $  git checkout v0.0.1
-# Installs the corresponding version of tf-agents along with Reverb and
+# Installs the corresponding version of TF-Agents along with Reverb and
 # Tensorflow from the table.
 $  pip install tf-agents[reverb]==x.x.x
 # Copies the placement cost binary to /usr/local/bin and makes it executable.
