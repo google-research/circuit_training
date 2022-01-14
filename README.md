@@ -19,27 +19,25 @@ Yazgan, M., Jiang, J.W., Songhori, E., Wang, S., Lee, Y.J., Johnson, E., Pathak,
 O., Nazi, A. and Pak, J., 2021. Nature, 594(7862), pp.207-212. [[PDF]](https://www.nature.com/articles/s41586-021-03544-w.epdf?sharing_token=tYaxh2mR5EozfsSL0WHZLdRgN0jAjWel9jnR3ZoTv0PW0K0NmVrRsFPaMa9Y5We9O4Hqf_liatg-lvhiVcYpHL_YQpqkurA31sxqtmA-E1yNUWVMMVSBxWSp7ZFFIWawYQYnEXoBE4esRDSWqubhDFWUPyI5wK_5B_YIO-D_kS8%3D)*
 
 
-
 Our hope is that *Circuit Training* will foster further collaborations between
 academia and industry, and enable advances in deep reinforcement learning for
 Electronic Design Automation, as well as, general combinatorial and decision
-making optimization problems. Capable of optimizing over hundreds of blocks,
-*Circuit Training*  generates floorplans in hours instead of months. This would
-have taken months to achieve manually.
+making optimization problems. Capable of optimizing chip blocks with over
+hundreds of macros, *Circuit Training* automatically generates floor plans in
+hours, whereas baseline methods often require human experts in the loop and can
+take months
 
 Circuit training is built on top of [TF-Agents](https://github.com/tensorflow/agents)
-and [TensorFlow 2.x](https://www.tensorflow.org/) with
-support for eager execution, distributed training across multi-GPUs,
-and distributed data collection scaling to 100s of actors running in
-parallel sampled from a [Reverb](https://github.com/deepmind/reverb)
-based replay buffer.
+and [TensorFlow 2.x](https://www.tensorflow.org/) with support for
+eager execution, distributed training across multiple GPUs, and distributed data
+collection scaling to 100s of actors.
 
 ## Table of contents
-<a href='#Features'>Main features</a><br>
-<a href='#Installation'>How to install</a><br>
-<a href='#Experiments'>How to run experiments</a><br>
-<a href='#Hyperparameters'>Hyperparameters</a><br>
-<a href='#Testing'>How to test</a><br>
+<a href='#Features'>Features</a><br>
+<a href='#Installation'>Installation</a><br>
+<a href='#QuickStart'>Quick start</a><br>
+<a href='#Results'>Results</a><br>
+<a href='#Testing'>Testing</a><br>
 <a href='#Releases'>Releases</a><br>
 <a href='#Contributing'>How to contribute</a><br>
 <a href='#Principles'>AI Principles</a><br>
@@ -49,7 +47,7 @@ based replay buffer.
 
 <a id='Features'></a>
 
-## Main features
+## Features
 * Places netlists with hundreds of macros and millions of stdcells (in clustered format).
 * Computes both macro location and orientation (flipping).
 * Optimizes multiple objectives including wirelength, congestion, and density.
@@ -61,85 +59,219 @@ based replay buffer.
 
 
 <a id='Installation'></a>
-## How to install
+## Installation
 
-<a id='Experiments'></a>
-## How to run experiments
+Circuit Training requires:
+
+   * Installing TF-Agents which includes Reverb and TensorFlow.
+   * Downloading the placement cost binary into your system path.
+   * Downloading the circuit-training code.
+
+Using the code at `HEAD` with the nightly release of tf-agents is recommended.
+
+```shell
+# Installs TF-Agents with nightly versions of Reverb and TensorFlow 2.x
+$  pip install tf-agents-nightly[reverb]
+# Copies the placement cost binary to /usr/local/bin and makes it executable.
+$  sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main \
+     -o  /usr/local/bin/plc_wrapper_main
+$  sudo chmod 555 /usr/local/bin/plc_wrapper_main
+# Clones the circuit-training repo.
+$  git clone https://github.com/google-research/circuit-training.git
+```
+
+<a id='QuickStart'></a>
+## Quick start
+
+This quick start places the Ariane RISC-V CPU macros by training the deep
+reinforcement policy from scratch. The `num_episodes_per_iteration` and
+`global_batch_size` used below were picked to work on a single machine training
+on CPU. The purpose is to illustrate a running system, not optimize the result.
+The result of a few thousand steps is shown in this
+[tensorboard](https://tensorboard.dev/experiment/rBEQZlV8T0mEokys3Pkj5g).
+The full scale Ariane RISC-V experiment matching the paper is detailed in
+[Circuit training for Ariane RISC-V](./docs/ARIANE.md).
+
+The following jobs will be created by the steps below:
+
+   * 1 Replay Buffer (Reverb) job
+   * 1-3 Collect jobs
+   * 1 Train job
+   * 1 Eval job
+
+Each job is started in a `tmux` session. To switch between sessions use
+`ctrl + b` followed by `s` and then select the specified session.
+
+```shell
+# Sets the environment variables needed by each job. These variables are
+# inherited by the tmux sessions created in the next step.
+$  export ROOT_DIR=./logs/run_00
+$  export REVERB_PORT=8008
+$  export REVERB_SERVER="127.0.0.1:${REVERB_PORT}"
+$  export NETLIST_FILE=./circuit_training/environment/test_data/ariane/netlist.pb.txt
+$  export INIT_PLACEMENT=./circuit_training/environment/test_data/ariane/initial.plc
+
+# Creates all the tmux sessions that will be used.
+$  tmux new-session -d -s reverb_server && \
+   tmux new-session -d -s collect_job_00 && \
+   tmux new-session -d -s collect_job_01 && \
+   tmux new-session -d -s collect_job_02 && \
+   tmux new-session -d -s train_job && \
+   tmux new-session -d -s eval_job && \
+   tmux new-session -d -s tb_job
+
+# Starts the Replay Buffer (Reverb) Job
+$  tmux attach -t reverb_server
+$  python3 -m circuit_training.learning.ppo_reverb_server \
+   --root_dir=${ROOT_DIR}  --port=${REVERB_PORT}
+
+# Starts the Training job
+# Change to the tmux session `train_job`.
+# `ctrl + b` followed by `s`
+$  python3 -m circuit_training.learning.train_ppo \
+  --root_dir=${ROOT_DIR} \
+  --replay_buffer_server_address=${REVERB_SERVER} \
+  --variable_container_server_address=${REVERB_SERVER} \
+  --num_episodes_per_iteration=16 \
+  --global_batch_size=64 \
+  --netlist_file=${NETLIST_FILE} \
+  --init_placement=${INIT_PLACEMENT}
+
+# Starts the Collect job
+# Change to the tmux session `collect_job_00`.
+# `ctrl + b` followed by `s`
+$  python3 -m circuit_training.learning.ppo_collect \
+  --root_dir=${ROOT_DIR} \
+  --replay_buffer_server_address=${REVERB_SERVER} \
+  --variable_container_server_address=${REVERB_SERVER} \
+  --task_id=0 \
+  --netlist_file=${NETLIST_FILE} \
+  --init_placement=${INIT_PLACEMENT}
+
+# Starts the Eval job
+# Change to the tmux session `eval_job`.
+# `ctrl + b` followed by `s`
+$  python3 -m circuit_training.learning.eval \
+  --root_dir=${ROOT_DIR} \
+  --variable_container_server_address=${REVERB_SERVER} \
+  --netlist_file=${NETLIST_FILE} \
+  --init_placement=${INIT_PLACEMENT}
+
+# Start Tensorboard.
+# Change to the tmux session `tb_job`.
+# `ctrl + b` followed by `s`
+$  tensorboard dev upload --logdir ./logs
+
+# <Optional>: Starts 2 more collect jobs to speed up training.
+# Change to the tmux session `collect_job_01`.
+# `ctrl + b` followed by `s`
+$  python3 -m circuit_training.learning.ppo_collect \
+  --root_dir=${ROOT_DIR} \
+  --replay_buffer_server_address=${REVERB_SERVER} \
+  --variable_container_server_address=${REVERB_SERVER} \
+  --task_id=1 \
+  --netlist_file=${NETLIST_FILE} \
+  --init_placement=${INIT_PLACEMENT}
+
+# Change to the tmux session `collect_job_02`.
+# `ctrl + b` followed by `s`
+$  python3 -m circuit_training.learning.ppo_collect \
+  --root_dir=${ROOT_DIR} \
+  --replay_buffer_server_address=${REVERB_SERVER} \
+  --variable_container_server_address=${REVERB_SERVER} \
+  --task_id=2 \
+  --netlist_file=${NETLIST_FILE} \
+  --init_placement=${INIT_PLACEMENT}
+
+```
+
+<a id='Results'></a>
+## Results
+
+The results below are for from scratch training, since the pre-trained policy
+cannot be shared at this time.
+
+### Ariane RISC-V CPU
+
+View the full details of the Ariane experiment on our [details page](./docs/ARIANE.md).
+With this code we are able to get similar results using from scratch training as
+the fine-tuned results published in the
+[paper](https://www.nature.com/articles/s41586-021-03544-w.epdf?sharing_token=tYaxh2mR5EozfsSL0WHZLdRgN0jAjWel9jnR3ZoTv0PW0K0NmVrRsFPaMa9Y5We9O4Hqf_liatg-lvhiVcYpHL_YQpqkurA31sxqtmA-E1yNUWVMMVSBxWSp7ZFFIWawYQYnEXoBE4esRDSWqubhDFWUPyI5wK_5B_YIO-D_kS8%3D).
+At the time the paper was published, the fine-tuned results were better than the
+from scratch result for a block of Ariane RISC-V. Improvements to the code have
+resulted in 50% less resources used and a 2x walltime speedup in from scratch
+training. The results below using this code base are the mean of 9 runs with 3
+different seeds. This deviates from the papers 8 runs with 8 different seeds.
+This approach was used to transparently show variation between seeds and run to
+run with the same seed.
+
+|| Proxy Wirelength | Proxy Congestion | Proxy Density |
+|------|------------|------------------|---------------|
+| **mean** | 0.1013     | 0.9174           | 0.5502
+| **std**  | 0.0036     | 0.0647           | 0.0568
+
+
+Summary of the [Paper](https://www.nature.com/articles/s41586-021-03544-w.epdf?sharing_token=tYaxh2mR5EozfsSL0WHZLdRgN0jAjWel9jnR3ZoTv0PW0K0NmVrRsFPaMa9Y5We9O4Hqf_liatg-lvhiVcYpHL_YQpqkurA31sxqtmA-E1yNUWVMMVSBxWSp7ZFFIWawYQYnEXoBE4esRDSWqubhDFWUPyI5wK_5B_YIO-D_kS8%3D)
+results from 8 runs with 8 different using fine-tuning.
+
+|| Proxy Wirelength | Proxy Congestion | Proxy Density |
+|------|------------|------------------|---------------|
+| **mean** | 0.1198     | 0.9718           | 0.5729
+| **std**  | 0.0019     | 0.0346           | 0.0086
 
 
 <a id='Testing'></a>
-## How to run tests
+## Testing
+
+```shell
+# Runs tests with nightly TF-Agents.
+$  tox -e py37,py38,py39
+# Runs with latest stable TF-Agents.
+$  tox -e py37-nightly,py38-nightly,py39-nightly
+
+# Using our Docker for CI.
+## Build the docker
+$  docker build --tag circuit_training:ci -f tools/docker/ubuntu_ci tools/docker/
+## Runs tests with nightly TF-Agents.
+$  docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:ci \
+     tox -e py37-nightly,py38-nightly,py39-nightly
+## Runs tests with latest stable TF-Agents.
+$  docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:ci \
+     tox -e py37,py38,py39
+
+```
 
 <a id='Releases'></a>
 ## Releases
 
+While we recommend running at `HEAD` we have tagged the code base to mark
+compatibility with stable releases of the underlying libraries.
 
-<a id='Hyperparameters'></a>
-## Hyperparameters
-Here, we have listed all the hyperparameters in the code and their default
-value that we used for our experiments.
-Some hyperparameters are changed from the paper to make the training more
-stable for the Ariane block (The hyperparameters in the paper were set for
-TPU blocks which have different characteristics).
-For training, we use the clipping
-version of proximal policy optimization (PPO)
-(Schulman et al., 2017) without the KL divergence penalty implemented by
-[tf-agents](https://www.tensorflow.org/agents).
-The default for the training hyperparameters, if not specified in the table, is
-the same as the defaults in the tf-agents.
+Release | Branch / Tag                                               | TF-Agents
+------- | ---------------------------------------------------------- | ------------------
+HEAD    | [main](https://github.com/google-research/circuit-training) | tf-agents-nightly
+0.0.1   | [v0.0.1](https://github.com/google-research/circuit-training/tree/v0.0.1) | tf-agents==0.11.0
 
-| Configuration | Default Value | Discussion |
-|---|---|---|
-| **Proxy reward calculation**  |
-| wirelength_weight | 1.0 |  |
-| density_weight | 1.0 | Changed from 0.1 in the paper, to stabilize the training on Ariane.  |
-| congestion_weight | 0.5 | Changed from 0.1 in the paper, to stabilize the training on Ariane. |
-|---|---|---|
-| **Standard cell placement**  |
-| num_steps | [100, 100, 100] |  |
-| io_factor | 1.0 |  |
-| move_distance_factors | [1, 1, 1] |  |
-| attract_factors | [100, 1e-3, 1e-5] |  |
-| repel_factors | [0, 1e6, 1e7] |  |
-|---|---|---|
-| **Environment observation** |
-| max_num_nodes | 4700 |  |
-| max_num_edges | 28400 |  |
-| max_grid_size | 128 |  |
-| default_location_x | 0.5 |  |
-| default_location_y | 0.5 |  |
-|---|---|---|
-| **Model architecture** |
-| num_gcn_layers | 3 |  |
-| edge_fc_layers | 1 |  |
-| gcn_node_dim | 8 |  |
-| dirichlet_alpha | 0.1 |  |
-| policy_noise_weight | 0.0 |  |
-|---|---|---|
-| **Training** |
-| optimizer | Adam | |
-| learning_rate | 4e-4 | |
-| sequence_length | 134 | |
-| num_episodes_per_iteration | 1024 |  |
-| global_batch_size | 1024 |  |
-| num_epochs | 4 |  |
-| value_pred_loss_coef | 0.5 | |
-| entropy_regularization | 0.01 | |
-| importance_ratio_clipping | 0.2 | |
-| discount_factor | 1.0 | |
-| entropy_regularization | 0.01 | |
-| value_pred_loss_coef | 0.5 | |
-| gradient_clipping | 1.0 | |
-| use_gae | False | |
-| use_td_lambda_return | False | |
-| log_prob_clipping | 0.0 | |
-| policy_l2_reg | 0.0 | |
-| value_function_l2_reg | 0.0 | |
-| shared_vars_l2_reg | 0.0 | |
+Follow this pattern to utilize the tagged releases:
+
+```shell
+$  git clone https://github.com/google-research/circuit-training.git
+$  cd circuit-training
+# Checks out the tagged version listed in the table in the releases section.
+$  git checkout v0.0.1
+# Installs the corresponding version of tf-agents along with Reverb and
+# Tensorflow from the table.
+$  pip install tf-agents[reverb]==x.x.x
+# Copies the placement cost binary to /usr/local/bin and makes it executable.
+$  sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main \
+     -o  /usr/local/bin/plc_wrapper_main
+$  sudo chmod 555 /usr/local/bin/plc_wrapper_main
+```
 
 <a id='Contributing'></a>
 ## How to contribute
-We're eager to collaborate with you! See [`CONTRIBUTING.md`](CONTRIBUTING.md)
+
+We're eager to collaborate with you! See [CONTRIBUTING](CONTRIBUTING.md)
 for a guide on how to contribute. This project adheres to TensorFlow's
 [code of conduct](CODE_OF_CONDUCT.md). By participating, you are expected to
 uphold this code of conduct.
