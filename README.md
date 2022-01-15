@@ -313,7 +313,11 @@ If you use this code, please cite both:
 ```
 @article{mirhoseini2021graph,
   title={A graph placement methodology for fast chip design},
-  author={Mirhoseini, Azalia and Goldie, Anna and Yazgan, Mustafa and Jiang, Joe Wenjie and Songhori, Ebrahim and Wang, Shen and Lee, Young-Joon and Johnson, Eric and Pathak, Omkar and Nazi, Azade and others},
+  author={Mirhoseini, Azalia and Goldie, Anna and Yazgan, Mustafa and Jiang, Joe
+  Wenjie and Songhori, Ebrahim and Wang, Shen and Lee, Young-Joon and Johnson,
+  Eric and Pathak, Omkar and Nazi, Azade and Pak, Jiwoo and Tong, Andy and
+  Srinivasa, Kavya and Hang, William and Tuncer, Emre and V. Le, Quoc and
+  Laudon, James and Ho, Richard and Carpenter, Roger and Dean, Jeff},
   journal={Nature},
   volume={594},
   number={7862},
@@ -329,7 +333,7 @@ If you use this code, please cite both:
   title = {{Circuit Training}: An open-source framework for generating chip
   floor plans with distributed deep reinforcement learning.},
   author = {Guadarrama, Sergio and Yue, Summer and Boyd, Toby and Jiang, Joe
-  and Songhori, Ebrahim and Tam, Terence and Mirhoseini, Azalia},
+  Wenjie and Songhori, Ebrahim and Tam, Terence and Mirhoseini, Azalia},
   howpublished = {\url{https://github.com/google_research/circuit_training}},
   url = "https://github.com/google_research/circuit_training",
   year = 2021,
