@@ -21,7 +21,7 @@ iterations which results in ~107K steps (gradient updates). This
 [tensorboard link](https://tensorboard.dev/experiment/NRlmrDeOT2i4QV334hrywQ)
 contains the raw results of the runs for full transparency and usefulness.
 
-Run      | Seed | Proxy Wirelength | Proxy Congestion | Proxy Density | Step
+Run id   | Seed | Proxy Wirelength | Proxy Congestion | Proxy Density | Step
 -------- | ---- | ---------------- | ---------------- | ------------- | -------
 run_00   | 111  | 0.1051           | 0.8746           | 0.5154        | 77,184
 run_01   | 111  | 0.0979           | 0.8749           | 0.5217        | 51,992
@@ -32,9 +32,11 @@ run_05   | 222  | 0.1060           | 1.0352           | 0.5886        | 37,520
 run_06   | 333  | 0.1012           | 0.8738           | 0.5110        | 46,096
 run_07   | 333  | 0.0977           | 0.8684           | 0.5109        | 35,912
 run_08   | 333  | 0.1004           | 0.8613           | 0.5160        | 48,776
-         |      |                  |                  |               |
-**mean** |      | 0.1013           | 0.9174           | 0.5502        |
-**std**  |      | 0.0036           | 0.0647           | 0.0568        |
+
+         | Proxy Wirelength | Proxy Congestion | Proxy Density
+-------- | ---------------- | ---------------- | -------------
+**mean** | 0.1013           | 0.9174           | 0.5502
+**std**  | 0.0036           | 0.0647           | 0.0568
 
 Applying coordinated descent after training resulted in improved proxy numbers
 for complex blocks like those used in TPUs as referenced in the paper. However,
@@ -318,7 +320,7 @@ the tf-agents.
 :                            :                   : paper, since it produces   :
 :                            :                   : more stable training from  :
 :                            :                   : scratch on Ariane blocks.  :
-| congestion_weight          | 0.5               | Changed fro 0.1 in the     |
+| congestion_weight          | 0.5               | Changed from 0.1 in the     |
 :                            :                   : paper, since it produces   :
 :                            :                   : more stable training from  :
 :                            :                   : scratch on Ariane blocks.. :
