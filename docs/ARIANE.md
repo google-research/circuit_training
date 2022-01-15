@@ -33,17 +33,20 @@ run_06   | 333  | 0.1012           | 0.8738           | 0.5110        | 46,096
 run_07   | 333  | 0.0977           | 0.8684           | 0.5109        | 35,912
 run_08   | 333  | 0.1004           | 0.8613           | 0.5160        | 48,776
 
-         | Proxy Wirelength | Proxy Congestion | Proxy Density
+
+_        | Proxy Wirelength | Proxy Congestion | Proxy Density
 -------- | ---------------- | ---------------- | -------------
 **mean** | 0.1013           | 0.9174           | 0.5502
 **std**  | 0.0036           | 0.0647           | 0.0568
+
 
 Applying coordinated descent after training resulted in improved proxy numbers
 for complex blocks like those used in TPUs as referenced in the paper. However,
 for the simpler Ariane RISC-V there were modest (1-2%) improvements to proxy
 wirelength and congestion.
 
-         | Proxy Wirelength | Proxy Congestion | Proxy Density
+
+_        | Proxy Wirelength | Proxy Congestion | Proxy Density
 -------- | ---------------- | ---------------- | -------------
 **mean** | 0.0988           | 0.9077           | 0.5513
 **std**  | 0.0053           | 0.0621           | 0.0589
