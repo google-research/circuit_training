@@ -14,10 +14,7 @@
 with distributed deep reinforcement learning. This framework reproduces the
 methodology published in the Nature 2021 paper:
 
-*[A graph placement methodology for fast chip design.](https://www.nature.com/articles/s41586-021-03544-w) Mirhoseini, A., Goldie, A.,
-Yazgan, M., Jiang, J.W., Songhori, E., Wang, S., Lee, Y.J., Johnson, E., Pathak,
-O., Nazi, A. and Pak, J., 2021. Nature, 594(7862), pp.207-212. [[PDF]](https://www.nature.com/articles/s41586-021-03544-w.epdf?sharing_token=tYaxh2mR5EozfsSL0WHZLdRgN0jAjWel9jnR3ZoTv0PW0K0NmVrRsFPaMa9Y5We9O4Hqf_liatg-lvhiVcYpHL_YQpqkurA31sxqtmA-E1yNUWVMMVSBxWSp7ZFFIWawYQYnEXoBE4esRDSWqubhDFWUPyI5wK_5B_YIO-D_kS8%3D)*
-
+*[A graph placement methodology for fast chip design.](https://www.nature.com/articles/s41586-021-03544-w) Azalia Mirhoseini, Anna Goldie, Mustafa Yazgan, Joe Wenjie Jiang, Ebrahim Songhori, Shen Wang, Young-Joon Lee, Eric Johnson, Omkar Pathak, Azade Nazi, Jiwoo Pak, Andy Tong, Kavya Srinivasa, William Hang, Emre Tuncer, Quoc V. Le, James Laudon, Richard Ho, Roger Carpenter & Jeff Dean, 2021. Nature, 594(7862), pp.207-212. [[PDF]](https://www.nature.com/articles/s41586-021-03544-w.epdf?sharing_token=tYaxh2mR5EozfsSL0WHZLdRgN0jAjWel9jnR3ZoTv0PW0K0NmVrRsFPaMa9Y5We9O4Hqf_liatg-lvhiVcYpHL_YQpqkurA31sxqtmA-E1yNUWVMMVSBxWSp7ZFFIWawYQYnEXoBE4esRDSWqubhDFWUPyI5wK_5B_YIO-D_kS8%3D)*
 
 Our hope is that *Circuit Training* will foster further collaborations between
 academia and industry, and enable advances in deep reinforcement learning for
