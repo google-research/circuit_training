@@ -50,7 +50,8 @@ collection scaling to 100s of actors.
 * Supports alignment of blocks to the grid, to model clock strap or macro blockage.
 * Supports macro-to-macro, macro-to-boundary spacing constraints.
 * Allows users to specify their own technology parameters, e.g. and routing resources (in routes per micron) and macro routing allocation.
-* **Coming soon**: Tools for generating a clustered netlist given a netlist in common formats (Bookshelf and LEF/DEF).
+* **Coming soon**: Tools for generating a clustered netlist given a netlist in common formats
+  (Bookshelf and [LEF/DEF](https://github.com/tfboyd/circuit_training/issues/1)).
 * **Coming soon**: Generates macro placement tcl command compatible with major EDA tools (Innovus, ICC2).
 
 
