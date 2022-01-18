@@ -316,38 +316,29 @@ the tf-agents.
 
 | Configuration              | Default Value     | Comments                   |
 | -------------------------- | ----------------- | -------------------------- |
-| **Proxy reward             |                   |                            |
-: calculation**              :                   :                            :
+| **Proxy reward calculation**                                                |
 | wirelength_weight          | 1.0               |                            |
-| density_weight             | 1.0               | Changed from 0.1 in the    |
-:                            :                   : paper, since it produces   :
-:                            :                   : more stable training from  :
-:                            :                   : scratch on Ariane blocks.  :
-| congestion_weight          | 0.5               | Changed from 0.1 in the     |
-:                            :                   : paper, since it produces   :
-:                            :                   : more stable training from  :
-:                            :                   : scratch on Ariane blocks.. :
-| **Standard cell            |                   |                            |
-: placement**                :                   :                            :
+| density_weight             | 1.0               | Changed from 0.1 in the paper, since it produces more stable training from scratch on Ariane blocks. |
+| congestion_weight          | 0.5               | Changed from 0.1 in the paper, since it produces more stable training from scratch on Ariane blocks. |
+| **Standard cell placement**                                                 |
 | num_steps                  | [100, 100, 100]   |                            |
 | io_factor                  | 1.0               |                            |
 | move_distance_factors      | [1, 1, 1]         |                            |
 | attract_factors            | [100, 1e-3, 1e-5] |                            |
 | repel_factors              | [0, 1e6, 1e7]     |                            |
-| **Environment              |                   |                            |
-: observation**              :                   :                            :
+| **Environment observation**                                                 |
 | max_num_nodes              | 4700              |                            |
 | max_num_edges              | 28400             |                            |
 | max_grid_size              | 128               |                            |
 | default_location_x         | 0.5               |                            |
 | default_location_y         | 0.5               |                            |
-| **Model architecture**     |                   |                            |
+| **Model architecture**                                                      |
 | num_gcn_layers             | 3                 |                            |
 | edge_fc_layers             | 1                 |                            |
 | gcn_node_dim               | 8                 |                            |
 | dirichlet_alpha            | 0.1               |                            |
 | policy_noise_weight        | 0.0               |                            |
-| **Training**               |                   |                            |
+| **Training**                                                                |
 | optimizer                  | Adam              |                            |
 | learning_rate              | 4e-4              |                            |
 | sequence_length            | 134               |                            |
