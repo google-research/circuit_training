@@ -84,7 +84,7 @@ reinforcement policy from scratch. The `num_episodes_per_iteration` and
 `global_batch_size` used below were picked to work on a single machine training
 on CPU. The purpose is to illustrate a running system, not optimize the result.
 The result of a few thousand steps is shown in this
-[tensorboard](https://tensorboard.dev/experiment/rBEQZlV8T0mEokys3Pkj5g).
+[tensorboard](https://tensorboard.dev/experiment/r1Xn1pD3SGKTGyo64saeaw).
 The full scale Ariane RISC-V experiment matching the paper is detailed in
 [Circuit training for Ariane RISC-V](./docs/ARIANE.md).
 
