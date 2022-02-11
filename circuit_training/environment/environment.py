@@ -193,6 +193,14 @@ class CircuitEnv(object):
     for i, macro_index in enumerate(self._plc.get_macro_indices()):
       self._macro_index_to_pos[macro_index] = i
 
+    # Padding for mapping the placement canvas on the agent canvas.
+    rows_pad = self._observation_config.max_grid_size - self._grid_rows
+    cols_pad = self._observation_config.max_grid_size - self._grid_cols
+    self._up_pad = rows_pad // 2
+    self._right_pad = cols_pad // 2
+    self._low_pad = rows_pad - self._up_pad
+    self._left_pad = cols_pad - self._right_pad
+
     self._plc.unplace_all_nodes()
     self._saved_cost = np.inf
     self._current_actions = []
@@ -237,11 +245,8 @@ class CircuitEnv(object):
       node_index = self._sorted_node_indices[self._current_node]
       mask = np.asarray(self._plc.get_node_mask(node_index), dtype=np.int32)
       mask = np.reshape(mask, [self._grid_rows, self._grid_cols])
-      mask = np.pad(
-          mask, ((0, self._observation_config.max_grid_size - self._grid_rows),
-                 (0, self._observation_config.max_grid_size - self._grid_cols)),
-          mode='constant',
-          constant_values=0)
+      pad = ((self._up_pad, self._low_pad), (self._right_pad, self._left_pad))
+      mask = np.pad(mask, pad, mode='constant', constant_values=0)
     return np.reshape(
         mask, (self._observation_config.max_grid_size**2,)).astype(np.int32)
 
@@ -331,12 +336,15 @@ class CircuitEnv(object):
 
   def translate_to_original_canvas(self, action: int) -> int:
     """Translates a raw location to real one in the original canvas."""
-    a_i = action // self._observation_config.max_grid_size
-    a_j = action % self._observation_config.max_grid_size
-    if a_i >= self._grid_rows or a_j >= self._grid_cols:
-      raise InfeasibleActionError(action, self._current_mask)
-    else:
+    up_pad = (self._observation_config.max_grid_size - self._grid_rows) // 2
+    right_pad = (self._observation_config.max_grid_size - self._grid_cols) // 2
+
+    a_i = action // self._observation_config.max_grid_size - up_pad
+    a_j = action % self._observation_config.max_grid_size - right_pad
+    if 0 <= a_i < self._grid_rows or 0 <= a_j < self._grid_cols:
       action = a_i * self._grid_cols + a_j
+    else:
+      raise InfeasibleActionError(action, self._current_mask)
     return action
 
   def place_node(self, node_index: int, action: int) -> None:

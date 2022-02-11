@@ -168,10 +168,16 @@ class EnvironmentTest(test_utils.TestCase):
     self.assertFalse(env.action_space.contains(128**2))
 
     mask = env.reset()['mask']
-    self.assertTrue(mask[0])
-    self.assertTrue(mask[1 * 128 + 1])  # (1, 1)
-    # Outside of the canvas:
-    self.assertFalse(mask[2 * 128 + 2])  # (2, 2)
+
+    # Outside of the real canvas:
+    self.assertFalse(mask[0])
+    self.assertFalse(mask[-1])
+
+    # Inside of the real canvas:
+    up_pad = (128 - 2) // 2
+    right_pad = (128 - 2) // 2
+    self.assertTrue(mask[(up_pad + 0) * 128 + (right_pad + 0)])  # (0, 0)
+    self.assertTrue(mask[(up_pad + 1) * 128 + (right_pad + 1)])  # (1, 1)
 
   def test_infisible(self):
     test_netlist_dir = ('circuit_training/'
