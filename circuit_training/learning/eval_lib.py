@@ -38,6 +38,11 @@ flags.DEFINE_string('netlist_file', '',
                     'File path to the netlist file.')
 flags.DEFINE_string('init_placement', '',
                     'File path to the init placement file.')
+# TODO(b/219085316): Open source dreamplace.
+flags.DEFINE_string('std_cell_placer_mode', 'fd',
+                    'Options for fast std cells placement: `fd` (uses the '
+                    'force-directed algorithm), `dreamplace` (uses DREAMPlace '
+                    'algorithm).')
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
 flags.DEFINE_string('variable_container_server_address', None,
