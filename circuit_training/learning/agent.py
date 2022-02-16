@@ -452,7 +452,6 @@ def create_circuit_ppo_grl_agent(
     time_step_tensor_spec: types.TimeStep, strategy: tf.distribute.Strategy,
     static_features=None,
     use_model_tpu=False,
-    unrolled=True,
     **kwargs) -> CircuitPPOAgent:
   """Creates a PPO agent using the GRL networks."""
 
@@ -461,7 +460,7 @@ def create_circuit_ppo_grl_agent(
       action_tensor_spec,
       static_features=static_features,
       use_model_tpu=use_model_tpu,
-      unrolled=unrolled)
+  )
   grl_actor_net = model.GrlPolicyModel(grl_shared_net, observation_tensor_spec,
                                        action_tensor_spec)
   grl_value_net = model.GrlValueModel(observation_tensor_spec, grl_shared_net)

@@ -14,6 +14,8 @@
 # limitations under the License.
 """Tests for circuit_training.model.model_lib."""
 
+# TODO(b/219815138): Create a test verifying TPU model behaves the same as GPU.
+
 from absl import flags
 from absl import logging
 from circuit_training.environment import observation_config
@@ -35,7 +37,7 @@ def make_strategy():
     resolver = tf.distribute.cluster_resolver.TPUClusterResolver('')
     tf.config.experimental_connect_to_cluster(resolver)
     tf.tpu.experimental.initialize_tpu_system(resolver)
-    return tf.distribute.experimental.TPUStrategy(resolver)
+    return tf.distribute.TPUStrategy(resolver)
   elif FLAGS.strategy_type == 'gpu':
     return strategy_utils.get_strategy(tpu=None, use_gpu=True)
   else:
@@ -49,8 +51,12 @@ class ModelTest(test_utils.TestCase):
     static_features = config.observation_space.sample()
     strategy = make_strategy()
     with strategy.scope():
-      test_model = model_lib.CircuitTrainingModel(
-          static_features=static_features)
+      if isinstance(strategy, tf.distribute.TPUStrategy):
+        test_model = model_lib.CircuitTrainingTPUModel(
+            static_features=static_features)
+      else:
+        test_model = model_lib.CircuitTrainingModel(
+            static_features=static_features)
 
     @tf.function
     def forward():
@@ -71,8 +77,12 @@ class ModelTest(test_utils.TestCase):
     static_features = config.observation_space.sample()
     strategy = make_strategy()
     with strategy.scope():
-      test_model = model_lib.CircuitTrainingModel(
-          static_features=static_features)
+      if isinstance(strategy, tf.distribute.TPUStrategy):
+        test_model = model_lib.CircuitTrainingTPUModel(
+            static_features=static_features)
+      else:
+        test_model = model_lib.CircuitTrainingModel(
+            static_features=static_features)
       optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
 
     obs = config.observation_space.sample()

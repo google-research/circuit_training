@@ -483,3 +483,250 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     value = self._value_head(h, training=training)
 
     return logits, value
+
+
+class CircuitTrainingTPUModel(CircuitTrainingModel):
+  """Model optimized for TPU performance using map_fn."""
+
+  def _scatter_count(self, edge_h: tf.Tensor,
+                     indices: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+    """Aggregate (reduce sum) edge embeddings to nodes.
+
+    Args:
+      edge_h: A [-1, #edges, h] tensor of edge embeddings.
+      indices: A [-1, #edges] tensor of node index of an edge (sparse adjacency
+        indices).
+
+    Returns:
+      A [-1, #nodes, h] tensor of aggregated node embeddings and a
+      [-1, #nodes, 1] tensor of edge count per node for finding the mean.
+    """
+    batch = tf.shape(edge_h)[0]
+    num_lattents = edge_h.shape[2]
+    h_node = tf.zeros(
+        [batch, self._observation_config.max_num_nodes, num_lattents])
+    count_edge = tf.zeros_like(h_node)
+    count = tf.ones_like(edge_h)
+
+    indices = tf.expand_dims(indices, axis=-1)
+    h_node = tf.map_fn(
+        lambda x: tf.tensor_scatter_nd_add(x[0], x[1], x[2]),
+        (h_node, indices, edge_h),
+        fn_output_signature=tf.TensorSpec(
+            shape=(self._observation_config.max_num_nodes, num_lattents)))
+    count_edge = tf.map_fn(
+        lambda x: tf.tensor_scatter_nd_add(x[0], x[1], x[2]),
+        (count_edge, indices, count),
+        fn_output_signature=tf.TensorSpec(
+            shape=(self._observation_config.max_num_nodes, num_lattents)))
+    return h_node, count_edge
+
+  def gather_to_edges(
+      self, h_nodes: tf.Tensor, sparse_adj_i: tf.Tensor,
+      sparse_adj_j: tf.Tensor,
+      sparse_adj_weight: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+    """Gathers node embeddings to edges.
+
+    For each edge, there are two node embeddings. It concats them together with
+    the edge weight. It also masks the output with 0 for edges with no weight.
+
+    Args:
+      h_nodes: A [-1, #node, h] tensor of node embeddings.
+      sparse_adj_i: A [-1, #edges] tensor for the 1st node index of an edge.
+      sparse_adj_j: A [-1, #edges] tensor for the 2nd node index of an edge.
+      sparse_adj_weight: A [-1, #edges] tensor for the weight of an edge. 0 for
+        fake padded edges.
+
+    Returns:
+      A [-1, #edges, 2*h+1], [-1, #edges, 2*h+1]  tensor of edge embeddings.
+    """
+
+    h_edges_1 = tf.map_fn(
+        lambda x: tf.gather(x[0], x[1], batch_dims=0),
+        (h_nodes, sparse_adj_i),
+        fn_output_signature=tf.float32)
+    h_edges_2 = tf.map_fn(
+        lambda x: tf.gather(x[0], x[1], batch_dims=0),
+        (h_nodes, sparse_adj_j),
+        fn_output_signature=tf.float32)
+    h_edges = tf.concat([h_edges_1, h_edges_2, sparse_adj_weight], axis=2)
+    mask = tf.broadcast_to(sparse_adj_weight != 0.0, tf.shape(h_edges))
+    return tf.where(mask, h_edges, tf.zeros_like(h_edges))
+
+  def call(self,
+           inputs: tf.Tensor,
+           training: bool = False,
+           is_eval: bool = False) -> Tuple[Dict[Text, tf.Tensor], tf.Tensor]:
+    # Netlist metadata.
+    netlist_metadata_inputs = [
+        self._get_static_input(key, inputs)
+        for key in observation_config.NETLIST_METADATA
+    ]
+
+    # Graph.
+    sparse_adj_weight = self._get_static_input('sparse_adj_weight', inputs)
+    sparse_adj_i = tf.cast(
+        self._get_static_input('sparse_adj_i', inputs), dtype=tf.int32)
+    sparse_adj_j = tf.cast(
+        self._get_static_input('sparse_adj_j', inputs), dtype=tf.int32)
+
+    # Node features.
+    node_types = self._get_static_input('node_types', inputs)
+    is_node_placed = tf.cast(inputs['is_node_placed'], dtype=tf.float32)
+    macros_w = self._get_static_input('macros_w', inputs)
+    macros_h = self._get_static_input('macros_h', inputs)
+    locations_x = inputs['locations_x']
+    locations_y = inputs['locations_y']
+
+    # Current node.
+    current_node = tf.cast(inputs['current_node'], dtype=tf.int32)
+
+    is_hard_macro = tf.cast(
+        tf.math.equal(node_types, observation_config.HARD_MACRO),
+        dtype=tf.float32)
+    is_soft_macro = tf.cast(
+        tf.math.equal(node_types, observation_config.SOFT_MACRO),
+        dtype=tf.float32)
+    is_port_cluster = tf.cast(
+        tf.math.equal(node_types, observation_config.PORT_CLUSTER),
+        dtype=tf.float32)
+
+    netlist_metadata = tf.concat(netlist_metadata_inputs, axis=1)
+    h_metadata = self._metadata_encoder(netlist_metadata, training=training)
+
+    h_nodes = tf.stack([
+        locations_x,
+        locations_y,
+        macros_w,
+        macros_h,
+        is_hard_macro,
+        is_soft_macro,
+        is_port_cluster,
+        is_node_placed,
+    ],
+                       axis=2)
+
+    h_nodes = self._feature_encoder(h_nodes, training=training)
+
+    # Edge-centric GCN
+    #
+    # Here, we are using a modified version of Graph Convolutional Network
+    # (GCN)[1] that focuses on edge properties rather than node properties.
+    # In this modified GCN, the features of neighbouring nodes are
+    # mixed together to create edge features. Then, edge features are
+    # aggregated on the connected nodes to create the output node embedding.
+    # The GCN message passing happens indirectly between neighbouring nodes
+    # through the mixing on the edges.
+    #
+    # Edge-centric GCN for Circuit Training
+    #
+    # The nodes of the circuit training observation graph are hard macros,
+    # soft macros, and port clusters and the edges are the wires between them.
+    # The intuition behind using edge-centric GCN was that the wirelength and
+    # congestion costs (reward signals) depends on properties of the
+    # wires (edge) and not the macros.
+    # This architecture has shown promising results on predicting supervised
+    # graph regression for predicting wirelength and congestion and we hope
+    # it performs well in reinforcement setting to predict value and policy.
+    #
+    # An alternative approach was applying original GCN on the Line Graph of
+    # the ckt graph (see https://en.wikipedia.org/wiki/Line_graph).
+    # Nodes of the line graph correspond to the edges of the original graph.
+    # However, the adjacency matrix of the line graph will be prohibitively
+    # large and can't be readily processed by GCN.
+    #
+    # See figures in http://shortn/_j1NsgZBqAr for edge-centric GCN.
+    #
+    # [1] Kipf and Welling, 2016.
+
+    def update_tpu(h_nodes, i=0):
+      # Optimizing scatter/gather performance on TPUs.
+      # For bi-directional graph.
+      h_edges_1 = tf.map_fn(
+          lambda x: tf.gather(x[0], x[1], batch_dims=0),
+          (h_nodes, sparse_adj_i),
+          fn_output_signature=tf.float32)
+      h_edges_2 = tf.map_fn(
+          lambda x: tf.gather(x[0], x[1], batch_dims=0),
+          (h_nodes, sparse_adj_j),
+          fn_output_signature=tf.float32)
+
+      h_edges_12 = tf.concat([h_edges_1, h_edges_2, sparse_adj_weight], axis=-1)
+      mask = tf.broadcast_to(sparse_adj_weight != 0.0, tf.shape(h_edges_12))
+      h_edges_i_j = tf.where(mask, h_edges_12, tf.zeros_like(h_edges_12))
+
+      # h_edges_j_i = self.gather_to_edges(
+      h_edges_21 = tf.concat([h_edges_2, h_edges_1, sparse_adj_weight], axis=-1)
+      h_edges_j_i = tf.where(mask, h_edges_21, tf.zeros_like(h_edges_21))
+
+      h_edges = (self._edge_fc_list[i](h_edges_i_j, training=training) +
+                 self._edge_fc_list[i](h_edges_j_i, training=training)) / 2.0
+
+      h_node = tf.zeros_like(h_nodes)
+      num_lattents = h_edges.shape[2]
+      count_edge = tf.zeros_like(h_node)
+      count = tf.ones_like(h_edges)
+      indices = tf.expand_dims(sparse_adj_i, axis=-1)
+      h_nodes_1 = tf.map_fn(
+          lambda x: tf.tensor_scatter_nd_add(x[0], x[1], x[2]),
+          (h_node, indices, h_edges),
+          fn_output_signature=tf.TensorSpec(
+              shape=(self._observation_config.max_num_nodes, num_lattents)))
+      count_1 = tf.map_fn(
+          lambda x: tf.tensor_scatter_nd_add(x[0], x[1], x[2]),
+          (count_edge, indices, count),
+          fn_output_signature=tf.TensorSpec(
+              shape=(self._observation_config.max_num_nodes, num_lattents)))
+      indices = tf.expand_dims(sparse_adj_j, axis=-1)
+      h_nodes_2 = tf.map_fn(
+          lambda x: tf.tensor_scatter_nd_add(x[0], x[1], x[2]),
+          (h_node, indices, h_edges),
+          fn_output_signature=tf.TensorSpec(
+              shape=(self._observation_config.max_num_nodes, num_lattents)))
+      count_2 = tf.map_fn(
+          lambda x: tf.tensor_scatter_nd_add(x[0], x[1], x[2]),
+          (count_edge, indices, count),
+          fn_output_signature=tf.TensorSpec(
+              shape=(self._observation_config.max_num_nodes, num_lattents)))
+
+      h_nodes_new = (h_nodes_1 + h_nodes_2) / (count_1 + count_2 + self.EPSILON)
+      # Skip connection.
+      h_nodes = h_nodes_new + h_nodes
+      return h_nodes, h_edges
+
+    sparse_adj_weight = tf.expand_dims(
+        sparse_adj_weight, axis=-1, name='sparse_adj_weight')
+
+    h_nodes = tf.identity(h_nodes, 'initial_h_nodes')
+    for i in range(self._num_gcn_layers):
+      h_nodes, h_edges = update_tpu(h_nodes, i)
+
+    observation_hiddens = []
+    observation_hiddens.append(h_metadata)
+
+    h_all_edges = tf.reduce_mean(h_edges, axis=1)
+    observation_hiddens.append(h_all_edges)
+
+    h_current_node = tf.map_fn(
+        lambda x: tf.gather(x[0], x[1], batch_dims=0),
+        (h_nodes, current_node),
+        fn_output_signature=tf.float32)
+
+    h_attended = self.self_attention(h_current_node, h_nodes, training=training)
+    observation_hiddens.append(h_attended)
+
+    h_current_node = tf.squeeze(h_current_node, axis=1)
+    observation_hiddens.append(h_current_node)
+
+    h = tf.concat(observation_hiddens, axis=1)
+
+    location_logits = self._policy_location_head(h, training=training)
+    # smart_cond avoids using tf.cond when condition value is static.
+    logits = {
+        'location':
+            smart_cond(is_eval, lambda: location_logits,
+                       lambda: self.add_noise(location_logits)),
+    }
+    value = self._value_head(h, training=training)
+
+    return logits, value

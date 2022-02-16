@@ -40,20 +40,22 @@ class GrlModel(network.Network):
                state_spec=(),
                policy_noise_weight: float = 0.0,
                static_features=None,
-               use_model_tpu=True,
-               unrolled=True):
+               use_model_tpu=True):
 
     super(GrlModel, self).__init__(
         input_tensor_spec=input_tensors_spec, state_spec=state_spec, name=name)
 
-    # TODO(esonghori): Remove use_model_tpu.
-    del use_model_tpu
     if static_features:
       logging.info('Static features are passed to the model construction.')
 
-    self._model = model_lib.CircuitTrainingModel(
-        policy_noise_weight=policy_noise_weight,
-        static_features=static_features)
+    if use_model_tpu:
+      self._model = model_lib.CircuitTrainingTPUModel(
+          policy_noise_weight=policy_noise_weight,
+          static_features=static_features)
+    else:
+      self._model = model_lib.CircuitTrainingModel(
+          policy_noise_weight=policy_noise_weight,
+          static_features=static_features)
 
   def call(self, inputs, network_state=()):
     logits, value = self._model(inputs)
