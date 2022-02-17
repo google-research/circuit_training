@@ -124,7 +124,7 @@ def evaluate(root_dir, variable_container_server_address, create_env_fn):
   model_id = common.create_variable('model_id')
 
   # Create the environment.
-  env = create_env_fn(train_step=train_step)
+  env = create_env_fn()
   variables = {
       reverb_variable_container.POLICY_KEY: policy.variables(),
       reverb_variable_container.TRAIN_STEP_KEY: train_step,
