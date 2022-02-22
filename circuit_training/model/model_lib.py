@@ -16,7 +16,7 @@
 import sys
 from typing import Dict, Optional, Text, Union, Callable, Tuple
 
-from circuit_training.environment import observation_config
+from circuit_training.environment import observation_config as observation_config_lib
 import gin
 import numpy as np
 import tensorflow as tf
@@ -69,6 +69,8 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
   def __init__(
       self,
       static_features: Optional[Dict[Text, np.ndarray]] = None,
+      observation_config: Optional[
+          observation_config_lib.ObservationConfig] = None,
       num_gcn_layers: int = 3,
       edge_fc_layers: int = 1,
       gcn_node_dim: int = 8,
@@ -82,6 +84,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
       static_features: Optional static features that are invariant across steps
         on the same netlist, such as netlist metadata and the adj graphs. If not
         provided, use the input features in the call method.
+      observation_config: Optional observation config.
       num_gcn_layers: Number of GCN layers.
       edge_fc_layers: Number of fully connected layers in the GCN kernel.
       gcn_node_dim: Node embedding dimension.
@@ -96,7 +99,8 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     self._policy_noise_weight = policy_noise_weight
     self._seed = seed
     self._static_features = static_features
-    self._observation_config = observation_config.ObservationConfig()
+    self._observation_config = (
+        observation_config or observation_config_lib.ObservationConfig())
 
     seed = tfp.util.SeedStream(self._seed, salt='kernel_initializer_seed')
     kernel_initializer = tf.keras.initializers.glorot_uniform(seed=seed() %
@@ -337,7 +341,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
 
     Args:
       static_feature_key: a feature key defined in
-        observation_config.STATIC_OBSERVATIONS
+        observation_config_lib.STATIC_OBSERVATIONS
       inputs: the dictionary of input features.
 
     Returns:
@@ -363,7 +367,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     # Netlist metadata.
     netlist_metadata_inputs = [
         self._get_static_input(key, inputs)
-        for key in observation_config.NETLIST_METADATA
+        for key in observation_config_lib.NETLIST_METADATA
     ]
 
     # Graph.
@@ -385,13 +389,13 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     current_node = tf.cast(inputs['current_node'], dtype=tf.int32)
 
     is_hard_macro = tf.cast(
-        tf.math.equal(node_types, observation_config.HARD_MACRO),
+        tf.math.equal(node_types, observation_config_lib.HARD_MACRO),
         dtype=tf.float32)
     is_soft_macro = tf.cast(
-        tf.math.equal(node_types, observation_config.SOFT_MACRO),
+        tf.math.equal(node_types, observation_config_lib.SOFT_MACRO),
         dtype=tf.float32)
     is_port_cluster = tf.cast(
-        tf.math.equal(node_types, observation_config.PORT_CLUSTER),
+        tf.math.equal(node_types, observation_config_lib.PORT_CLUSTER),
         dtype=tf.float32)
 
     netlist_metadata = tf.concat(netlist_metadata_inputs, axis=1)
@@ -560,7 +564,7 @@ class CircuitTrainingTPUModel(CircuitTrainingModel):
     # Netlist metadata.
     netlist_metadata_inputs = [
         self._get_static_input(key, inputs)
-        for key in observation_config.NETLIST_METADATA
+        for key in observation_config_lib.NETLIST_METADATA
     ]
 
     # Graph.
@@ -582,13 +586,13 @@ class CircuitTrainingTPUModel(CircuitTrainingModel):
     current_node = tf.cast(inputs['current_node'], dtype=tf.int32)
 
     is_hard_macro = tf.cast(
-        tf.math.equal(node_types, observation_config.HARD_MACRO),
+        tf.math.equal(node_types, observation_config_lib.HARD_MACRO),
         dtype=tf.float32)
     is_soft_macro = tf.cast(
-        tf.math.equal(node_types, observation_config.SOFT_MACRO),
+        tf.math.equal(node_types, observation_config_lib.SOFT_MACRO),
         dtype=tf.float32)
     is_port_cluster = tf.cast(
-        tf.math.equal(node_types, observation_config.PORT_CLUSTER),
+        tf.math.equal(node_types, observation_config_lib.PORT_CLUSTER),
         dtype=tf.float32)
 
     netlist_metadata = tf.concat(netlist_metadata_inputs, axis=1)

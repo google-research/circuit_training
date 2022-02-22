@@ -14,9 +14,9 @@
 # limitations under the License.
 """This class extracts features from observations."""
 
-from typing import Dict, Text, Tuple
+from typing import Dict, Optional, Text, Tuple
 
-from circuit_training.environment import observation_config
+from circuit_training.environment import observation_config as observation_config_lib
 from circuit_training.environment import plc_client
 import gin
 import numpy as np
@@ -30,10 +30,13 @@ class ObservationExtractor(object):
 
   def __init__(self,
                plc: plc_client.PlacementCost,
+               observation_config: Optional[
+                   observation_config_lib.ObservationConfig] = None,
                default_location_x: float = 0.5,
                default_location_y: float = 0.5):
     self.plc = plc
-    self._observation_config = observation_config.ObservationConfig()
+    self._observation_config = (
+        observation_config or observation_config_lib.ObservationConfig())
     self._default_location_x = default_location_x
     self._default_location_y = default_location_y
 
@@ -125,11 +128,11 @@ class ObservationExtractor(object):
     types = []
     for macro_idx in self.plc.get_macro_indices():
       if self.plc.is_node_soft_macro(macro_idx):
-        types.append(observation_config.SOFT_MACRO)
+        types.append(observation_config_lib.SOFT_MACRO)
       else:
-        types.append(observation_config.HARD_MACRO)
+        types.append(observation_config_lib.HARD_MACRO)
     for _ in range(len(self.clustered_port_locations_vec)):
-      types.append(observation_config.PORT_CLUSTER)
+      types.append(observation_config_lib.PORT_CLUSTER)
     features['node_types'] = np.asarray(types).astype(np.int32)
 
   def _extract_macro_size(self, features: Dict[Text, np.ndarray]) -> None:
@@ -232,19 +235,19 @@ class ObservationExtractor(object):
     features['normalized_num_hard_macros'] = np.asarray([
         np.sum(
             np.equal(features['node_types'],
-                     observation_config.HARD_MACRO).astype(np.float32)) /
+                     observation_config_lib.HARD_MACRO).astype(np.float32)) /
         self._observation_config.max_num_nodes
     ]).astype(np.float32)
     features['normalized_num_soft_macros'] = np.asarray([
         np.sum(
             np.equal(features['node_types'],
-                     observation_config.SOFT_MACRO).astype(np.float32)) /
+                     observation_config_lib.SOFT_MACRO).astype(np.float32)) /
         self._observation_config.max_num_nodes
     ]).astype(np.float32)
     features['normalized_num_port_clusters'] = np.asarray([
         np.sum(
             np.equal(features['node_types'],
-                     observation_config.PORT_CLUSTER).astype(np.float32)) /
+                     observation_config_lib.PORT_CLUSTER).astype(np.float32)) /
         self._observation_config.max_num_nodes
     ]).astype(np.float32)
 
@@ -339,25 +342,26 @@ class ObservationExtractor(object):
   def get_static_features(self) -> Dict[Text, np.ndarray]:
     return {
         key: self._features[key]
-        for key in observation_config.STATIC_OBSERVATIONS
+        for key in observation_config_lib.STATIC_OBSERVATIONS
     }
 
   def get_initial_features(self) -> Dict[Text, np.ndarray]:
     return {
         key: self._features[key]
-        for key in observation_config.INITIAL_OBSERVATIONS
+        for key in observation_config_lib.INITIAL_OBSERVATIONS
     }
 
   def _update_dynamic_features(self, previous_node_index: int,
                                current_node_index: int,
                                mask: np.ndarray) -> None:
+    """Updates the dynamic features."""
     if previous_node_index >= 0:
       x, y = self.plc.get_node_location(
           self.plc.get_macro_indices()[previous_node_index])
-      self._features['locations_x'][previous_node_index] = x / (
-          self.width + ObservationExtractor.EPSILON)
-      self._features['locations_y'][previous_node_index] = y / (
-          self.height + ObservationExtractor.EPSILON)
+      self._features['locations_x'][previous_node_index] = (
+          x / (self.width + ObservationExtractor.EPSILON))
+      self._features['locations_y'][previous_node_index] = (
+          y / (self.height + ObservationExtractor.EPSILON))
       self._features['is_node_placed'][previous_node_index] = 1
     self._features['mask'] = mask.astype(np.int32)
     self._features['current_node'] = np.asarray([current_node_index
@@ -369,7 +373,7 @@ class ObservationExtractor(object):
     self._update_dynamic_features(previous_node_index, current_node_index, mask)
     return {
         key: self._features[key]
-        for key in observation_config.DYNAMIC_OBSERVATIONS
+        for key in observation_config_lib.DYNAMIC_OBSERVATIONS
         if key in self._features
     }
 

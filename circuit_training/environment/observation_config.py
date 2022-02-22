@@ -14,7 +14,7 @@
 # limitations under the License.
 """A class to store the observation shape and sizes."""
 
-from typing import Dict, List, Text, Tuple, Union
+from typing import Dict, List, Optional, Text, Tuple, Union
 
 import gin
 import gym
@@ -156,8 +156,14 @@ class ObservationConfig(object):
 
 def _to_dict(
     flatten_obs: TensorType,
-    keys: FeatureKeyType) -> Dict[Text, TensorType]:
-  obs_space = ObservationConfig().observation_space
+    keys: FeatureKeyType,
+    observation_config: Optional[ObservationConfig] = None
+) -> Dict[Text, TensorType]:
+  """Unflatten the observation to a dictionary."""
+  if observation_config:
+    obs_space = observation_config.observation_space
+  else:
+    obs_space = ObservationConfig().observation_space
   splits = [obs_space[k].shape[0] for k in keys]
   splitted_obs = tf.split(flatten_obs, splits, axis=-1)
   return {k: o for o, k in zip(splitted_obs, keys)}
@@ -185,37 +191,58 @@ def flatten_initial(dict_obs: Dict[Text, TensorType]) -> TensorType:
   return _flatten(dict_obs=dict_obs, keys=INITIAL_OBSERVATIONS)
 
 
-def to_dict_static(flatten_obs: TensorType) -> Dict[Text, TensorType]:
+def to_dict_static(
+    flatten_obs: TensorType,
+    observation_config: Optional[ObservationConfig] = None
+) -> Dict[Text, TensorType]:
   """Convert the flattend numpy array of static observations back to a dict.
 
   Args:
     flatten_obs: a numpy array of static observations.
+    observation_config: Optional observation config.
 
   Returns:
     A dict representation of the observations.
   """
-  return _to_dict(flatten_obs=flatten_obs, keys=STATIC_OBSERVATIONS)
+  return _to_dict(
+      flatten_obs=flatten_obs,
+      keys=STATIC_OBSERVATIONS,
+      observation_config=observation_config)
 
 
-def to_dict_dynamic(flatten_obs: TensorType) -> Dict[Text, TensorType]:
+def to_dict_dynamic(
+    flatten_obs: TensorType,
+    observation_config: Optional[ObservationConfig] = None
+) -> Dict[Text, TensorType]:
   """Convert the flattend numpy array of dynamic observations back to a dict.
 
   Args:
     flatten_obs: a numpy array of dynamic observations.
+    observation_config: Optional observation config.
 
   Returns:
     A dict representation of the observations.
   """
-  return _to_dict(flatten_obs=flatten_obs, keys=DYNAMIC_OBSERVATIONS)
+  return _to_dict(
+      flatten_obs=flatten_obs,
+      keys=DYNAMIC_OBSERVATIONS,
+      observation_config=observation_config)
 
 
-def to_dict_all(flatten_obs: TensorType) -> Dict[Text, TensorType]:
+def to_dict_all(
+    flatten_obs: TensorType,
+    observation_config: Optional[ObservationConfig] = None
+) -> Dict[Text, TensorType]:
   """Convert the flattend numpy array of observations back to a dict.
 
   Args:
     flatten_obs: a numpy array of observations.
+    observation_config: Optional observation config.
 
   Returns:
     A dict representation of the observations.
   """
-  return _to_dict(flatten_obs=flatten_obs, keys=ALL_OBSERVATIONS)
+  return _to_dict(
+      flatten_obs=flatten_obs,
+      keys=ALL_OBSERVATIONS,
+      observation_config=observation_config)

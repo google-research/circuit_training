@@ -22,7 +22,6 @@ from circuit_training.environment import observation_config
 from circuit_training.environment import observation_extractor
 from circuit_training.environment import placement_util
 from circuit_training.utils import test_utils
-import gin
 import numpy as np
 
 FLAGS = flags.FLAGS
@@ -36,14 +35,9 @@ class ObservationExtractorTest(test_utils.TestCase):
 
   def setUp(self):
     super(ObservationExtractorTest, self).setUp()
-    bindings = """
-      ObservationConfig.max_num_edges = 8
-      ObservationConfig.max_num_nodes = 6
-      ObservationConfig.max_grid_size = 10
-    """
-    gin.parse_config(bindings)
 
-    self._observation_config = observation_config.ObservationConfig()
+    self._observation_config = observation_config.ObservationConfig(
+        max_num_edges=8, max_num_nodes=6, max_grid_size=10)
 
     # Macros name                      : M0, M1, Grp_2
     # Order in plc.get_macro_indices():  0,  1,  2
@@ -63,7 +57,8 @@ class ObservationExtractorTest(test_utils.TestCase):
     plc.update_node_coords('P1', 150, 199.5)  # Top
     plc.update_port_sides()
     plc.snap_ports_to_edges()
-    self.extractor = observation_extractor.ObservationExtractor(plc=plc)
+    self.extractor = observation_extractor.ObservationExtractor(
+        plc=plc, observation_config=self._observation_config)
 
   def test_static_features(self):
     static_obs = self.extractor.get_static_features()

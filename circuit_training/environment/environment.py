@@ -17,13 +17,14 @@
 import datetime
 import math
 import os
-from typing import Any, Dict, Text, Tuple, Optional
+from typing import Any, Callable, Dict, Text, Tuple, Optional
 
 from absl import logging
 from circuit_training.environment import coordinate_descent_placer as cd_placer
 from circuit_training.environment import observation_config
 from circuit_training.environment import observation_extractor
 from circuit_training.environment import placement_util
+from circuit_training.environment import plc_client
 import gin
 import gym
 import numpy as np
@@ -55,14 +56,17 @@ class InfeasibleActionError(ValueError):
 
 
 @gin.configurable
-def cost_fn(plc,
-            wirelength_weight: float = 1.0,
-            density_weight: float = 1.0,
-            congestion_weight: float = 0.5):
-  """Returns the RL cost.
+def cost_info_function(
+    plc: plc_client.PlacementCost,
+    done: bool,
+    wirelength_weight: float = 1.0,
+    density_weight: float = 1.0,
+    congestion_weight: float = 0.5) -> Tuple[float, Dict[Text, float]]:
+  """Returns the RL cost and info.
 
   Args:
     plc: Placement cost object.
+    done: Set if it is the terminal step.
     wirelength_weight:  Weight of wirelength in the reward function.
     density_weight: Weight of density in the reward function.
     congestion_weight: Weight of congestion in the reward function used only for
@@ -76,8 +80,14 @@ def cost_fn(plc,
 
   Notes: we found the default congestion and density weights more stable.
   """
-
   proxy_cost = 0.0
+
+  if not done:
+    return proxy_cost, {
+        'wirelength': -1.0,
+        'congestion': -1.0,
+        'density': -1.0,
+    }
 
   wirelength = -1.0
   congestion = -1.0
@@ -110,27 +120,38 @@ class CircuitEnv(object):
 
   INFEASIBLE_REWARD = -1.0
 
-  def __init__(self,
-               netlist_file: Text = '',
-               init_placement: Text = '',
-               std_cell_placer_mode: Text = 'fd',
-               global_seed: int = 0,
-               is_eval: bool = False,
-               save_best_cost: bool = False,
-               output_plc_file: Text = '',
-               make_soft_macros_square: bool = True,
-               cd_finetune: bool = False,
-               train_step: Optional[tf.Variable] = None):
+  def __init__(
+      self,
+      netlist_file: Text = '',
+      init_placement: Text = '',
+      create_placement_cost_fn: Callable[
+          ..., plc_client.PlacementCost] = placement_util.create_placement_cost,
+      std_cell_placer_mode: Text = 'fd',
+      cost_info_fn: Callable[[plc_client.PlacementCost, bool],
+                             Tuple[float, Dict[Text,
+                                               float]]] = cost_info_function,
+      global_seed: int = 0,
+      is_eval: bool = False,
+      save_best_cost: bool = False,
+      output_plc_file: Text = '',
+      make_soft_macros_square: bool = True,
+      cd_finetune: bool = False,
+      cd_plc_file: Text = 'ppo_cd_placement.plc',
+      train_step: Optional[tf.Variable] = None):
     """Creates a CircuitEnv.
 
     Args:
       netlist_file: Path to the input netlist file.
       init_placement: Path to the input inital placement file, used to read grid
         and canas size.
+      create_placement_cost_fn: A function that given the netlist and initial
+        placement file create the placement_cost object.
       std_cell_placer_mode: Options for fast std cells placement: `fd` (uses the
         force-directed algorithm).
-      global_seed: Global seed for initializing env features. This seed
-        should be the same across actors. Not used currently.
+      cost_info_fn: The cost function that given the plc object returns the RL
+        cost.
+      global_seed: Global seed for initializing env features. This seed should
+        be the same across actors. Not used currently.
       is_eval: If set, save the final placement in output_dir.
       save_best_cost: Boolean, if set, saves the palcement if its cost is better
         than the previously saved palcement.
@@ -139,6 +160,8 @@ class CircuitEnv(object):
         before using analytical std cell placers like FD.
       cd_finetune: If True, runs coordinate descent to finetune macro
         orientations. Supposed to run in eval only, not training.
+      cd_plc_file: Name of the CD fine-tuned plc file, the file will be save in
+        the same dir as output_plc_file
       train_step: A tf.Variable indicating the training step, only used for
         saving plc files in the evaluation.
     """
@@ -148,15 +171,17 @@ class CircuitEnv(object):
 
     self.netlist_file = netlist_file
     self._std_cell_placer_mode = std_cell_placer_mode
+    self._cost_info_fn = cost_info_fn
     self._is_eval = is_eval
     self._save_best_cost = save_best_cost
     self._output_plc_file = output_plc_file
     self._output_plc_dir = os.path.dirname(output_plc_file)
     self._make_soft_macros_square = make_soft_macros_square
     self._cd_finetune = cd_finetune
+    self._cd_plc_file = cd_plc_file
     self._train_step = train_step
 
-    self._plc = placement_util.create_placement_cost(
+    self._plc = create_placement_cost_fn(
         netlist_file=netlist_file, init_placement=init_placement)
 
     # We call ObservationExtractor before unplace_all_nodes, so we use the
@@ -269,14 +294,15 @@ class CircuitEnv(object):
         current_node_index=current_node_index,
         mask=self._current_mask)
 
-  def _rl_cost(self) -> float:
-    """Returns the cost for RL."""
-    return cost_fn(self._plc)[0]
-
   def _run_cd(self):
     """Runs coordinate descent to finetune the current placement."""
+
     # CD only modifies macro orientation.
     # Plc modified by CD will be reset at the end of the episode.
+
+    def cost_fn(plc):
+      return self._cost_info_fn(plc=plc, done=True)
+
     cd = cd_placer.CoordinateDescentPlacer(
         plc=self._plc,
         cost_fn=cost_fn,
@@ -312,14 +338,14 @@ class CircuitEnv(object):
       # Only runs CD if this is the best RL placement seen so far.
       if self._cd_finetune:
         self._run_cd()
-        cost = self._rl_cost()
+        cost = self._cost_info_fn(plc=self._plc, done=True)[0]
+        cd_plc_file = os.path.join(self._output_plc_dir, self._cd_plc_file)
+        placement_util.save_placement(self._plc, cd_plc_file, user_comments)
         cd_snapshot_file = os.path.join(
             self._output_plc_dir,
             f'snapshot_ppo_cd_placement_timestamp_{ts}_cost_{cost:.4f}.plc')
         placement_util.save_placement(self._plc, cd_snapshot_file,
                                       user_comments)
-        cd_plc_file = os.path.join(self._output_plc_dir, 'ppo_cd_placement.plc')
-        placement_util.save_placement(self._plc, cd_plc_file, user_comments)
 
   def reset(self) -> ObsType:
     """Restes the environment.
@@ -349,6 +375,13 @@ class CircuitEnv(object):
 
   def place_node(self, node_index: int, action: int) -> None:
     self._plc.place_node(node_index, self.translate_to_original_canvas(action))
+
+  def analytical_placer(self) -> None:
+    if self._std_cell_placer_mode == 'fd':
+      placement_util.fd_placement_schedule(self._plc)
+    else:
+      raise ValueError('%s is not a supported std_cell_placer_mode.' %
+                       (self._std_cell_placer_mode))
 
   def step(self, action: int) -> Tuple[ObsType, float, bool, Any]:
     """Steps the environment.
@@ -390,34 +423,16 @@ class CircuitEnv(object):
       return self.reset(), self.INFEASIBLE_REWARD, True, info
 
     if self._done:
-      if self._std_cell_placer_mode == 'fd':
-        placement_util.fd_placement_schedule(self._plc)
-      else:
-        raise ValueError('%s is not a supported std_cell_placer_mode.' %
-                         (self._std_cell_placer_mode))
+      self.analytical_placer()
     # Only evaluates placement cost when all nodes are placed.
     # All samples in the episode receive the same reward equal to final cost.
     # This is realized by setting intermediate steps cost as zero, and
     # propagate the final cost with discount factor set to 1 in replay buffer.
-    if self._done:
-      cost, cost_info = cost_fn(self._plc)
-      reward = -cost
-      info = {
-          'wirelength': cost_info['wirelength'],
-          'congestion': cost_info['congestion'],
-          'density': cost_info['density'],
-      }
-      if self._is_eval:
-        self._save_placement(cost)
-    else:
-      reward = 0.0
-      info = {
-          'wirelength': -1,
-          'congestion': -1,
-          'density': -1,
-      }
+    cost, info = self._cost_info_fn(self._plc, self._done)
+    if self._done and self._is_eval:
+      self._save_placement(cost)
 
-    return self._get_obs(), reward, self._done, info
+    return self._get_obs(), -cost, self._done, info
 
 
 def create_circuit_environment(*args, **kwarg) -> wrappers.ActionClipWrapper:

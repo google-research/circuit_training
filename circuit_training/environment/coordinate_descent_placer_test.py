@@ -14,7 +14,6 @@
 # limitations under the License.
 """Tests for coordinate_descent_placer."""
 
-import functools
 import os
 import random
 
@@ -65,11 +64,15 @@ class CoordinateDescentPlacerTest(parameterized.TestCase, test_utils.TestCase):
   )
   def test_cd(self, block_name, optimize_only_orientation):
     plc = self._create_plc(block_name)
-    cost_fn = functools.partial(
-        environment.cost_fn,
-        wirelength_weight=1.0,
-        density_weight=0.1,
-        congestion_weight=0.1)
+
+    def cost_fn(plc):
+      return environment.cost_info_function(
+          plc=plc,
+          done=True,
+          wirelength_weight=1.0,
+          density_weight=0.1,
+          congestion_weight=0.1)
+
     cd_placer = coordinate_descent_placer.CoordinateDescentPlacer(
         plc,
         cost_fn,

@@ -16,23 +16,9 @@
 
 from circuit_training.environment import observation_config
 from circuit_training.utils import test_utils
-import gin
 
 
 class ObservationConfigTest(test_utils.TestCase):
-
-  def test_gin_binding_set_configs(self):
-    bindings = """
-      ObservationConfig.max_num_edges = 10
-      ObservationConfig.max_num_nodes = 11
-      ObservationConfig.max_grid_size = 12
-    """
-    gin.parse_config(bindings)
-    config = observation_config.ObservationConfig()
-
-    self.assertEqual(config.max_num_edges, 10)
-    self.assertEqual(config.max_num_nodes, 11)
-    self.assertEqual(config.max_grid_size, 12)
 
   def test_flatten_unflatten(self):
     config = observation_config.ObservationConfig()

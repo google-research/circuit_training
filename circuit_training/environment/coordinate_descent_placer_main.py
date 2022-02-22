@@ -58,11 +58,11 @@ def main(_):
   if not FLAGS.cd_use_init_location:
     plc.unplace_all_nodes()
 
+  def cost_fn(plc):
+    return environment.cost_info_function(plc=plc, done=True)
+
   cost_fn = functools.partial(
-      environment.cost_fn,
-      wirelength_weight=1.0,
-      density_weight=0.1,
-      congestion_weight=0.1)
+      cost_fn, wirelength_weight=1.0, density_weight=0.1, congestion_weight=0.1)
 
   placer = coordinate_descent_placer.CoordinateDescentPlacer(plc, cost_fn)
 
