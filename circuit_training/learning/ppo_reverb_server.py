@@ -21,6 +21,17 @@ from absl import flags
 
 from circuit_training.learning import ppo_reverb_server_lib
 
+flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
+                    'Root directory for writing logs/summaries/checkpoints.')
+flags.DEFINE_integer(
+    'replay_buffer_capacity', 1024,
+    'Capacity of the replay buffer table. Please set this to '
+    'larger than num_episodes_per_iteration.')
+flags.DEFINE_integer('port', None, 'Port to start the server on.')
+flags.DEFINE_integer(
+    'global_seed', 111,
+    'Used in env and weight initialization, does not impact action sampling.')
+
 FLAGS = flags.FLAGS
 
 

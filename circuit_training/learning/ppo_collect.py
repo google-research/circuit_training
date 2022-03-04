@@ -28,6 +28,34 @@ from tf_agents.system import system_multiprocessing as multiprocessing
 
 FLAGS = flags.FLAGS
 
+flags.DEFINE_string('netlist_file', '', 'File path to the netlist file.')
+flags.DEFINE_string('init_placement', '',
+                    'File path to the init placement file.')
+# TODO(b/219085316): Open source dreamplace.
+flags.DEFINE_string(
+    'std_cell_placer_mode', 'fd',
+    'Options for fast std cells placement: `fd` (uses the '
+    'force-directed algorithm), `dreamplace` (uses DREAMPlace '
+    'algorithm).')
+flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
+                    'Root directory for writing logs/summaries/checkpoints.')
+flags.DEFINE_string('replay_buffer_server_address', None,
+                    'Replay buffer server address.')
+flags.DEFINE_string('variable_container_server_address', None,
+                    'Variable container server address.')
+flags.DEFINE_integer(
+    'task_id', 0, 'Identifier of the collect task. Must be unique in a job.')
+flags.DEFINE_integer(
+    'write_summaries_task_threshold', 1,
+    'Collect jobs with tas ID smaller than this value writes '
+    'summaries only.')
+flags.DEFINE_integer(
+    'max_sequence_length', 134,
+    'The sequence length for Reverb replay buffer. Depends on the environment.')
+flags.DEFINE_integer(
+    'global_seed', 111,
+    'Used in env and weight initialization, does not impact action sampling.')
+
 
 def main(_):
   root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))

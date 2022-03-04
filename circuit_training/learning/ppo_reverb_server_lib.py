@@ -15,7 +15,6 @@
 """Library and util functions for reverb server."""
 import os
 
-from absl import flags
 from absl import logging
 
 import reverb
@@ -27,19 +26,6 @@ from tf_agents.specs import tensor_spec
 from tf_agents.train import learner
 from tf_agents.train.utils import train_utils
 from tf_agents.utils import common
-
-
-flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-                    'Root directory for writing logs/summaries/checkpoints.')
-flags.DEFINE_integer('replay_buffer_capacity', 1024,
-                     'Capacity of the replay buffer table. Please set this to '
-                     'larger than num_episodes_per_iteration.')
-flags.DEFINE_integer('port', None, 'Port to start the server on.')
-flags.DEFINE_integer(
-    'global_seed', 111,
-    'Used in env and weight initialization, does not impact action sampling.')
-
-FLAGS = flags.FLAGS
 
 
 def start_reverb_server(root_dir, replay_buffer_capacity, port):

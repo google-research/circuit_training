@@ -32,6 +32,38 @@ import tensorflow as tf
 from tf_agents.system import system_multiprocessing as multiprocessing
 from tf_agents.train.utils import strategy_utils
 
+flags.DEFINE_string('netlist_file', '', 'File path to the netlist file.')
+flags.DEFINE_string('init_placement', '',
+                    'File path to the init placement file.')
+# TODO(b/219085316): Open source dreamplace.
+flags.DEFINE_string(
+    'std_cell_placer_mode', 'fd',
+    'Options for fast std cells placement: `fd` (uses the '
+    'force-directed algorithm), `dreamplace` (uses DREAMPlace '
+    'algorithm).')
+flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
+                    'Root directory for writing logs/summaries/checkpoints.')
+flags.DEFINE_string('replay_buffer_server_address', None,
+                    'Replay buffer server address.')
+flags.DEFINE_string('variable_container_server_address', None,
+                    'Variable container server address.')
+flags.DEFINE_integer('num_iterations', 10000,
+                     'Total number train/eval iterations to perform.')
+flags.DEFINE_integer(
+    'sequence_length', 134,
+    'The sequence length to estimate shuffle size. Depends on the environment.'
+    'Max horizon = T translates to sequence_length T+1 because of the '
+    'additional boundary step (last -> first).')
+flags.DEFINE_integer(
+    'num_episodes_per_iteration', 1024,
+    'This is the number of episodes we train on in each iteration.')
+flags.DEFINE_integer('global_batch_size', 1024,
+                     'Global batch size across all replicas.')
+
+flags.DEFINE_integer(
+    'global_seed', 111,
+    'Used in env and weight initialization, does not impact action sampling.')
+
 FLAGS = flags.FLAGS
 
 
