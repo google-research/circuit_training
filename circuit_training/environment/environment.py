@@ -137,7 +137,8 @@ class CircuitEnv(object):
       make_soft_macros_square: bool = True,
       cd_finetune: bool = False,
       cd_plc_file: Text = 'ppo_cd_placement.plc',
-      train_step: Optional[tf.Variable] = None):
+      train_step: Optional[tf.Variable] = None,
+      unplace_all_nodes_in_init: bool = True):
     """Creates a CircuitEnv.
 
     Args:
@@ -164,6 +165,7 @@ class CircuitEnv(object):
         the same dir as output_plc_file
       train_step: A tf.Variable indicating the training step, only used for
         saving plc files in the evaluation.
+      unplace_all_nodes_in_init: Unplace all nodes after initialization.
     """
     del global_seed
     if not netlist_file:
@@ -226,12 +228,16 @@ class CircuitEnv(object):
     self._low_pad = rows_pad - self._up_pad
     self._left_pad = cols_pad - self._right_pad
 
-    self._plc.unplace_all_nodes()
     self._saved_cost = np.inf
     self._current_actions = []
     self._current_node = 0
     self._done = False
     self._current_mask = self._get_mask()
+    if unplace_all_nodes_in_init:
+      # TODO(b/223026568) Remove unplace_all_nodes from init
+      self._plc.unplace_all_nodes()
+      logging.warning('* Unplaced all Nodes in init *')
+    logging.info('***Num node to place***:%s', self._num_hard_macros)
 
   @property
   def observation_space(self) -> gym.spaces.Space:
@@ -257,6 +263,10 @@ class CircuitEnv(object):
       Numpy array representing the observation
     """
     return self._observation_extractor.get_static_features()
+
+  def get_cost_info(self,
+                    done: bool = False) -> Tuple[float, Dict[Text, float]]:
+    return self._cost_info_fn(plc=self._plc, done=done)
 
   def _get_mask(self) -> np.ndarray:
     """Gets the node mask for the current node.
