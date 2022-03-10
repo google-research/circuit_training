@@ -24,12 +24,13 @@ from absl import logging
 
 from circuit_training.environment import environment
 from circuit_training.learning import train_ppo_lib
-
+from circuit_training.model import model
 
 import numpy as np
 import tensorflow as tf
 
 from tf_agents.system import system_multiprocessing as multiprocessing
+from tf_agents.train.utils import spec_utils
 from tf_agents.train.utils import strategy_utils
 
 flags.DEFINE_string('netlist_file', '', 'File path to the netlist file.')
@@ -90,6 +91,17 @@ def main(_):
   logging.info('global batch_size=%d', FLAGS.global_batch_size)
   logging.info('per-replica batch_size=%d', batch_size)
 
+  env = create_env_fn()
+  observation_tensor_spec, action_tensor_spec, _ = (
+      spec_utils.get_tensor_specs(env))
+  static_features = env.wrapped_env().get_static_obs()
+  grl_actor_net, grl_value_net = model.create_grl_models(
+      observation_tensor_spec,
+      action_tensor_spec,
+      static_features,
+      strategy,
+      use_model_tpu=use_model_tpu)
+
   train_ppo_lib.train(
       root_dir=root_dir,
       strategy=strategy,
@@ -97,10 +109,11 @@ def main(_):
       variable_container_server_address=FLAGS.variable_container_server_address,
       create_env_fn=create_env_fn,
       sequence_length=FLAGS.sequence_length,
+      grl_actor_net=grl_actor_net,
+      grl_value_net=grl_value_net,
       per_replica_batch_size=batch_size,
       num_iterations=FLAGS.num_iterations,
       num_episodes_per_iteration=FLAGS.num_episodes_per_iteration,
-      use_model_tpu=use_model_tpu,
   )
 
 

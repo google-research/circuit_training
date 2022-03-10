@@ -42,6 +42,8 @@ def train(
     variable_container_server_address,
     create_env_fn,
     sequence_length,
+    grl_actor_net,
+    grl_value_net,
     # Training params
     # This is the per replica batch size. The global batch size can be computed
     # by this number multiplied by the number of replicas (8 in the case of 2x2
@@ -54,11 +56,11 @@ def train(
     # global_step (number of gradient updates) * per_replica_batch_size *
     # num_replicas.
     num_episodes_per_iteration=1024,
-    use_model_tpu=False):
+):
   """Trains a PPO agent."""
   # Get the specs from the environment.
   env = create_env_fn()
-  observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
+  unused_observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
       spec_utils.get_tensor_specs(env))
 
   # Create the agent.
@@ -67,15 +69,14 @@ def train(
     model_id = common.create_variable('model_id')
 
     logging.info('Using GRL agent networks.')
-    static_features = env.wrapped_env().get_static_obs()
     tf_agent = agent.create_circuit_ppo_grl_agent(
         train_step,
-        observation_tensor_spec,
         action_tensor_spec,
         time_step_tensor_spec,
+        grl_actor_net,
+        grl_value_net,
         strategy,
-        static_features=static_features,
-        use_model_tpu=use_model_tpu)
+    )
 
     tf_agent.initialize()
 

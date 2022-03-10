@@ -145,3 +145,37 @@ class GrlValueModel(network.Network):
       # Make value_prediction's shape from [B, T, 1] to [B, T].
       return tf.squeeze(value, -1)
     return squeeze_value_dim(model_out['value']), network_state
+
+
+def create_grl_models(observation_tensor_spec,
+                      action_tensor_spec,
+                      static_features,
+                      strategy,
+                      use_model_tpu=False):
+  """Create the GRL actor and value networks from scratch.
+
+  Args:
+    observation_tensor_spec: tensor spec for the observations.
+    action_tensor_spec: tensor spec for the actions.
+    static_features: static features from the environment to pass into the
+      models. If None, read from the observations.
+    strategy: the tf.distribute strategy to create the models under.
+    use_model_tpu: boolean flag indicating the versions of the GRL models to
+      create. TPU models leverage map_fn to speed up performance on TPUs. Both
+      versions generate the same output given the same inputs.
+
+  Returns:
+    A tuple containing the GRL policy model and value model.
+
+  """
+  with strategy.scope():
+    grl_shared_net = GrlModel(
+        observation_tensor_spec,
+        action_tensor_spec,
+        static_features=static_features,
+        use_model_tpu=use_model_tpu,
+    )
+    grl_actor_net = GrlPolicyModel(grl_shared_net, observation_tensor_spec,
+                                   action_tensor_spec)
+    grl_value_net = GrlValueModel(observation_tensor_spec, grl_shared_net)
+    return grl_actor_net, grl_value_net

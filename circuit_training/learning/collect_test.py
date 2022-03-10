@@ -22,6 +22,7 @@ from absl.testing import parameterized
 
 from circuit_training.environment import environment
 from circuit_training.learning import agent
+from circuit_training.model import model
 
 import numpy as np
 import tensorflow.compat.v2 as tf
@@ -101,14 +102,22 @@ class CollectTest(parameterized.TestCase, test_utils.TestCase):
                                     'initial.plc'))
     observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
         spec_utils.get_tensor_specs(env))
+    static_features = env.get_static_obs()
+    grl_actor_net, grl_value_net = model.create_grl_models(
+        observation_tensor_spec,
+        action_tensor_spec,
+        static_features,
+        strategy,
+        use_model_tpu=False)
 
     # Create the agent whose collect policy is being tested.
     with strategy.scope():
       train_step = train_utils.create_train_step()
       tf_agent = agent.create_circuit_ppo_grl_agent(train_step,
-                                                    observation_tensor_spec,
                                                     action_tensor_spec,
                                                     time_step_tensor_spec,
+                                                    grl_actor_net,
+                                                    grl_value_net,
                                                     strategy)
       tf_agent.initialize()
 

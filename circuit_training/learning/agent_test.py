@@ -20,6 +20,7 @@ from absl import flags
 from absl import logging
 from circuit_training.environment import environment
 from circuit_training.learning import agent
+from circuit_training.model import model
 from circuit_training.utils import test_utils
 
 import tensorflow as tf
@@ -59,13 +60,23 @@ class AgentTest(test_utils.TestCase):
     strategy = strategy_utils.get_strategy(tpu=False, use_gpu=False)
     static_features = env.get_static_obs()
 
-    grl_agent = agent.create_circuit_ppo_grl_agent(
-        train_step,
+    observation_tensor_spec, action_tensor_spec, _ = (
+        spec_utils.get_tensor_specs(env))
+    grl_actor_net, grl_value_net = model.create_grl_models(
         observation_tensor_spec,
         action_tensor_spec,
-        time_step_tensor_spec,
+        static_features,
         strategy,
-        static_features=static_features)
+        use_model_tpu=False)
+
+    grl_agent = agent.create_circuit_ppo_grl_agent(
+        train_step,
+        action_tensor_spec,
+        time_step_tensor_spec,
+        grl_actor_net,
+        grl_value_net,
+        strategy,
+    )
 
     batch_size = 4
     # Check that value prediction outputs the correct shape (B, ).
@@ -90,13 +101,19 @@ class AgentTest(test_utils.TestCase):
     strategy = strategy_utils.get_strategy(tpu=False, use_gpu=False)
     static_features = env.get_static_obs()
 
-    grl_agent = agent.create_circuit_ppo_grl_agent(
-        train_step,
+    grl_actor_net, grl_value_net = model.create_grl_models(
         observation_tensor_spec,
         action_tensor_spec,
-        time_step_tensor_spec,
+        static_features,
         strategy,
-        static_features=static_features)
+        use_model_tpu=False)
+    grl_agent = agent.create_circuit_ppo_grl_agent(
+        train_step,
+        action_tensor_spec,
+        time_step_tensor_spec,
+        grl_actor_net,
+        grl_value_net,
+        strategy)
 
     batch_size = 4
     sample_time_steps = tensor_spec.sample_spec_nest(
