@@ -266,7 +266,7 @@ class CircuitEnv(object):
 
   def get_cost_info(self,
                     done: bool = False) -> Tuple[float, Dict[Text, float]]:
-    return self._cost_info_fn(plc=self._plc, done=done)
+    return self._cost_info_fn(plc=self._plc, done=done)  # pytype: disable=wrong-keyword-args  # trace-all-classes
 
   def _get_mask(self) -> np.ndarray:
     """Gets the node mask for the current node.
@@ -311,7 +311,7 @@ class CircuitEnv(object):
     # Plc modified by CD will be reset at the end of the episode.
 
     def cost_fn(plc):
-      return self._cost_info_fn(plc=plc, done=True)
+      return self._cost_info_fn(plc=plc, done=True)  # pytype: disable=wrong-keyword-args  # trace-all-classes
 
     cd = cd_placer.CoordinateDescentPlacer(
         plc=self._plc,
@@ -348,7 +348,7 @@ class CircuitEnv(object):
       # Only runs CD if this is the best RL placement seen so far.
       if self._cd_finetune:
         self._run_cd()
-        cost = self._cost_info_fn(plc=self._plc, done=True)[0]
+        cost = self._cost_info_fn(plc=self._plc, done=True)[0]  # pytype: disable=wrong-keyword-args  # trace-all-classes
         cd_plc_file = os.path.join(self._output_plc_dir, self._cd_plc_file)
         placement_util.save_placement(self._plc, cd_plc_file, user_comments)
         cd_snapshot_file = os.path.join(
