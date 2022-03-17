@@ -42,12 +42,13 @@ def train(
     variable_container_server_address,
     create_env_fn,
     sequence_length,
-    grl_actor_net,
-    grl_value_net,
+    actor_net,
+    value_net,
     # Training params
     # This is the per replica batch size. The global batch size can be computed
     # by this number multiplied by the number of replicas (8 in the case of 2x2
     # TPUs).
+    use_grl=True,
     per_replica_batch_size=32,
     num_epochs=4,
     num_iterations=10000,
@@ -60,7 +61,7 @@ def train(
   """Trains a PPO agent."""
   # Get the specs from the environment.
   env = create_env_fn()
-  unused_observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
+  _, action_tensor_spec, time_step_tensor_spec = (
       spec_utils.get_tensor_specs(env))
 
   # Create the agent.
@@ -68,16 +69,24 @@ def train(
     train_step = train_utils.create_train_step()
     model_id = common.create_variable('model_id')
 
-    logging.info('Using GRL agent networks.')
-    tf_agent = agent.create_circuit_ppo_grl_agent(
+    if use_grl:
+      logging.info('Using GRL agent networks.')
+      creat_agent_fn = agent.create_circuit_ppo_grl_agent
+    else:
+      logging.info('Using RL fully connected agent networks.')
+      creat_agent_fn = agent.create_circuit_ppo_agent
+
+    logging.info(actor_net)
+    logging.info(value_net)
+
+    tf_agent = creat_agent_fn(
         train_step,
         action_tensor_spec,
         time_step_tensor_spec,
-        grl_actor_net,
-        grl_value_net,
+        actor_net,
+        value_net,
         strategy,
     )
-
     tf_agent.initialize()
 
   # Create the policy saver which saves the initial model now, then it

@@ -473,3 +473,30 @@ def create_circuit_ppo_grl_agent(
       aggregate_losses_across_replicas=False,
       loss_scaling_factor=1. / float(strategy.num_replicas_in_sync),
       **kwargs)
+
+
+def create_circuit_ppo_agent(train_step: tf.Variable,
+                             action_tensor_spec: types.NestedTensorSpec,
+                             time_step_tensor_spec: types.TimeStep,
+                             actor_net: network.Network,
+                             value_net: network.Network,
+                             strategy: tf.distribute.Strategy,
+                             **kwargs) -> CircuitPPOAgent:
+  """Creates a PPO agent using the simpler fully connected RL networks."""
+  return CircuitPPOAgent(
+      time_step_tensor_spec,
+      action_tensor_spec,
+      optimizer=tf.keras.optimizers.Adam(learning_rate=4e-4, epsilon=1e-5),
+      actor_net=actor_net,
+      value_net=value_net,
+      value_pred_loss_coef=0.5,
+      entropy_regularization=0.01,
+      importance_ratio_clipping=0.2,
+      discount_factor=1.0,
+      gradient_clipping=1.0,
+      debug_summaries=False,
+      train_step_counter=train_step,
+      value_clipping=None,
+      aggregate_losses_across_replicas=False,
+      loss_scaling_factor=1. / float(strategy.num_replicas_in_sync),
+      **kwargs)
