@@ -76,9 +76,6 @@ def train(
       logging.info('Using RL fully connected agent networks.')
       creat_agent_fn = agent.create_circuit_ppo_agent
 
-    logging.info(actor_net)
-    logging.info(value_net)
-
     tf_agent = creat_agent_fn(
         train_step,
         action_tensor_spec,
