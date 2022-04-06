@@ -1,4 +1,5 @@
 <!--* freshness: {
+  owner: 'agoldie'
   owner: 'azalia'
   owner: 'tobyboyd'
   owner: 'sguada'
@@ -35,6 +36,7 @@ collection scaling to 100s of actors.
 <a href='#Results'>Results</a><br>
 <a href='#Testing'>Testing</a><br>
 <a href='#Releases'>Releases</a><br>
+<a href='#FAQ'>FAQ</a><br>
 <a href='#Contributing'>How to contribute</a><br>
 <a href='#Principles'>AI Principles</a><br>
 <a href='#Contributors'>Contributors</a><br>
@@ -265,6 +267,56 @@ $  sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/pla
      -o  /usr/local/bin/plc_wrapper_main
 $  sudo chmod 555 /usr/local/bin/plc_wrapper_main
 ```
+
+<a id='FAQ'></a>
+## Frequently Asked Questions
+We wrote this FAQ to answer frequently asked questions about our work. Please reach out to us if you have any other questions! 
+
+#### What is the goal and philosophy of our team? 
+Our goal is to help chip designers do their jobs better and faster, and we welcome any method that moves us in that direction. To ensure that we are solving real world problems, we work closely with chip designers to understand and address their needs.
+
+#### What is the impact of our work? 
+Our deep reinforcement learning (RL) methods have been used in production to design multiple flagship hardware products at Google, including Pixel phones and two generations of TPU, saving thousands of engineering hours.  
+
+We are also excited to see that top EDA and chip design companies (e.g. [Synopsys](https://www.forbes.com/sites/moorinsights/2020/04/20/using-ai-to-build-better-chips/?sh=63551aef306c), [Cadence](https://www.zdnet.com/article/ai-on-the-bench-cadence-offers-machine-learning-to-smooth-chip-design/), [NVIDIA](https://research.nvidia.com/publication/2021-07_NVCell%3A-Standard-Cell), etc.) have announced initiatives to use similar RL-based methods in their tools and chip design efforts.
+
+#### Have we evaluated our method on open-source benchmarks?
+We are focused on modern sub-10nm chips like TPU and Pixel, but we did publish an article in MLCAD 2021 led by Prof. David Pan and his student Zixuan Jiang, where we report results on the open-source ISPD 2015 benchmarks after unfixing macros. In any case, we have open-sourced our method, so the community is free to try it out on any benchmark. 
+
+#### How do we compare to commercial autoplacers?
+Due to licensing agreements, we cannot publish any public comparison with commercial autoplacers. However, we can say that our strongest baseline is the physical design team working directly with the assistance of commercial autoplacers, and we outperform this baseline (see “manual” baseline in Table 1 of our Nature article). 
+
+#### How do we perform clustering of standard cells?
+In our Nature paper, we describe how to use hMETIS to cluster standard cells, including all necessary settings. For detailed settings, please see Extended Data Table 3 from our [Nature article](http://rdcu.be/cmedX). Internally, Google pays for a commercial license, but non-commercial entities are welcome to use a free open-source license
+
+Regardless, our method runs on unclustered netlists as well, so you can skip the preprocessing step if you wish, though we’ve found clustering to benefit both our RL method and baseline placers. The complexity of our method scales with the number of macros, not the number of standard cells, so the runtime will not be overly affected. 
+
+#### What netlist formats do we support?
+Our placer represents netlists in the open-source [protocol buffer](https://developers.google.com/protocol-buffers) format. To run on netlists in other formats (e.g. LEF/DEF or Bookshelf), you can convert to protocol buffer format. Please see our [quick start guide](https://github.com/google-research/circuit_training#QuickStart) for an example of how to use this format on the open-source RISC-V Ariane CPU. 
+
+#### Why do we claim “fast chip design” when RL is slower than analytic solvers?
+When we say “fast”, we mean that we actually help chip designers do their jobs faster, not that our algorithm runs fast per se. Our method can, in hours, do what a human chip designer needs weeks or months to perform.
+
+If an analytic method optimizes for wirelength and produces a result in ~1 minute, that’s obviously faster than hours of RL optimization; however, if the result does not meet design criteria and therefore physical design experts must spend weeks further iterating in the loop with commercial EDA tools, then it’s not faster in any way that matters.
+
+#### In our Nature experiments, why do we report QoR metrics rather than wirelength alone?
+Our goal is to develop methods that help chip designers do their job better and faster. We therefore designed the experiments in our paper to mimic the true production setting as closely as possible, and report QoR (Quality of Result) metrics.
+ 
+QoR metrics can take up to 72 hours to generate with a commercial EDA tool, but are highly accurate measurements of all key metrics, including wirelength, horizontal/vertical congestion, timing (TNS and WNS), power, and area. 
+ 
+QoR metrics are closest to physical ground truth and are used by production chip design teams to decide which placements are sent for manufacturing. In contrast, proxy costs like approximate wirelength and congestion can be computed cheaply and are useful for optimization, but are not used to make real world decisions as they can vary significantly from QoR.
+ 
+It is also worth noting that metrics like wirelength and routing congestion directly trade off against each other (e.g. placing nodes close to one another increases congestion, but reduces wirelength), so optimizing or evaluating for wirelength alone is unlikely to result in manufacturable chip layouts. 
+
+#### In our Nature experiments, do we perform any postprocessing on the RL results?
+No. In our Nature experiments, we do not apply any postprocessing to the RL results.
+
+In our open-source code, we provide an optional 1-5 minute coordinate descent postprocessing step, which we found to slightly improve wirelength. You are welcome to turn it on or off with a flag, and to compare performance with or without it. 
+
+#### What was the process for open-sourcing this code?
+Open-sourcing our code involved partnering with another team at Google ([TF-Agents](https://www.tensorflow.org/agents)). TF-Agents first replicated the results in our Nature article using our codebase, then reimplemented our method and replicated our results using their own implementation, and then open-sourced their implementation as it does not rely on any internal infrastructure.
+
+Getting approval to open-source this code, ensuring compliance with export control restrictions, migrating to TensorFlow 2.x, and removing dependencies from all Google infrastructure was quite time-consuming, but we felt that it was worth the effort to be able to share our method with the community.
 
 <a id='Contributing'></a>
 ## How to contribute
