@@ -1,0 +1,11 @@
+#Converter : DEF/LEF format to protobuffer format
+
+#how to compile:
+    cmd:
+    g++ -c main.cpp datatype.cpp parse.cpp -O3
+    g++ -o converter.exe main.o datatype.o parse.o
+
+#how to run:
+    converter -def [defname] -lef [lefname1] [lefname2] ... [lefnameN] -pb [protoBufferFileName]
+
+#please use the absolute path as the filename for def/lef and protoBuffer files.
