@@ -17,16 +17,19 @@
 import os
 import time
 
+from typing import Callable
+
 from absl import logging
 
+from circuit_training.environment import environment as oss_environment
 from circuit_training.learning import agent
 from circuit_training.learning import learner as learner_lib
-
 
 import reverb
 import tensorflow as tf
 
 from tf_agents.experimental.distributed import reverb_variable_container
+from tf_agents.networks import network
 from tf_agents.replay_buffers import reverb_replay_buffer
 from tf_agents.train import learner as actor_learner
 from tf_agents.train import triggers
@@ -36,29 +39,54 @@ from tf_agents.utils import common
 
 
 def train(
-    root_dir,
-    strategy,
-    replay_buffer_server_address,
-    variable_container_server_address,
-    create_env_fn,
-    sequence_length,
-    actor_net,
-    value_net,
+    root_dir: str,
+    strategy: tf.distribute.Strategy,
+    replay_buffer_server_address: str,
+    variable_container_server_address: str,
+    create_env_fn: Callable[[], oss_environment.CircuitEnv],
+    sequence_length: int,
+    actor_net: network.Network,
+    value_net: network.Network,
     # Training params
     # This is the per replica batch size. The global batch size can be computed
     # by this number multiplied by the number of replicas (8 in the case of 2x2
     # TPUs).
-    use_grl=True,
-    per_replica_batch_size=32,
-    num_epochs=4,
-    num_iterations=10000,
+    use_grl: bool = True,
+    per_replica_batch_size: int = 32,
+    num_epochs: int = 4,
+    num_iterations: int = 10000,
     # This is the number of episodes we train on in each iteration.
     # num_episodes_per_iteration * epsisode_length * num_epochs =
     # global_step (number of gradient updates) * per_replica_batch_size *
     # num_replicas.
-    num_episodes_per_iteration=1024,
-):
-  """Trains a PPO agent."""
+    num_episodes_per_iteration: int = 1024) -> None:
+  """Trains a PPO agent.
+
+  Args:
+    root_dir: Main directory path where checkpoints, saved_models, and summaries
+      will be written to.
+    strategy: `tf.distribute.Strategy` to use during training.
+    replay_buffer_server_address: Address of the reverb replay server.
+    variable_container_server_address: The address of the Reverb server for
+      ReverbVariableContainer.
+    create_env_fn: Function to create circuit training environment.
+    sequence_length: Fixed sequence length for elements in the dataset. Used for
+      calculating how many iterations of minibatches to use for training.
+    actor_net: TF-Agents actor network.
+    value_net: TF-Agents value network.
+    use_grl: Whether to use GRL agent network or RL fully connected agent
+      network.
+    per_replica_batch_size: The minibatch size for learner. The dataset used for
+      training is shaped `[minibatch_size, 1, ...]`. If None, full sequences
+      will be fed into the agent. Please set this parameter to None for RNN
+      networks which requires full sequences.
+    num_epochs: The number of iterations to go through the same sequences. The
+      num_episodes_per_iteration are repeated for num_epochs times in a
+      particular learner run.
+    num_iterations: The number of iterations to run the training.
+    num_episodes_per_iteration: This is the number of episodes we train in each
+      epoch.
+  """
   # Get the specs from the environment.
   env = create_env_fn()
   _, action_tensor_spec, time_step_tensor_spec = (
