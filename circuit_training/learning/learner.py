@@ -183,7 +183,7 @@ class CircuittrainingPPOLearner(object):
       train_dataset = self._experience_dataset_fn()
       train_dataset = train_dataset.filter(_filter_invalid_episodes)
       if not self._allow_variable_length_episodes:
-        x = train_dataset.take(self._num_episodes_per_iteration)
+        train_dataset = train_dataset.take(self._num_episodes_per_iteration)
       if self._per_sequence_fn:
         train_dataset = train_dataset.map(
             self._per_sequence_fn,
