@@ -24,6 +24,11 @@ from tf_agents.train import interval_trigger
 from tf_agents.train import learner
 from tf_agents.typing import types
 
+# A function which processes a tuple of a nested tensor representing a TF-Agent
+# Trajectory and Reverb SampleInfo.
+_SequenceParamsType = Tuple[types.NestedTensor, types.ReverbSampleInfo]
+_SequenceFnType = Callable[[_SequenceParamsType], _SequenceParamsType]
+
 
 class CircuittrainingPPOLearner(object):
   """Manages all the learning details needed.
@@ -47,7 +52,7 @@ class CircuittrainingPPOLearner(object):
       train_step: tf.Variable,
       model_id: tf.Variable,
       agent: ppo_agent.PPOAgent,
-      experience_dataset_fn: Callable[..., tf.data.Dataset],
+      experience_dataset_fn: Callable[[], tf.data.Dataset],
       sequence_length: int,
       num_episodes_per_iteration: int,
       minibatch_size: int,
@@ -57,10 +62,8 @@ class CircuittrainingPPOLearner(object):
       checkpoint_interval: int = 100000,
       summary_interval: int = 1000,
       strategy: Optional[tf.distribute.Strategy] = None,
-      per_sequence_fn: Optional[
-          Callable[[Tuple[types.NestedTensor, types.ReverbSampleInfo]],
-                   Tuple[types.NestedTensor, types.ReverbSampleInfo]]] = None,
-  ):
+      per_sequence_fn: Optional[_SequenceFnType] = None,
+      allow_variable_length_episodes: bool = False) -> None:
     """Initializes a CircuittrainingPPOLearner instance.
 
     Args:
@@ -113,6 +116,8 @@ class CircuittrainingPPOLearner(object):
       per_sequence_fn: (Optional): sequence-wise preprecessing, pass in agent.
         preprocess for advantage calculation. This operation happens after
         take() and before rebatching.
+      allow_variable_length_episodes: Whether to support variable length
+        episodes for training.
 
     Raises:
       ValueError: agent._compute_value_and_advantage_in_train is set to `True`.
@@ -147,25 +152,29 @@ class CircuittrainingPPOLearner(object):
 
     self.num_replicas = strategy.num_replicas_in_sync
     self._create_datasets(strategy)
+    self._num_samples = self._num_episodes_per_iteration * self._sequence_length
     self._steps_per_iter = self._get_train_steps_per_iteration()
     logging.info('train steps per iteration: %d', self._steps_per_iter)
+    self._allow_variable_length_episodes = allow_variable_length_episodes
 
   def _create_datasets(self, strategy):
     """Create the training dataset and iterator."""
 
     def _filter_invalid_episodes(sample):
-      # Filter 1. off policy samples and 2.infeasible placements with shorter
-      # episode lengths than expected.
-      data, sample_info = sample.data, sample.info
-
+      sample_info = sample.info
       data_model_id = tf.cast(
           tf.reduce_min(sample_info.priority), dtype=tf.int64)
 
-      # TODO(b/203585138): remove filter by sequence length once variable
-      # lengths episodes are supported.
-      return tf.math.logical_and(
-          tf.math.equal(tf.size(data.discount), self._sequence_length),
-          tf.math.equal(self._model_id, data_model_id))
+      if self._allow_variable_length_episodes:
+        # Filter off policy samples.
+        return tf.math.equal(self._model_id, data_model_id)
+      else:
+        # Filter infeasible placements with shorter episode lengths than
+        # expected along with off policy samples.
+        data = sample.data
+        return tf.math.logical_and(
+            tf.math.equal(tf.size(data.discount), self._sequence_length),
+            tf.math.equal(self._model_id, data_model_id))
 
     def _make_dataset(_):
       # `experience_dataset_fn` returns a tf.Dataset. Each item is a (Trajectory
@@ -173,7 +182,8 @@ class CircuittrainingPPOLearner(object):
       # of a fixed sequence length. The Trajectory dimensions are [1, T, ...].
       train_dataset = self._experience_dataset_fn()
       train_dataset = train_dataset.filter(_filter_invalid_episodes)
-      train_dataset = train_dataset.take(self._num_episodes_per_iteration)
+      if not self._allow_variable_length_episodes:
+        x = train_dataset.take(self._num_episodes_per_iteration)
       if self._per_sequence_fn:
         train_dataset = train_dataset.map(
             self._per_sequence_fn,
@@ -192,12 +202,15 @@ class CircuittrainingPPOLearner(object):
       # PPO agent can handle mini batches across episode boundaries.
       train_dataset = train_dataset.unbatch()
       train_dataset = train_dataset.batch(1, drop_remainder=True).cache()
-      # Ideally we will train on num_episodes_per_iteration if all have the max
-      # sequence_length, in case of shorter episodes we will train in an
-      # equivalent number of steps num_episodes_per_iteration * sequence_length.
-      # num_samples = self._num_episodes_per_iteration * self._sequence_length
-      # Make sure we have enough samples to train on.
-      # train_dataset = train_dataset.take(num_samples).cache()
+
+      if self._allow_variable_length_episodes:
+        # Ideally we will train on num_episodes_per_iteration if all have the
+        # max sequence_length, in case of shorter episodes we will train in an
+        # equivalent number of steps num_episodes_per_iteration *
+        # sequence_length.
+
+        # Make sure we have enough samples to train on.
+        train_dataset = train_dataset.take(self._num_samples).cache()
 
       train_dataset = train_dataset.shuffle(self._shuffle_buffer_size)
       train_dataset = train_dataset.repeat(self._num_epochs)
@@ -229,8 +242,7 @@ class CircuittrainingPPOLearner(object):
     # We exhaust all num_episodes_per_iteration taken from Reverb in this setup.
     # Here we assume that there's only 1 episode per batch, and each episode is
     # of the fixed sequence length.
-    num_mini_batches = int(self._num_episodes_per_iteration *
-                           self._sequence_length * self._num_epochs /
+    num_mini_batches = int(self._num_samples * self._num_epochs /
                            self._minibatch_size)
     train_steps = int(num_mini_batches / self.num_replicas)
     return train_steps

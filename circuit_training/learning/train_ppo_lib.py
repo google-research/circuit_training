@@ -59,7 +59,8 @@ def train(
     # num_episodes_per_iteration * epsisode_length * num_epochs =
     # global_step (number of gradient updates) * per_replica_batch_size *
     # num_replicas.
-    num_episodes_per_iteration: int = 1024) -> None:
+    num_episodes_per_iteration: int = 1024,
+    allow_variable_length_episodes: bool = False) -> None:
   """Trains a PPO agent.
 
   Args:
@@ -86,6 +87,8 @@ def train(
     num_iterations: The number of iterations to run the training.
     num_episodes_per_iteration: This is the number of episodes we train in each
       epoch.
+    allow_variable_length_episodes: Whether to support variable length episodes
+      for training.
   """
   # Get the specs from the environment.
   env = create_env_fn()
@@ -203,7 +206,7 @@ def train(
       strategy=strategy,
       num_epochs=num_epochs,
       per_sequence_fn=per_sequence_fn,
-  )
+      allow_variable_length_episodes=allow_variable_length_episodes)
 
   # Run the training loop.
   for i in range(num_iterations):

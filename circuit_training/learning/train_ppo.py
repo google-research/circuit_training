@@ -64,6 +64,9 @@ flags.DEFINE_integer('global_batch_size', 1024,
 flags.DEFINE_integer(
     'global_seed', 111,
     'Used in env and weight initialization, does not impact action sampling.')
+_ALLOW_VARIABLE_LENGTH_EPISODES = flags.DEFINE_bool(
+    'allow_variable_length_episodes', False,
+    'Whether to allow variable length episodes for training.')
 
 FLAGS = flags.FLAGS
 
@@ -115,7 +118,7 @@ def main(_):
       per_replica_batch_size=batch_size,
       num_iterations=FLAGS.num_iterations,
       num_episodes_per_iteration=FLAGS.num_episodes_per_iteration,
-  )
+      allow_variable_length_episodes=_ALLOW_VARIABLE_LENGTH_EPISODES.value)
 
 
 if __name__ == '__main__':
