@@ -70,7 +70,7 @@ def main(_):
   ppo_collect_lib.collect(
       task=FLAGS.task_id,
       root_dir=root_dir,
-      replay_buffer_server_address=FLAGS.variable_container_server_address,
+      replay_buffer_server_address=FLAGS.replay_buffer_server_address,
       variable_container_server_address=FLAGS.variable_container_server_address,
       create_env_fn=create_env_fn,
       max_sequence_length=FLAGS.max_sequence_length,
