@@ -270,13 +270,13 @@ $  sudo chmod 555 /usr/local/bin/plc_wrapper_main
 
 <a id='FAQ'></a>
 ## Frequently Asked Questions
-We wrote this FAQ to answer frequently asked questions about our work. Please reach out to us if you have any other questions! 
+We wrote this FAQ to answer frequently asked questions about our work. Please reach out to us if you have any other questions!
 
-#### What is the goal and philosophy of our team? 
+#### What is the goal and philosophy of our team?
 Our goal is to help chip designers do their jobs better and faster, and we welcome any method that moves us in that direction. To ensure that we are solving real world problems, we work closely with chip designers to understand and address their needs.
 
-#### What is the impact of our work? 
-Our deep reinforcement learning (RL) methods have been used in production to design multiple flagship hardware products at Google, including Pixel phones and two generations of TPU, saving thousands of engineering hours.  
+#### What is the impact of our work?
+To our knowledge, this is the first deep reinforcement learning (RL) method used in production to design hardware products. More specifically, the RL method described in the Nature paper generated macro placements that were frozen and taped out in Google’s AI accelerator chip (TPU-v5).
 
 We are also excited to see that top EDA and chip design companies (e.g. [Synopsys](https://www.forbes.com/sites/moorinsights/2020/04/20/using-ai-to-build-better-chips/?sh=63551aef306c), [Cadence](https://www.zdnet.com/article/ai-on-the-bench-cadence-offers-machine-learning-to-smooth-chip-design/), [NVIDIA](https://research.nvidia.com/publication/2021-07_NVCell%3A-Standard-Cell), etc.) have announced initiatives to use similar RL-based methods in their tools and chip design efforts.
 
@@ -301,22 +301,23 @@ If an analytic method optimizes for wirelength and produces a result in ~1 minut
 
 #### In our Nature experiments, why do we report QoR metrics rather than wirelength alone?
 Our goal is to develop methods that help chip designers do their job better and faster. We therefore designed the experiments in our paper to mimic the true production setting as closely as possible, and report QoR (Quality of Result) metrics.
- 
+
 QoR metrics can take up to 72 hours to generate with a commercial EDA tool, but are highly accurate measurements of all key metrics, including wirelength, horizontal/vertical congestion, timing (TNS and WNS), power, and area. 
- 
+
 QoR metrics are closest to physical ground truth and are used by production chip design teams to decide which placements are sent for manufacturing. In contrast, proxy costs like approximate wirelength and congestion can be computed cheaply and are useful for optimization, but are not used to make real world decisions as they can vary significantly from QoR.
- 
+
 It is also worth noting that metrics like wirelength and routing congestion directly trade off against each other (e.g. placing nodes close to one another increases congestion, but reduces wirelength), so optimizing or evaluating for wirelength alone is unlikely to result in manufacturable chip layouts. 
 
 #### In our Nature experiments, do we perform any postprocessing on the RL results?
 No. In our Nature experiments, we do not apply any postprocessing to the RL results.
 
-In our open-source code, we provide an optional 1-5 minute coordinate descent postprocessing step, which we found to slightly improve wirelength. You are welcome to turn it on or off with a flag, and to compare performance with or without it. 
+In our open-source code, we provide an optional 1-5 minute coordinate descent postprocessing step, which we found to slightly improve wirelength. You are welcome to turn it on or off with a flag, and to compare performance with or without it.
 
 #### What was the process for open-sourcing this code?
 Open-sourcing our code involved partnering with another team at Google ([TF-Agents](https://www.tensorflow.org/agents)). TF-Agents first replicated the results in our Nature article using our codebase, then reimplemented our method and replicated our results using their own implementation, and then open-sourced their implementation as it does not rely on any internal infrastructure.
 
-Getting approval to open-source this code, ensuring compliance with export control restrictions, migrating to TensorFlow 2.x, and removing dependencies from all Google infrastructure was quite time-consuming, but we felt that it was worth the effort to be able to share our method with the community.
+Getting approval to open-source this code, ensuring compliance with export control restrictions, migrating to TensorFlow 2.x, and removing dependencies from all Google infrastructure was quite time-consuming; but we felt that it was worth the effort to be able to share our method with the community.
+
 
 <a id='Contributing'></a>
 ## How to contribute
