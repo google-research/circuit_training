@@ -276,7 +276,7 @@ We wrote this FAQ to answer frequently asked questions about our work. Please re
 Our goal is to help chip designers do their jobs better and faster, and we welcome any method that moves us in that direction. To ensure that we are solving real world problems, we work closely with chip designers to understand and address their needs.
 
 #### What is the impact of our work?
-To our knowledge, this is the first deep reinforcement learning (RL) method used in production to design hardware products. More specifically, the RL method described in the Nature paper generated macro placements that were frozen and taped out in Google’s most recent TPU AI accelerator chip.
+To our knowledge, this is the first deep reinforcement learning (RL) method used in production to design hardware products. More specifically, the RL method described in the Nature paper generated macro placements that were frozen and taped out in Google’s AI accelerator chip (TPU-v5).
 
 We are also excited to see that top EDA and chip design companies (e.g. [Synopsys](https://www.forbes.com/sites/moorinsights/2020/04/20/using-ai-to-build-better-chips/?sh=63551aef306c), [Cadence](https://www.zdnet.com/article/ai-on-the-bench-cadence-offers-machine-learning-to-smooth-chip-design/), [NVIDIA](https://research.nvidia.com/publication/2021-07_NVCell%3A-Standard-Cell), etc.) have announced initiatives to use similar RL-based methods in their tools and chip design efforts.
 
