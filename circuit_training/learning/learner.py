@@ -151,11 +151,11 @@ class CircuittrainingPPOLearner(object):
         strategy=strategy)
 
     self.num_replicas = strategy.num_replicas_in_sync
-    self._create_datasets(strategy)
+    self._allow_variable_length_episodes = allow_variable_length_episodes
     self._num_samples = self._num_episodes_per_iteration * self._sequence_length
+    self._create_datasets(strategy)
     self._steps_per_iter = self._get_train_steps_per_iteration()
     logging.info('train steps per iteration: %d', self._steps_per_iter)
-    self._allow_variable_length_episodes = allow_variable_length_episodes
 
   def _create_datasets(self, strategy):
     """Create the training dataset and iterator."""
