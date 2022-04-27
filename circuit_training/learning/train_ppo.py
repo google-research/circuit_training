@@ -33,35 +33,38 @@ from tf_agents.system import system_multiprocessing as multiprocessing
 from tf_agents.train.utils import spec_utils
 from tf_agents.train.utils import strategy_utils
 
-flags.DEFINE_string('netlist_file', '', 'File path to the netlist file.')
-flags.DEFINE_string('init_placement', '',
-                    'File path to the init placement file.')
+_NETLIST_FILE = flags.DEFINE_string('netlist_file', '',
+                                    'File path to the netlist file.')
+_INIT_PLACEMENT = flags.DEFINE_string('init_placement', '',
+                                      'File path to the init placement file.')
 # TODO(b/219085316): Open source dreamplace.
-flags.DEFINE_string(
+_STD_CELL_PLACER_MODE = flags.DEFINE_string(
     'std_cell_placer_mode', 'fd',
     'Options for fast std cells placement: `fd` (uses the '
     'force-directed algorithm), `dreamplace` (uses DREAMPlace '
     'algorithm).')
-flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-                    'Root directory for writing logs/summaries/checkpoints.')
-flags.DEFINE_string('replay_buffer_server_address', None,
-                    'Replay buffer server address.')
-flags.DEFINE_string('variable_container_server_address', None,
-                    'Variable container server address.')
-flags.DEFINE_integer('num_iterations', 10000,
-                     'Total number train/eval iterations to perform.')
-flags.DEFINE_integer(
+_ROOT_DIR = flags.DEFINE_string(
+    'root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
+    'Root directory for writing logs/summaries/checkpoints.')
+_REPLAY_BUFFER_SERVER_ADDR = flags.DEFINE_string(
+    'replay_buffer_server_address', None, 'Replay buffer server address.')
+_VARIABLE_CONTAINER_SERVER_ADDR = flags.DEFINE_string(
+    'variable_container_server_address', None,
+    'Variable container server address.')
+_NUM_ITERATIONS = flags.DEFINE_integer(
+    'num_iterations', 10000, 'Total number train/eval iterations to perform.')
+_SEQUENCE_LENGTH = flags.DEFINE_integer(
     'sequence_length', 134,
     'The sequence length to estimate shuffle size. Depends on the environment.'
     'Max horizon = T translates to sequence_length T+1 because of the '
     'additional boundary step (last -> first).')
-flags.DEFINE_integer(
+_NUM_EPISODES_PER_ITERATION = flags.DEFINE_integer(
     'num_episodes_per_iteration', 1024,
     'This is the number of episodes we train on in each iteration.')
-flags.DEFINE_integer('global_batch_size', 1024,
-                     'Global batch size across all replicas.')
+_GLOBAL_BATCH_SIZE = flags.DEFINE_integer(
+    'global_batch_size', 1024, 'Global batch size across all replicas.')
 
-flags.DEFINE_integer(
+_GLOBAL_SEED = flags.DEFINE_integer(
     'global_seed', 111,
     'Used in env and weight initialization, does not impact action sampling.')
 _ALLOW_VARIABLE_LENGTH_EPISODES = flags.DEFINE_bool(
@@ -73,25 +76,25 @@ FLAGS = flags.FLAGS
 
 def main(_):
 
-  logging.info('global seed=%d', FLAGS.global_seed)
-  np.random.seed(FLAGS.global_seed)
-  random.seed(FLAGS.global_seed)
-  tf.random.set_seed(FLAGS.global_seed)
+  logging.info('global seed=%d', _GLOBAL_SEED.value)
+  np.random.seed(_GLOBAL_SEED.value)
+  random.seed(_GLOBAL_SEED.value)
+  tf.random.set_seed(_GLOBAL_SEED.value)
 
-  root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))
+  root_dir = os.path.join(_ROOT_DIR.value, str(_GLOBAL_SEED.value))
 
   strategy = strategy_utils.get_strategy(FLAGS.tpu, FLAGS.use_gpu)
 
   create_env_fn = functools.partial(
       environment.create_circuit_environment,
-      netlist_file=FLAGS.netlist_file,
-      init_placement=FLAGS.init_placement,
-      global_seed=FLAGS.global_seed)
+      netlist_file=_NETLIST_FILE.value,
+      init_placement=_INIT_PLACEMENT.value,
+      global_seed=_GLOBAL_SEED.value)
 
   use_model_tpu = bool(FLAGS.tpu)
 
-  batch_size = int(FLAGS.global_batch_size / strategy.num_replicas_in_sync)
-  logging.info('global batch_size=%d', FLAGS.global_batch_size)
+  batch_size = int(_GLOBAL_BATCH_SIZE.value / strategy.num_replicas_in_sync)
+  logging.info('global batch_size=%d', _GLOBAL_BATCH_SIZE.value)
   logging.info('per-replica batch_size=%d', batch_size)
 
   env = create_env_fn()
@@ -108,16 +111,16 @@ def main(_):
   train_ppo_lib.train(
       root_dir=root_dir,
       strategy=strategy,
-      replay_buffer_server_address=FLAGS.replay_buffer_server_address,
-      variable_container_server_address=FLAGS.variable_container_server_address,
+      replay_buffer_server_address=_REPLAY_BUFFER_SERVER_ADDR.value,
+      variable_container_server_address=_VARIABLE_CONTAINER_SERVER_ADDR.value,
       create_env_fn=create_env_fn,
-      sequence_length=FLAGS.sequence_length,
+      sequence_length=_SEQUENCE_LENGTH.value,
       use_grl=True,
       actor_net=grl_actor_net,
       value_net=grl_value_net,
       per_replica_batch_size=batch_size,
-      num_iterations=FLAGS.num_iterations,
-      num_episodes_per_iteration=FLAGS.num_episodes_per_iteration,
+      num_iterations=_NUM_ITERATIONS.value,
+      num_episodes_per_iteration=_NUM_EPISODES_PER_ITERATION.value,
       allow_variable_length_episodes=_ALLOW_VARIABLE_LENGTH_EPISODES.value)
 
 
