@@ -5,7 +5,7 @@ Circuit Training uses the
 proto to exchange netlist information. Each node in the graph can represent
 macros, standard cells, ports, and macro pins. You can find an example of the
 netlist format for Ariane RISC-V CPU
-[here](environment/test_data/ariane/netlist.pb.txt).
+[here](https://raw.githubusercontent.com/google-research/circuit_training/main/circuit_training/environment/test_data/ariane/netlist.pb.txt).
 
 ## Node types
 
