@@ -7,10 +7,11 @@ macros, standard cells, ports, and macro pins. You can find an example of the
 netlist format for Ariane RISC-V CPU
 [here](https://raw.githubusercontent.com/google-research/circuit_training/main/circuit_training/environment/test_data/ariane/netlist.pb.txt).
 
+![Example Netlist](image/netlist_example.png)
+
 ## Node types
 
-All the length fields are in microns.
-
+Note: All the length fields are in microns.
 
 ### Macro
 
