@@ -80,7 +80,7 @@ class ObservationConfig(object):
   # on a set of TPU blocks.
   # Large numbers may cause GPU/TPU OOM during training.
   def __init__(self,
-               max_num_nodes: int = 4700,
+               max_num_nodes: int = 5000,
                max_num_edges: int = 28400,
                max_grid_size: int = 128):
     self.max_num_edges = max_num_edges
