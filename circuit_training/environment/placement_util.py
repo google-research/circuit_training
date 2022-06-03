@@ -42,6 +42,38 @@ def nodes_of_types(plc: plc_client.PlacementCost,
     i += 1
 
 
+def get_node_xy_coordinates(
+    plc: plc_client.PlacementCost) -> Dict[int, Tuple[float, float]]:
+  """Returns all node x,y coordinates (canvas) in a dict."""
+  node_coords = dict()
+  for node_index in nodes_of_types(plc, ['MACRO', 'STDCELL', 'PORT']):
+    if plc.is_node_placed(node_index):
+      node_coords[node_index] = plc.get_node_location(node_index)
+  return node_coords
+
+
+def get_macro_orientations(plc: plc_client.PlacementCost) -> Dict[int, int]:
+  """Returns all macros' orientations in a dict."""
+  macro_orientations = dict()
+  for node_index in nodes_of_types(plc, ['MACRO']):
+    macro_orientations[node_index] = plc.get_macro_orientation(node_index)
+  return macro_orientations
+
+
+def restore_node_xy_coordinates(
+    plc: plc_client.PlacementCost,
+    node_coords: Dict[int, Tuple[float, float]]) -> None:
+  for node_index, coords in node_coords.items():
+    if not plc.is_node_fixed(node_index):
+      plc.update_node_coords(node_index, coords[0], coords[1])
+
+
+def restore_macro_orientations(plc: plc_client.PlacementCost,
+                               macro_orientations: Dict[int, int]) -> None:
+  for node_index, orientation in macro_orientations.items():
+    plc.update_macro_orientation(node_index, orientation)
+
+
 def extract_attribute_from_comments(attribute: Text,
                                     filenames: List[Text]) -> Optional[Text]:
   """Parses the files' comments section, tries to extract the attribute.
@@ -196,10 +228,8 @@ def create_placement_cost(
         'Please add the block_name in:\n%s\nor in:\n%s', netlist_file,
         init_placement)
 
-  plc = plc_client.PlacementCost(
-      netlist_file,
-      macro_macro_x_spacing,
-      macro_macro_y_spacing)
+  plc = plc_client.PlacementCost(netlist_file, macro_macro_x_spacing,
+                                 macro_macro_y_spacing)
 
   blockages = get_blockages_from_comments([netlist_file, init_placement])
   if blockages:

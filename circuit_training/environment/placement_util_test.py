@@ -22,7 +22,6 @@ from circuit_training.utils import test_utils
 
 # Internal gfile dependencies
 
-
 FLAGS = flags.FLAGS
 
 TEST_FILE_BODY = r"""# Placement file for Circuit Training
@@ -43,7 +42,9 @@ class MockPlacementCost(object):
   """A Mock class of PlacementCost for testing."""
 
   def __init__(self):
-    self.node_type = ['PORT', 'PORT', 'MACRO_PIN', 'MACRO_PIN', 'MACRO']
+    self.node_type = [
+        'PORT', 'PORT', 'MACRO_PIN', 'MACRO_PIN', 'MACRO', 'STDCELL'
+    ]
     self._fix_node_coord = [False] * len(self.node_type)
 
   def get_node_type(self, node: int):
@@ -107,6 +108,29 @@ class MockPlacementCost(object):
     del node_id
     return False
 
+  def get_node_location(self, node_id):
+    if node_id == 0:
+      return (0, 0)
+    elif node_id == 1:
+      return (0, 1)
+    elif node_id == 2:
+      return (0, 2)
+    elif node_id == 3:
+      return (0, 3)
+    elif node_id == 4:
+      return (0, 4)
+    elif node_id == 5:
+      return (0, 5)
+
+  def get_macro_orientation(self, node_id):
+    if node_id == 4:
+      return 'N'
+    return ''
+
+  def is_node_placed(self, node_id):
+    del node_id
+    return True
+
   def save_placement(self, filename, info):
     print(info)
     with open(filename, 'wt') as f:
@@ -125,6 +149,22 @@ class PlacementUtilTest(test_utils.TestCase):
     self.assertEqual(
         list(placement_util.nodes_of_types(plc, ['PORT', 'MACRO'])), [0, 1, 4])
     self.assertEmpty(list(placement_util.nodes_of_types(plc, ['BAD_TYPE'])))
+
+  def test_mock_plc_get_node_xy_coordinates(self):
+    plc = MockPlacementCost()
+    # This function returns only PORT, MACRO, and STDCELL nodes.
+    self.assertDictEqual(
+        placement_util.get_node_xy_coordinates(plc), {
+            0: (0, 0),
+            1: (0, 1),
+            4: (0, 4),
+            5: (0, 5)
+        })
+
+  def test_mock_plc_get_macro_orientations(self):
+    plc = MockPlacementCost()
+    # This function returns only MACRO.
+    self.assertDictEqual(placement_util.get_macro_orientations(plc), {4: 'N'})
 
   def test_mock_plc_fix_port_coordinates(self):
     plc = MockPlacementCost()
