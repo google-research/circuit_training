@@ -37,7 +37,8 @@ def collect(task,
             write_summaries_task_threshold=1):
   """Collects experience using a policy updated after every episode."""
   # Create the environment.
-  env = create_env_fn()
+  train_step = train_utils.create_train_step()
+  env = create_env_fn(train_step=train_step)
 
   # Create the path for the serialized collect policy.
   policy_saved_model_path = os.path.join(root_dir,
@@ -58,7 +59,6 @@ def collect(task,
     raise e
 
   # Create the variable container.
-  train_step = train_utils.create_train_step()
   model_id = common.create_variable('model_id')
   variables = {
       reverb_variable_container.POLICY_KEY: policy.variables(),

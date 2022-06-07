@@ -33,6 +33,7 @@ from tf_agents.environments import suite_gym
 from tf_agents.environments import wrappers
 
 ObsType = Dict[Text, np.ndarray]
+InfoType = Dict[Text, float]
 
 
 class InfeasibleActionError(ValueError):
@@ -357,6 +358,30 @@ class CircuitEnv(object):
         placement_util.save_placement(self._plc, cd_snapshot_file,
                                       user_comments)
 
+  def call_analytical_placer_and_get_cost(self) -> tuple[float, InfoType]:
+    """Calls analytical placer.
+
+    Calls analystical placer and evaluates cost when all nodes are placed. Also,
+    saves the placement file for eval if all the macros are placed by RL.
+
+    Returns:
+      A tuple for placement cost and info.
+    """
+    if self._done:
+      self.analytical_placer()
+    # Only evaluates placement cost when all nodes are placed.
+    # All samples in the episode receive the same reward equal to final cost.
+    # This is realized by setting intermediate steps cost as zero, and
+    # propagate the final cost with discount factor set to 1 in replay buffer.
+    cost, info = self._cost_info_fn(self._plc, self._done)
+
+    # We only save placement if all nodes by placed RL, because the dreamplace
+    # mix-sized placement may not be legal.
+    if self._current_node == self._num_hard_macros and self._is_eval:
+      self._save_placement(cost)
+
+    return -cost, info
+
   def reset(self) -> ObsType:
     """Restes the environment.
 
@@ -432,17 +457,9 @@ class CircuitEnv(object):
       }
       return self.reset(), self.INFEASIBLE_REWARD, True, info
 
-    if self._done:
-      self.analytical_placer()
-    # Only evaluates placement cost when all nodes are placed.
-    # All samples in the episode receive the same reward equal to final cost.
-    # This is realized by setting intermediate steps cost as zero, and
-    # propagate the final cost with discount factor set to 1 in replay buffer.
-    cost, info = self._cost_info_fn(self._plc, self._done)
-    if self._done and self._is_eval:
-      self._save_placement(cost)
+    cost, info = self.call_analytical_placer_and_get_cost()
 
-    return self._get_obs(), -cost, self._done, info
+    return self._get_obs(), cost, self._done, info
 
 
 def create_circuit_environment(*args, **kwarg) -> wrappers.ActionClipWrapper:
