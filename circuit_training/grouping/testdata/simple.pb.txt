@@ -1,0 +1,254 @@
+node {
+  name: "P0"
+  input: "P0_M0"
+  input: "S0"
+  attr {
+    key: "type"
+    value {
+      placeholder: "port"
+    }
+  }
+  attr {
+    key: "side"
+    value {
+      placeholder: "left"
+    }
+  }
+}
+
+node {
+  name: "P1"
+  attr {
+    key: "type"
+    value {
+      placeholder: "port"
+    }
+  }
+  attr {
+    key: "side"
+    value {
+      placeholder: "top"
+    }
+  }
+}
+
+node {
+  name: "S0"
+  input: "S1"
+  attr {
+    key: "type"
+    value {
+      placeholder: "stdcell"
+    }
+  }
+  attr {
+    key: "ref_name"
+    value {
+      placeholder: "X"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 2.208000
+    }
+  }
+  attr {
+    key: "height"
+    value {
+      f: 0.480000
+    }
+  }
+}
+
+node {
+  name: "S1"
+  input: "P0_M1"
+  attr {
+    key: "type"
+    value {
+      placeholder: "stdcell"
+    }
+  }
+  attr {
+    key: "ref_name"
+    value {
+      placeholder: "Y"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 2.208000
+    }
+  }
+  attr {
+    key: "height"
+    value {
+      f: 0.480000
+    }
+  }
+}
+
+node {
+  name: "M0"
+  attr {
+    key: "type"
+    value {
+      placeholder: "macro"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 120
+    }
+  }
+  attr {
+    key: "height"
+    value {
+      f: 120
+    }
+  }
+}
+
+# Macro M1
+node {
+  name: "M1"
+  attr {
+    key: "type"
+    value {
+      placeholder: "macro"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 80
+    }
+  }
+  attr {
+    key: "height"
+    value {
+      f: 40
+    }
+  }
+}
+
+# Pin P0 of Macro M0
+node {
+  name: "P0_M0"
+  attr {
+    key: "type"
+    value {
+      placeholder: "macro_pin"
+    }
+  }
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "M0"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: -60
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 60
+    }
+  }
+}
+
+# Pin P1 of Macro M0
+node {
+  name: "P1_M0"
+  input: "S1"
+  attr {
+    key: "type"
+    value {
+      placeholder: "macro_pin"
+    }
+  }
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "M0"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: 60
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 60
+    }
+  }
+}
+
+# Pin P0 of Macro M1
+node {
+  name: "P0_M1"
+  attr {
+    key: "type"
+    value {
+      placeholder: "macro_pin"
+    }
+  }
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "M1"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: -40
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 20
+    }
+  }
+}
+
+# Pin P1 of Macro M1
+node {
+  name: "P1_M1"
+  input: "P1"
+  attr {
+    key: "type"
+    value {
+      placeholder: "macro_pin"
+    }
+  }
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "M1"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: 40
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 20
+    }
+  }
+}
