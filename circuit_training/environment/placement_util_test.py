@@ -137,8 +137,27 @@ class MockPlacementCost(object):
       for l in info.split('\n'):
         f.write('# ' + l + '\n')
 
+  def get_grid_cell_of_node(self, index):
+    return 0
+
+  def unplace_all_nodes(self):
+    return
+
+  def is_node_fixed(self, index):
+    return True
+
 
 class PlacementUtilTest(test_utils.TestCase):
+
+  def setUp(self):
+    test_netlist_dir = ('circuit_training/'
+                        'environment/test_data/macro_tiles_10x10')
+    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+                                'netlist.pb.txt')
+    init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+                                  'initial.plc')
+    self.plc = placement_util.create_placement_cost(
+        netlist_file=netlist_file, init_placement=init_placement)
 
   def test_mock_plc_get_node_type(self):
     plc = MockPlacementCost()
@@ -282,18 +301,98 @@ class PlacementUtilTest(test_utils.TestCase):
 
     # Internal circuit training docs link.
     """
+    self.assertGreater(self.plc.get_cost(), 0.0)
+    placement_util.fd_placement_schedule(self.plc)
+    self.assertGreater(self.plc.get_cost(), 0.0)
+
+  def test_legalize_placement(self):
+    self.assertTrue(placement_util.legalize_placement(self.plc))
+
+  def test_disconnect_high_fanout_nets(self):
+    placement_util.disconnect_high_fanout_nets(self.plc, 500)
+
+  def test_create_placement_cost_using_common_arguments(self):
     test_netlist_dir = ('circuit_training/'
-                        'environment/test_data/sample_clustered')
+                        'environment/test_data/macro_tiles_10x10')
     netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
                                 'netlist.pb.txt')
     init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
                                   'initial.plc')
-    plc = placement_util.create_placement_cost(
-        netlist_file=netlist_file, init_placement=init_placement)
+    plc = placement_util.create_placement_cost_using_common_arguments(
+        netlist_file, init_placement, 100, 100, 10, 10)
+    self.assertEqual(plc.get_canvas_width_height(), (100, 100))
+    self.assertEqual(plc.get_grid_num_columns_rows(), (10, 10))
 
-    self.assertGreater(plc.get_cost(), 0.0)
-    placement_util.fd_placement_schedule(plc)
-    self.assertGreater(plc.get_cost(), 0.0)
+  def test_save_placement_with_info(self):
+    output_file_path = os.path.join(FLAGS.test_tmpdir, 'netlist.pb.txt')
+    self.assertEqual(
+        placement_util.save_placement_with_info(self.plc, output_file_path,
+                                                'python run'), {
+                                                    'message': '',
+                                                    'ok': True
+                                                })
+
+  def test_get_hard_macro_density_map(self):
+    self.assertEqual(
+        placement_util.get_hard_macro_density_map(self.plc), [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0.6944444444444444, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0.6944444444444444, 0.6944444444444444, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0.6944444444444444, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0.6944444444444444, 0,
+            0.6944444444444444, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0.6944444444444444, 0.6944444444444444, 0, 0.6944444444444444,
+            0.6944444444444444, 0.6944444444444444, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ])
+
+  def test_extract_parameters_from_comments(self):
+    test_netlist_dir = ('circuit_training/'
+                        'environment/test_data/macro_tiles_10x10')
+    init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+                                  'initial.plc')
+    self.assertEqual(
+        placement_util.extract_parameters_from_comments(init_placement),
+        (1200.0, 1200.0, 20, 20))
 
 
 if __name__ == '__main__':
