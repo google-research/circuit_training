@@ -1,0 +1,27 @@
+node {
+  name: "S10"
+  attr {
+    key: "type"
+    value {
+      placeholder: "stdcell"
+    }
+  }
+  attr {
+    key: "ref_name"
+    value {
+      placeholder: "X"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 2.208000
+    }
+  }
+  attr {
+    key: "height"
+    value {
+      f: 0.480000
+    }
+  }
+}

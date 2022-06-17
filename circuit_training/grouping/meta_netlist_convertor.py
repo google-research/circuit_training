@@ -328,14 +328,25 @@ def read_netlist(netlist_filepath: str) -> mnds.MetaNetlist:
 
   Args:
     netlist_filepath: netlist proto file path. It is expected in the
-      tf.GraphDef() format.
+      tf.GraphDef() format. If a file is extremely large
+      (larger than 2147483647 bytes) then we should break it up into smaller
+      files, and pass them as comma separated list.
 
   Returns:
     Converted MetaNetlist.
+
+  Raises:
+    ValueError is the netlist_filepath is empty or just composed with comma.
   """
-  with open(netlist_filepath, "r") as f:
-    tf_graph = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
+  netlist_filepath_list = netlist_filepath.split(",")
+  netlist_filepath_list = [f for f in netlist_filepath_list if f]
+  if not netlist_filepath_list:
+    raise ValueError("Please ensure the netlist_filepath is not Empty.")
 
   meta_graph = tf.compat.v1.MetaGraphDef()
-  meta_graph.graph_def.CopyFrom(tf_graph)
+
+  for single_netlist_filepath in netlist_filepath_list:
+    with open(single_netlist_filepath, "r") as f:
+      tf_graph = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
+    meta_graph.graph_def.MergeFrom(tf_graph)
   return convert_tfgraph_to_meta_netlist(meta_graph)

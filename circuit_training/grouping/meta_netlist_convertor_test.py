@@ -174,6 +174,7 @@ attr {
 """
 
 _NETLIST_FILE_PATH = "third_party/py/circuit_training/grouping/testdata/simple.pb.txt"
+_ONE_NODE_GRAPH_FILE_PATH = "third_party/py/circuit_training/grouping/testdata/one_node_graph.pb.txt"
 
 
 class MetaNetlistConvertorTest(parameterized.TestCase, test_utils.TestCase):
@@ -181,6 +182,18 @@ class MetaNetlistConvertorTest(parameterized.TestCase, test_utils.TestCase):
   def test_read_netlist(self):
     meta_netlist = meta_netlist_convertor.read_netlist(_NETLIST_FILE_PATH)
     self.assertLen(meta_netlist.node, 10)
+
+  def test_read_netlist_separate(self):
+    meta_netlist = meta_netlist_convertor.read_netlist(",".join(
+        [_NETLIST_FILE_PATH, _ONE_NODE_GRAPH_FILE_PATH]))
+    self.assertLen(meta_netlist.node, 11)
+
+  def test_empty_netlist_raises_value_error(self):
+    with self.assertRaises(ValueError):
+      _ = meta_netlist_convertor.read_netlist("")
+
+    with self.assertRaises(ValueError):
+      _ = meta_netlist_convertor.read_netlist(",")
 
   def test_read_attr(self):
     node = text_format.Parse(_TEST_NDOE_DEF_PORT, tf.compat.v1.NodeDef())
