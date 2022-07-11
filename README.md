@@ -63,11 +63,10 @@ scaling to 100s of actors.
 *   Supports macro-to-macro, macro-to-boundary spacing constraints.
 *   Allows users to specify their own technology parameters, e.g. and routing
     resources (in routes per micron) and macro routing allocation.
-*   **Coming soon**: Tools for generating a clustered netlist given a netlist in
-    common formats (Bookshelf and
-    [LEF/DEF](https://github.com/google-research/circuit_training/issues/3)).
-*   **Coming soon**: Generates macro placement tcl command compatible with major
-    EDA tools (Innovus, ICC2).
+*   Generates [clustered netlists](https://github.com/google-research/circuit_training/tree/main/circuit_training/grouping).
+*   **Working with vendors**: Generate [Netlist Protocol Buffer](https://github.com/google-research/circuit_training/blob/main/docs/NETLIST_FORMAT.md)
+    representation via tcl command compatible with major EDA tools
+    (Innovus, ICC2). [Issue #3](https://github.com/google-research/circuit_training/issues/3)
 
 <a id='Installation'></a>
 
