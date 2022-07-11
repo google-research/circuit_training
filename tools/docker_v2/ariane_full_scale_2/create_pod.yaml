@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: circuit-training-cuda-
+
+spec:
+  containers:
+  - workingDir: /store
+    command: ["sleep", "infinity"]
+  #        command:
+  #        - python
+  #        - docker/broadcast_image.py
+    image: amr-registry.caas.intel.com/aipg/mariasha-circuit-training-cuda:v2
+    imagePullPolicy: Always
+    env:
+    - name: WPA_CACHE
+      value: /tmp/wpa
+    - name: OMP_NUM_THREADS
+      value: "1"
+    name: sph-sac
+    resources:
+      limits:
+        cpu: 10 ## 10,000 mCPU, or 10 CPU "cores"
+        nvidia.com/gpu: 0 ## number of GPUs requested
+        memory: 32Gi ## amount of memory
+#      requests:
+#        cpu: 50000m
+#        nvidia.com/gpu: 0
+#        memory: 10Gi
+    volumeMounts:
+    - mountPath: "/store"
+      name: workdisk
+  restartPolicy: Never
+  securityContext:
+      fsGroup: 17685
+      runAsUser: 12111378
+
+  volumes:
+  - name: workdisk
+    persistentVolumeClaim:
+      claimName: workdisk
+
+

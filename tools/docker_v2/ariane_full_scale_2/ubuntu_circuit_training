@@ -1,0 +1,67 @@
+# Run the following commands in order:
+#
+# docker build --tag circuit_training:core -f tools/docker/ubuntu_circuit_training tools/docker/
+# ## docker build --tag {tag} -f {docker_file_name} {context: the directory where docker file is}
+# Smoke test the docker
+# docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:core bash
+# python3 -m circuit_training.environment.environment_test
+#
+# For GPUs. devel version is needed to support xla.
+# docker build --build-arg base_image=nvidia/cuda:11.4.2-cudnn8-devel-ubuntu20.04 \
+#   --tag circuit_training:core -f tools/docker/ubuntu_circuit_training tools/docker/
+ARG base_image="ubuntu:20.04"
+
+FROM $base_image
+
+LABEL maintainer="mariasha"
+
+# Supports setting up a single version of python.
+ARG python_version="python3"
+ARG tf_agents_version="tf-agents[reverb]"
+ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
+
+# Stops tzdata from asking about timezones and blocking install on user input.
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Los_Angeles
+
+# Installs basics including add-apt.
+RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
+        software-properties-common \
+        curl \
+        less
+
+# install tmux and ssh in docker container
+RUN ${APT_COMMAND} update && \
+  ${APT_COMMAND} install -y tmux && \
+  ${APT_COMMAND} install -y openssh-server && \
+  ${APT_COMMAND} install -y python3-matplotlib && \
+  ${APT_COMMAND} install -y python3-opencv
+
+# expose port 22 for ssh usage
+EXPOSE 22/tcp
+# expose port 22 for tensorboard. this is the default port for tensorboard
+#EXPOSE 6006/tcp
+# Adds repository to pull versions of python from.
+RUN add-apt-repository ppa:deadsnakes/ppa
+
+# Installs various versions of python and then cleans up apt.
+RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
+        $python_version-dev \
+        $python_version-distutils \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Downloads the placement cost utility binary nto /usr/local/bin.
+RUN curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main \
+     -o  /usr/local/bin/plc_wrapper_main
+
+RUN chmod 555 /usr/local/bin/plc_wrapper_main
+
+RUN curl -O https://bootstrap.pypa.io/get-pip.py
+
+RUN $python_version get-pip.py
+RUN $python_version -mpip --no-cache-dir install $tf_agents_version
+
+
+CMD ["/bin/bash"]
