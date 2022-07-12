@@ -371,6 +371,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     ]
 
     # Graph.
+    # pytype: disable=wrong-arg-types  # dynamic-method-lookup
     sparse_adj_weight = self._get_static_input('sparse_adj_weight', inputs)
     sparse_adj_i = tf.cast(
         self._get_static_input('sparse_adj_i', inputs), dtype=tf.int32)
@@ -382,6 +383,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     is_node_placed = tf.cast(inputs['is_node_placed'], dtype=tf.float32)
     macros_w = self._get_static_input('macros_w', inputs)
     macros_h = self._get_static_input('macros_h', inputs)
+    # pytype: enable=wrong-arg-types  # dynamic-method-lookup
     locations_x = inputs['locations_x']
     locations_y = inputs['locations_y']
 
