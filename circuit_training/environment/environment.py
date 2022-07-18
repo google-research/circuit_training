@@ -234,6 +234,8 @@ class CircuitEnv(object):
     self._current_node = 0
     self._done = False
     self._current_mask = self._get_mask()
+    self._infeasible_state = False
+
     if unplace_all_nodes_in_init:
       # TODO(b/223026568) Remove unplace_all_nodes from init
       self._plc.unplace_all_nodes()
@@ -448,6 +450,9 @@ class CircuitEnv(object):
     self._current_mask = self._get_mask()
 
     if not self._done and not np.any(self._current_mask):
+      # Please note that _infeasible_state is not reset in reset function so,
+      # the caller of step() is responsible for resetting it.
+      self._infeasible_state = True
       logging.info('Actions took before becoming infeasible: %s',
                    self._current_actions)
       info = {
