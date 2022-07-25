@@ -3,65 +3,73 @@ Grouping (clustering) the standard cells in the circuit training netlist.
 
 ## Prerequisite
 
-Download hmetis binary from: [http://glaros.dtc.umn.edu/gkhome/metis/hmetis/download](http://glaros.dtc.umn.edu/gkhome/metis/hmetis/download) <br>
-Download plc_wrapper_main binary from: [gs://rl-infra-public/circuit-training/placement_cost/plc_wrapper_main](gs://rl-infra-public/circuit-training/placement_cost/plc_wrapper_main) <br>
-Download ariane netlist from: [gs://rl-infra-public/circuit-training/netlist/ariane.circuit_graph.pb.txt.gz](gs://rl-infra-public/circuit-training/netlist/ariane.circuit_graph.pb.txt.gz) <br>
+Before starting, download the following files. They will be referenced by
+environment variables setup in the first step.
+
+   * [hmetis binary](http://glaros.dtc.umn.edu/gkhome/metis/hmetis/download)
+      (University of Minnesota)
+   * [plc_wrapper_main binary](https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main)
+   * Ariane [netlist](https://storage.googleapis.com/rl-infra-public/circuit-training/netlist/ariane.circuit_graph.pb.txt.gz)
 
 Unzip the downloaded netlist file:
 
-```console
-gzip -d ariane.circuit_graph.pb.txt.gz
+```shell
+$ gzip -d ariane.circuit_graph.pb.txt.gz
+```
+
+### Note
+If the netlist file is larger than 2 GB, split it into small files. This is
+due to the text proto file size constraint. The smaller files can be 
+passed as follows: 
+`--netlist_file=/path/to/netlist_file_1.pb.txt,/path/to/netlist_file_2.pb.txt`
+
+You can use the `split_proto_netlist_main` script from the
+[grouping package](https://github.com/google-research/circuit_training/tree/main/circuit_training/grouping)
+to split the netlist:
+
+```shell
+$ python split_proto_netlist_main \
+      --file_name=netlist.pb.txt \
+      --output_dir=/dir/to/output/
 ```
 
 ## 1. Setup the variables
 
-```console
-OUTPUT_DIR=/path/to/output
-BLOCK_NAME=ariane
-NETLIST_FILE=/path/to/the/netlist.pb.txt
-HMETIS_DIR=/path/to/the/hmetis/binary
-PLC_WRAPPER_MAIN=/path/to/the/plc_wrapper_main
+```shell
+$ export OUTPUT_DIR=/path/to/output
+$ export BLOCK_NAME=ariane
+$ export NETLIST_FILE=/path/to/the/netlist.pb.txt
+$ export HMETIS_DIR=/path/to/the/hmetis/binary
+$ export PLC_WRAPPER_MAIN=/path/to/the/plc_wrapper_main
 ```
 
-#### Note
-If your netlist file is larger than 2 GB, please split it into small files,
-due to the text proto file size constraint. Then you can pass the netlist input
-flag as a comma separated string, for example, 
-`--netlist_file=/path/to/netlist_file_1.pb.txt,/path/to/netlist_file_2.pb.txt`
 
-You can use the following tool to split netlist:
 
-```console
-python split_proto_netlist_main
---file_name=netlist.pb.txt
---output_dir=/dir/to/output/
-```
+## 2. Run the grouping (clustering) code
 
-## 2. Run the code
-
-```console
-python circuittraining/grouping/groupermain
---output_dir=$OUTPUT_DIR
---netlist_file=$NETLIST_FILE
---block_name=$BLOCK_NAME
---hmetis_dir=$HMETIS_DIR
+```shell
+$ python circuittraining/grouping/groupermain \
+--output_dir=$OUTPUT_DIR \
+--netlist_file=$NETLIST_FILE \
+--block_name=$BLOCK_NAME \
+--hmetis_dir=$HMETIS_DIR \
 --plc_wrapper_main=$PLC_WRAPPER_MAIN
 ```
 
-#### Output example
+#### Example output example
 
-You should be able to see the metrics after clustering such as:
+Metrics similar to the following will be output by the grouping code:
 
-```console
+```shell
 grouper.py:336] Wirelength: 4066003.636051
 grouper.py:337] Wirelength cost: 0.248466
 grouper.py:338] Congestion cost: 1.662051
 grouper.py:339] Overlap cost: 0.000034
 ```
 
-We expect the metrics of clustered netlist within a small margin of the original
-unclustered netlist, so that we know the
-clustering is a good approximation of standard cells’ placements.
+We expect the metrics of a clustered netlist to be within a small margin of the
+original unclustered netlist. This gives us confidence that clustering is a
+good approximation of the standard cells’ placements.
 
 ## F.A.Q.
 
