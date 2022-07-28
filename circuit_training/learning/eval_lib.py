@@ -77,7 +77,10 @@ class InfoMetric(py_metric.PyStepMetric):
     self._buffer.clear()
 
 
-def evaluate(root_dir, variable_container_server_address, create_env_fn):
+def evaluate(root_dir,
+             variable_container_server_address,
+             create_env_fn,
+             extra_info_metrics=None):
   """Evaluates greedy policy."""
 
   # Create the path for the serialized greedy policy.
@@ -120,6 +123,11 @@ def evaluate(root_dir, variable_container_server_address, create_env_fn):
       InfoMetric(env, 'congestion'),
       InfoMetric(env, 'density'),
   ]
+
+  if extra_info_metrics:
+    for info_metric in extra_info_metrics:
+      info_metrics.append(InfoMetric(env, info_metric))
+
   eval_actor = actor.Actor(
       env,
       policy,
