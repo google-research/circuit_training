@@ -414,6 +414,10 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
           name='clip_fraction',
           data=loss_info.extra.clip_fraction,
           step=self.train_step_counter)
+      tf.compat.v2.summary.scalar(
+          name='grad_norm',
+          data=self._grad_norm,
+          step=self.train_step_counter)
 
       total_abs_loss = (
           tf.abs(loss_info.extra.policy_gradient_loss) +
