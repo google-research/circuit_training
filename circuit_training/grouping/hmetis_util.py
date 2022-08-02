@@ -56,7 +56,7 @@ def call_hmetis(graph_file: str,
     Name of the metis output file, or None if no output is generated.
   """
   hmetis_exe = os.path.join(_HMETIS_DIR.value, 'hmetis')
-  assert gfile.Exists(hmetis_exe), f"{hmetis_exe} doesn't exist."
+  assert os.path.exists(hmetis_exe), f"{hmetis_exe} doesn't exist."
   args = [
       hmetis_exe, graph_file, fix_file, n_parts, ub_factor, n_runs, c_type,
       r_type, v_cycle, reconst, dbglvl

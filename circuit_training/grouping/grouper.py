@@ -64,7 +64,7 @@ FLAGS = flags.FLAGS
 def setup_fixed_groups(grp: grouping.Grouping, output_dir: str,
                        fixed_logic_levels: int) -> str:
   fix_file = os.path.join(output_dir, 'metis_input.fix')
-  if gfile.Exists(fix_file):
+  if os.path.isfile(fix_file):
     update_groups_using_metis_output(grp, fix_file)
     return fix_file
 
@@ -78,8 +78,8 @@ def partition_netlist(plc: plc_client.PlacementCost, num_groups: int,
                       breakup: bool, output_dir: str, hmetis_opts: Any,
                       netlist_file: str) -> Optional[Tuple[str, str]]:
   """Partitions standard cells into groups by calling hmetis."""
-  if not gfile.IsDirectory(output_dir):
-    gfile.MakeDirs(output_dir)
+  if not os.path.isdir(output_dir):
+    os.makedirs(output_dir)
   metis_file = os.path.join(output_dir, 'metis_input')
 
   logging.info('Writing metis compatible file: %s', metis_file)
@@ -101,7 +101,7 @@ def partition_netlist(plc: plc_client.PlacementCost, num_groups: int,
     num_groups += num_fixed_groups
   else:
     fix_file = None
-  if gfile.Exists(metis_file):
+  if os.path.exists(metis_file):
     logging.warning('Metis input file exists, skipping generation.')
   else:
     try:
