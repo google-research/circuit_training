@@ -33,6 +33,7 @@ FLAGS = flags.FLAGS
 
 _NETLIST_FILE_PATH = "third_party/py/circuit_training/grouping/testdata/simple.pb.txt"
 _EXPECTED_GROUPED_NETLIST_FILE_PATH = "third_party/py/circuit_training/grouping/testdata/simple_grouped_soft_macro_not_bloated.pb.txt"
+_EXPECTED_GROUPED_NETLIST_S_FILE_PATH = "third_party/py/circuit_training/grouping/testdata/simple_grouped_soft_macro_not_bloated_s.pb.txt"
 
 
 class GroupingTest(absltest.TestCase):
@@ -198,6 +199,35 @@ class GroupingTest(absltest.TestCase):
       tmp_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
     expected_grouped_netlist_file_path = _EXPECTED_GROUPED_NETLIST_FILE_PATH
+    with open(expected_grouped_netlist_file_path, "r") as f:
+      expected_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
+
+    compare.assertProto2Equal(self, tmp_graph_def, expected_graph_def)
+
+  def test_write_grouped_netlist_with_orientation_change(self):
+    meta_netlist = copy.deepcopy(self._meta_netlist)
+    group = grouping.Grouping(meta_netlist)
+    group.set_cell_area_utilization(1.0)
+    name_to_id_map = {node.name: node.id for node in meta_netlist.node}
+    s0_id = name_to_id_map["S0"]
+    s1_id = name_to_id_map["S1"]
+    group.set_node_group(s0_id, 2)
+    group.set_node_group(s1_id, 2)
+    # place them to check coord calculation for the group.
+    meta_netlist.node[s0_id].coord = mnds.Coord(x=10, y=60)
+    meta_netlist.node[s1_id].coord = mnds.Coord(x=30, y=30)
+
+    meta_netlist.node[name_to_id_map["M0"]].orientation = mnds.Orientation.S
+
+    tmpfile = os.path.join(FLAGS.test_tmpdir, "netlist.pb.txt")
+    group.write_grouped_netlist(tmpfile)
+    # Compare two protobufs with proto util.
+    expected_graph_def = tf.compat.v1.GraphDef()
+
+    with open(tmpfile, "r") as f:
+      tmp_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
+
+    expected_grouped_netlist_file_path = _EXPECTED_GROUPED_NETLIST_S_FILE_PATH
     with open(expected_grouped_netlist_file_path, "r") as f:
       expected_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 

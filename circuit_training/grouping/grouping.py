@@ -512,7 +512,7 @@ class Grouping:
         if node.orientation is None:
           self.add_attr(new_node, "orientation", mnds.Orientation.N.name)
         else:
-          self.add_attr(new_node, "orientation", mnds.Orientation.name)
+          self.add_attr(new_node, "orientation", node.orientation.name)
 
     for group_no in groups_to_print:
       self.write_as_macro(group_no, graph_def)
