@@ -360,7 +360,7 @@ class CircuitEnv(object):
         placement_util.save_placement(self._plc, cd_snapshot_file,
                                       user_comments)
 
-  def call_analytical_placer_and_get_cost(self) -> tuple[float, InfoType]:
+  def call_analytical_placer_and_get_cost(self) -> Tuple[float, InfoType]:
     """Calls analytical placer.
 
     Calls analystical placer and evaluates cost when all nodes are placed. Also,

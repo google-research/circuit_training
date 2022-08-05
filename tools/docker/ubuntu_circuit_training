@@ -2,6 +2,12 @@
 #
 # docker build --tag circuit_training:core -f tools/docker/ubuntu_circuit_training tools/docker/
 #
+# The docker can also be built with tf-agents-nighly, which can be useful if
+# Circuit Training head is using APIs not yet in tf-agents stable.
+#
+# docker build --build-arg tf_agents_version=tf-agents-nightly[reverb] \
+#   --tag circuit_training:core -f tools/docker/ubuntu_circuit_training tools/docker/
+#
 # Smoke test the docker
 # docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:core bash
 # python3 -m circuit_training.environment.environment_test
@@ -28,6 +34,7 @@ ENV TZ=America/Los_Angeles
 RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
         software-properties-common \
         curl \
+        tmux \
         less
 
 # Adds repository to pull versions of python from.

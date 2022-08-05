@@ -1,0 +1,317 @@
+node {
+  name: "__metadata__"
+  attr {
+    key: "soft_macro_area_bloating_ratio"
+    value {
+      f: 1.0
+    }
+  }
+}
+node {
+  name: "P0"
+  input: "Grp_2/Pinput"
+  input: "P0_M0"
+  attr {
+    key: "side"
+    value {
+      placeholder: "LEFT"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+}
+node {
+  name: "P1"
+  attr {
+    key: "side"
+    value {
+      placeholder: "TOP"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+}
+node {
+  name: "M0"
+  attr {
+    key: "height"
+    value {
+      f: 120
+    }
+  }
+  attr {
+    key: "orientation"
+    value {
+      placeholder: "S"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 120
+    }
+  }
+}
+node {
+  name: "M1"
+  attr {
+    key: "height"
+    value {
+      f: 40
+    }
+  }
+  attr {
+    key: "orientation"
+    value {
+      placeholder: "N"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 80
+    }
+  }
+}
+node {
+  name: "P0_M0"
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "M0"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO_PIN"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: -60
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 60
+    }
+  }
+}
+node {
+  name: "P1_M0"
+  input: "Grp_2/Pinput"
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "M0"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO_PIN"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: 60
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 60
+    }
+  }
+}
+node {
+  name: "P0_M1"
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "M1"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO_PIN"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: -40
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 20
+    }
+  }
+}
+node {
+  name: "P1_M1"
+  input: "P1"
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "M1"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO_PIN"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: 40
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 20
+    }
+  }
+}
+node {
+  name: "Grp_2"
+  attr {
+    key: "height"
+    value {
+      f: 0.12375519
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "macro"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 17.128008
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 20
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 45
+    }
+  }
+}
+node {
+  name: "Grp_2/Poutput_single_0"
+  input: "P0_M1"
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "Grp_2"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "macro_pin"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 20
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: 0
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 45
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 0
+    }
+  }
+}
+node {
+  name: "Grp_2/Pinput"
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "Grp_2"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "macro_pin"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 20
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: 0
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 45
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 0
+    }
+  }
+}
