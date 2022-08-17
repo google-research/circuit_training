@@ -7,7 +7,7 @@ Before starting, download the following files. They will be referenced by
 environment variables setup in the first step.
 
    * [hmetis binary](http://glaros.dtc.umn.edu/gkhome/metis/hmetis/download)
-      (University of Minnesota)
+      (University of Minnesota), [alternative link](https://drive.google.com/file/d/1KfsYiQGp3PRlU1htXZ_G_VRDBETpPkdh/view?usp=sharing)
    * [plc_wrapper_main binary](https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main)
    * Ariane [netlist](https://storage.googleapis.com/rl-infra-public/circuit-training/netlist/ariane.circuit_graph.pb.txt.gz)
 
