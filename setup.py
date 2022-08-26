@@ -77,6 +77,9 @@ class SetupToolsHelper(object):
 
     return [tf_agents_version]
 
+  def _get_dependencies(self):
+    return self._get_tf_agents_packages() + ['sortedcontainers']
+
   def run_setup(self):
     # Builds the long description from the README.
     root_path = os.path.abspath(os.path.dirname(__file__))
@@ -97,9 +100,9 @@ class SetupToolsHelper(object):
         license='Apache 2.0',
         packages=find_packages(),
         include_package_data=True,
-        install_requires=self._get_tf_agents_packages(),
+        install_requires=self._get_dependencies(),
         extras_require={
-            'testing': self._get_tf_agents_packages(),
+            'testing': self._get_dependencies(),
         },
         distclass=BinaryDistribution,
         python_requires='>=3',

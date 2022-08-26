@@ -57,7 +57,7 @@ RUN chmod 555 /usr/local/bin/plc_wrapper_main
 RUN curl -O https://bootstrap.pypa.io/get-pip.py
 
 RUN $python_version get-pip.py
-RUN $python_version -mpip --no-cache-dir install $tf_agents_version
+RUN $python_version -mpip --no-cache-dir install $tf_agents_version sortedcontainers
 
 
 CMD ["/bin/bash"]
