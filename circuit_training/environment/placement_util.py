@@ -543,7 +543,7 @@ def extract_blockages_from_tcl(filename: str,
           if block != block_name:
             continue
           blockage_info[corner + index] = float(value)
-  except gfile.FileError:
+  except IOError:
     logging.error('could not read file %s', filename)
     return []
   blockages = []
