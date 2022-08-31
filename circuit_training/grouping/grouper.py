@@ -191,20 +191,19 @@ def write_new_netlist(plc: plc_client.PlacementCost, fix_file: str,
   orig_canvas_width, orig_canvas_height = plc.get_canvas_width_height()
   orig_grid_cols, orig_grid_rows = plc.get_grid_num_columns_rows()
   # Propagate original attributes (sizes, blockages).
-  new_plc = placement_util.create_placement_cost_using_common_arguments(
+  new_plc = placement_util.create_placement_cost(
       netlist_file=filename,
-      canvas_width=orig_canvas_width,
-      canvas_height=orig_canvas_height,
-      grid_cols=orig_grid_cols,
-      grid_rows=orig_grid_rows,
       blockages=plc.get_blockages())
+  # Change canvas and grid sizes.
+  new_plc.set_canvas_size(orig_canvas_width, orig_canvas_height)
+  new_plc.set_placement_grid(orig_grid_cols, orig_grid_rows)
 
-  extra_info = 'Original source netlist with standard cells: {}\n'.format(
+  user_comments = 'Original source netlist with standard cells: {}\n'.format(
       plc.get_source_filename())
-  extra_info += 'Groups file: {}\n'.format(final_groups_file)
-  extra_info += worst_spread_metrics_log(grp)
+  user_comments += 'Groups file: {}\n'.format(final_groups_file)
+  user_comments += worst_spread_metrics_log(grp)
 
-  placement_util.save_placement_with_info(new_plc, plc_file, extra_info)
+  placement_util.save_placement(new_plc, plc_file, user_comments)
 
   logging.info('Placement file : %s, WL: %f, cong: %f}', plc_file,
                new_plc.get_wirelength(), new_plc.get_congestion_cost())
@@ -400,7 +399,7 @@ def group_stdcells(
     output_dir: str,
     block_name: str,
     create_placement_cost_fn: Callable[..., plc_client.PlacementCost] = (
-        placement_util.create_placement_cost_using_common_arguments),
+        placement_util.create_placement_cost),
     blockage_cl: Optional[str] = None,
 ) -> Tuple[plc_client.PlacementCost, str]:
   """Groups stdcells and set grid size.
@@ -421,12 +420,6 @@ def group_stdcells(
 
   logging.info('disconnecting high fanout nets')
   placement_util.disconnect_high_fanout_nets(plc)
-  logging.info('Number of macros: %s',
-               placement_util.num_nodes_of_type(plc, 'MACRO'))
-  logging.info('Number of stdcells: %s',
-               placement_util.num_nodes_of_type(plc, 'STDCELL'))
-  logging.info('Number of ports: %s',
-               placement_util.num_nodes_of_type(plc, 'PORT'))
 
   # We need blockage information here, since grid size selection can be
   # affected by blockages. Also, this is the place where we inject
@@ -461,7 +454,7 @@ def group_stdcells(
   legalized_placement = os.path.join(os.path.dirname(plc_file), 'legalized.plc')
 
   placement_util.legalize_placement(grouped_plc)
-  placement_util.save_placement_with_info(
+  placement_util.save_placement(
       grouped_plc, legalized_placement,
       'Original file : {}\nInitial placement : {}\n'.format(
           netlist_file, plc_file))
