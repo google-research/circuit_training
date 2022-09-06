@@ -13,36 +13,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for meta_netlist_util."""
+import os
 
+from absl import flags
 from absl.testing import absltest
 from circuit_training.grouping import meta_netlist_convertor
 from circuit_training.grouping import meta_netlist_util
 from circuit_training.utils import test_utils
 
-_NETLIST_FILE_PATH = 'third_party/py/circuit_training/grouping/testdata/simple.pb.txt'
+FLAGS = flags.FLAGS
+
+_TESTDATA_DIR = ('circuit_training/grouping/testdata')
 
 
 class MetaNetlistUtilTest(absltest.TestCase):
 
   def test_set_canvas_width_height(self):
-    meta_netlist = meta_netlist_convertor.read_netlist(_NETLIST_FILE_PATH)
+    meta_netlist = meta_netlist_convertor.read_netlist(
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
     meta_netlist_util.set_canvas_width_height(meta_netlist, 11, 10)
     self.assertAlmostEqual(meta_netlist.canvas.dimension.width, 11)
     self.assertAlmostEqual(meta_netlist.canvas.dimension.height, 10)
 
   def test_set_canvas_cols_rows(self):
-    meta_netlist = meta_netlist_convertor.read_netlist(_NETLIST_FILE_PATH)
+    meta_netlist = meta_netlist_convertor.read_netlist(
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
     meta_netlist_util.set_canvas_columns_rows(meta_netlist, 11, 10)
     self.assertAlmostEqual(meta_netlist.canvas.num_columns, 11)
     self.assertAlmostEqual(meta_netlist.canvas.num_rows, 10)
 
   def test_disconnect_single_net(self):
-    meta_netlist = meta_netlist_convertor.read_netlist(_NETLIST_FILE_PATH)
+    meta_netlist = meta_netlist_convertor.read_netlist(
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
     meta_netlist_util.disconnect_single_net(meta_netlist, 0)
     self.assertEmpty(meta_netlist.node[2].input_indices)
 
   def test_disconnect_high_fanout_nets(self):
-    meta_netlist = meta_netlist_convertor.read_netlist(_NETLIST_FILE_PATH)
+    meta_netlist = meta_netlist_convertor.read_netlist(
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
     meta_netlist_util.disconnect_high_fanout_nets(meta_netlist, 1)
 
     # Max length for the output_indices is 1.

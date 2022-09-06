@@ -14,10 +14,15 @@
 # limitations under the License.
 """Tests for split_proto_netlist."""
 
-from circuit_training.grouping import split_proto_netlist
-from absl.testing import absltest
+import os
 
-_NETLIST_FILE_PATH = 'third_party/py/circuit_training/grouping/testdata/ariane_test.pb.txt'
+from absl import flags
+from absl.testing import absltest
+from circuit_training.grouping import split_proto_netlist
+
+FLAGS = flags.FLAGS
+
+_TESTDATA_DIR = ('circuit_training/grouping/testdata')
 
 
 class SplitProtoNetlistTest(absltest.TestCase):
@@ -33,12 +38,14 @@ class SplitProtoNetlistTest(absltest.TestCase):
     max_file_size = 1024 * 1024
     print_pos_interval = max_file_size
     output_file_list = split_proto_netlist.split_proto_netlist(
-        _NETLIST_FILE_PATH, output_dir, max_file_size, print_pos_interval)
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'ariane_test.pb.txt'),
+        output_dir, max_file_size, print_pos_interval)
     # The original file is around 2 MB, so there should be two files in the
     # outputs.
     self.assertLen(output_file_list, 2)
 
-    org_file_string = self._read_files(_NETLIST_FILE_PATH)
+    org_file_string = self._read_files(
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'ariane_test.pb.txt'))
     file_part_string_list = []
     file_part_string_list.append(self._read_files(output_file_list[0]))
     file_part_string_list.append(self._read_files(output_file_list[1]))

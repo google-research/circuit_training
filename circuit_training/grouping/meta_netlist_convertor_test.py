@@ -13,13 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for meta_netlist_convertor."""
-import tensorflow as tf
+import os
+
+from absl import flags
 from absl.testing import parameterized
 from circuit_training.grouping import meta_netlist_convertor
 from circuit_training.grouping import meta_netlist_data_structure as mnds
+from circuit_training.utils import test_utils
+import tensorflow as tf
+
 from google.protobuf import text_format
 
-from circuit_training.utils import test_utils
+FLAGS = flags.FLAGS
 
 _TEST_NDOE_DEF_PORT = """
 name: "P0"
@@ -173,77 +178,79 @@ attr {
 }
 """
 
-_NETLIST_FILE_PATH = "third_party/py/circuit_training/grouping/testdata/simple.pb.txt"
-_ONE_NODE_GRAPH_FILE_PATH = "third_party/py/circuit_training/grouping/testdata/one_node_graph.pb.txt"
+_TESTDATA_DIR = ('circuit_training/grouping/testdata')
 
 
 class MetaNetlistConvertorTest(parameterized.TestCase, test_utils.TestCase):
 
   def test_read_netlist(self):
-    meta_netlist = meta_netlist_convertor.read_netlist(_NETLIST_FILE_PATH)
+    meta_netlist = meta_netlist_convertor.read_netlist(
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
     self.assertLen(meta_netlist.node, 10)
 
   def test_read_netlist_separate(self):
-    meta_netlist = meta_netlist_convertor.read_netlist(",".join(
-        [_NETLIST_FILE_PATH, _ONE_NODE_GRAPH_FILE_PATH]))
+    meta_netlist = meta_netlist_convertor.read_netlist(','.join([
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'),
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'one_node_graph.pb.txt')
+    ]))
     self.assertLen(meta_netlist.node, 11)
 
   def test_empty_netlist_raises_value_error(self):
     with self.assertRaises(ValueError):
-      _ = meta_netlist_convertor.read_netlist("")
+      _ = meta_netlist_convertor.read_netlist('')
 
     with self.assertRaises(ValueError):
-      _ = meta_netlist_convertor.read_netlist(",")
+      _ = meta_netlist_convertor.read_netlist(',')
 
   def test_read_attr(self):
     node = text_format.Parse(_TEST_NDOE_DEF_PORT, tf.compat.v1.NodeDef())
-    node_type = meta_netlist_convertor.read_attr(node, "type")
-    self.assertEqual(node_type, "port")
+    node_type = meta_netlist_convertor.read_attr(node, 'type')
+    self.assertEqual(node_type, 'port')
 
-    side = meta_netlist_convertor.read_attr(node, "side")
-    self.assertEqual(side, "left")
+    side = meta_netlist_convertor.read_attr(node, 'side')
+    self.assertEqual(side, 'left')
 
-    empty = meta_netlist_convertor.read_attr(node, "empty")
+    empty = meta_netlist_convertor.read_attr(node, 'empty')
     self.assertIsNone(empty)
 
-    not_exist = meta_netlist_convertor.read_attr(node, "not_exist")
+    not_exist = meta_netlist_convertor.read_attr(node, 'not_exist')
     self.assertIsNone(not_exist)
 
   def test_translate_node_port(self):
     node = text_format.Parse(_TEST_NDOE_DEF_PORT, tf.compat.v1.NodeDef())
-    name_to_id_map = {"P0": 0, "P0_M0": 1, "S0": 2}
+    name_to_id_map = {'P0': 0, 'P0_M0': 1, 'S0': 2}
     netlist = meta_netlist_convertor.translate_node(node, name_to_id_map)
     self.assertEqual(netlist.id, 0)
     self.assertEqual(netlist.type, mnds.Type.PORT)
     self.assertEqual(netlist.output_indices, [1, 2])
 
-    node.name = "random"
+    node.name = 'random'
     # The name won't find in the name_to_id_map.
     with self.assertRaises(KeyError):
       _ = meta_netlist_convertor.translate_node(node, name_to_id_map)
 
-    node.name = "P0"
+    node.name = 'P0'
     # The input won't find in the name_to_id_map.
-    node.input[0] = "random"
+    node.input[0] = 'random'
     with self.assertRaises(KeyError):
       _ = meta_netlist_convertor.translate_node(node, name_to_id_map)
 
-    node.input[0] = "P0_M0"
+    node.input[0] = 'P0_M0'
     # Type is raondom, which is not defined.
-    node.attr["type"].placeholder = "random"
+    node.attr['type'].placeholder = 'random'
     with self.assertRaises(KeyError):
       _ = meta_netlist_convertor.translate_node(node, name_to_id_map)
 
   def test_translate_node_std(self):
     node = text_format.Parse(_TEST_NODE_DEF_STDCELL, tf.compat.v1.NodeDef())
-    name_to_id_map = {"S0": 0, "S1": 1}
+    name_to_id_map = {'S0': 0, 'S1': 1}
     netlist = meta_netlist_convertor.translate_node(node, name_to_id_map)
     self.assertAlmostEqual(netlist.dimension.width, 2.208, places=5)
     self.assertAlmostEqual(netlist.dimension.height, 0.48, places=5)
 
   def test_translate_node_macro(self):
     node = text_format.Parse(_TEST_NODE_DEF_MACRO, tf.compat.v1.NodeDef())
-    name_to_id_map = {"Grp_2/Pinput": 0}
+    name_to_id_map = {'Grp_2/Pinput': 0}
     netlist = meta_netlist_convertor.translate_node(node, name_to_id_map)
     self.assertEqual(netlist.id, 0)
     self.assertAlmostEqual(netlist.dimension.width, 120, places=5)
@@ -252,21 +259,21 @@ class MetaNetlistConvertorTest(parameterized.TestCase, test_utils.TestCase):
 
     # If the name doesn't tart with Grp_, the soft_macro is false.
     node = text_format.Parse(_TEST_NODE_DEF_MACRO, tf.compat.v1.NodeDef())
-    node.name = "M2"
-    name_to_id_map = {"M2": 0}
+    node.name = 'M2'
+    name_to_id_map = {'M2': 0}
     netlist = meta_netlist_convertor.translate_node(node, name_to_id_map)
     self.assertFalse(netlist.soft_macro)
 
   def test_translate_node_macro_with_orientation(self):
     node = text_format.Parse(_TEST_NODE_DEF_MACRO_ORIE, tf.compat.v1.NodeDef())
-    name_to_id_map = {"M0": 0}
+    name_to_id_map = {'M0': 0}
     netlist = meta_netlist_convertor.translate_node(node, name_to_id_map)
     self.assertEqual(netlist.id, 0)
     self.assertAlmostEqual(netlist.orientation, mnds.Orientation.N)
     self.assertAlmostEqual(netlist.dimension.width, 120, places=5)
     self.assertAlmostEqual(netlist.dimension.height, 120, places=5)
 
-    node.attr["type"].placeholder = "port"
+    node.attr['type'].placeholder = 'port'
     # Changing type to port raises error because orientation only exists in
     # macro node.
     with self.assertRaises(ValueError):
@@ -274,7 +281,7 @@ class MetaNetlistConvertorTest(parameterized.TestCase, test_utils.TestCase):
 
   def test_translate_node_macro_pin(self):
     node = text_format.Parse(_TEST_NODE_DEF_MACRO_PIN, tf.compat.v1.NodeDef())
-    name_to_id_map = {"P0_M0": 0, "M0": 1}
+    name_to_id_map = {'P0_M0': 0, 'M0': 1}
     netlist = meta_netlist_convertor.translate_node(node, name_to_id_map)
     self.assertEqual(netlist.id, 0)
     self.assertEqual(netlist.coord.x, -20)
@@ -289,7 +296,7 @@ class MetaNetlistConvertorTest(parameterized.TestCase, test_utils.TestCase):
     self.assertAlmostEqual(canvas.dimension.height, side, places=5)
 
   def test_place_macro_pin(self):
-    name_to_id_map = {"P0_M0": 0, "M0": 1}
+    name_to_id_map = {'P0_M0': 0, 'M0': 1}
     # pylint:disable=g-long-lambda.
     read_and_convert_node = lambda x: meta_netlist_convertor.translate_node(
         text_format.Parse(x, tf.compat.v1.NodeDef()), name_to_id_map)
@@ -337,5 +344,6 @@ class MetaNetlistConvertorTest(parameterized.TestCase, test_utils.TestCase):
     self.assertAlmostEqual(meta_netlist.canvas.num_columns, 10)
     self.assertAlmostEqual(meta_netlist.total_area, 14400.0)
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
   test_utils.main()

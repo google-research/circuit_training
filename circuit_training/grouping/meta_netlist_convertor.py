@@ -17,10 +17,10 @@ import itertools
 from typing import Any, Dict
 
 from absl import logging
+from circuit_training.grouping import meta_netlist_data_structure as mnds
 import numpy as np
 import tensorflow as tf
 
-from circuit_training.grouping import meta_netlist_data_structure as mnds
 from google.protobuf import text_format
 # Internal gfile dependencies
 

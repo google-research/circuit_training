@@ -19,28 +19,26 @@ import os
 
 from absl import flags
 from absl.testing import absltest
-import tensorflow as tf
-
 from circuit_training.grouping import grouping
 from circuit_training.grouping import meta_netlist_convertor
 from circuit_training.grouping import meta_netlist_data_structure as mnds
+import tensorflow as tf
+
 from tensorflow.python.util.protobuf import compare
 from google.protobuf import text_format
 # Internal gfile dependencies
 
-
 FLAGS = flags.FLAGS
 
-_NETLIST_FILE_PATH = "third_party/py/circuit_training/grouping/testdata/simple.pb.txt"
-_EXPECTED_GROUPED_NETLIST_FILE_PATH = "third_party/py/circuit_training/grouping/testdata/simple_grouped_soft_macro_not_bloated.pb.txt"
-_EXPECTED_GROUPED_NETLIST_S_FILE_PATH = "third_party/py/circuit_training/grouping/testdata/simple_grouped_soft_macro_not_bloated_s.pb.txt"
+_TESTDATA_DIR = ('circuit_training/grouping/testdata')
 
 
 class GroupingTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self._meta_netlist = meta_netlist_convertor.read_netlist(_NETLIST_FILE_PATH)
+    self._meta_netlist = meta_netlist_convertor.read_netlist(
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
 
   def _unplace_node_helper(self, meta_netlist: mnds.MetaNetlist) -> None:
     """Helper function for removing the coord of nodes."""
@@ -53,30 +51,31 @@ class GroupingTest(absltest.TestCase):
 
   def test_metis_file_gen(self):
     group = grouping.Grouping(self._meta_netlist)
-    output_file_path = os.path.join(FLAGS.test_tmpdir, "metis.inp")
+    output_file_path = os.path.join(FLAGS.test_tmpdir, 'metis.inp')
     group.write_metis_file(output_file_path)
 
-    with open(output_file_path, "r") as f:
+    with open(output_file_path, 'r') as f:
       file_content = f.read()
 
-    expected_content = "5 10\n1 7 3\n3 4\n4 9\n8 4\n10 2\n"
+    expected_content = '5 10\n1 7 3\n3 4\n4 9\n8 4\n10 2\n'
     self.assertEqual(file_content, expected_content)
 
   def test_metis_fix_file_gen(self):
     group = grouping.Grouping(self._meta_netlist)
-    output_file_path = os.path.join(FLAGS.test_tmpdir, "metis.inp")
+    output_file_path = os.path.join(FLAGS.test_tmpdir, 'metis.inp')
     group.setup_fixed_groups(0)
     self.assertEqual(group.num_groups(), 2)
     group.write_metis_fix_file(output_file_path)
 
-    with open(output_file_path, "r") as f:
+    with open(output_file_path, 'r') as f:
       file_content = f.read()
 
-    expected_content = "-1\n-1\n-1\n-1\n-1\n-1\n0\n0\n1\n1\n"
+    expected_content = '-1\n-1\n-1\n-1\n-1\n-1\n0\n0\n1\n1\n'
     self.assertEqual(file_content, expected_content)
 
   def test_spread_metric(self):
-    meta_netlist = meta_netlist_convertor.read_netlist(_NETLIST_FILE_PATH)
+    meta_netlist = meta_netlist_convertor.read_netlist(
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
     group = grouping.Grouping(self._meta_netlist)
     group.setup_fixed_groups(0)
     # SpeadMetric only applies to STDCELL. There is no STDCELL in the
@@ -84,7 +83,8 @@ class GroupingTest(absltest.TestCase):
     self.assertEqual(group.spread_metric(0), 0)
 
   def test_grouping(self):
-    meta_netlist = meta_netlist_convertor.read_netlist(_NETLIST_FILE_PATH)
+    meta_netlist = meta_netlist_convertor.read_netlist(
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
     group = grouping.Grouping(self._meta_netlist)
     group.setup_fixed_groups(0)
     self.assertEqual(group.num_groups(), 2)
@@ -99,8 +99,8 @@ class GroupingTest(absltest.TestCase):
     meta_netlist.canvas.num_columns = 10
     meta_netlist.canvas.num_rows = 10
     name_to_id_map = {node.name: node.id for node in meta_netlist.node}
-    p0_id = name_to_id_map["P0"]
-    p1_id = name_to_id_map["P1"]
+    p0_id = name_to_id_map['P0']
+    p1_id = name_to_id_map['P1']
 
     meta_netlist.node[p0_id].coord = mnds.Coord(x=10, y=0)
     meta_netlist.node[p1_id].coord = mnds.Coord(x=0, y=10)
@@ -146,11 +146,11 @@ class GroupingTest(absltest.TestCase):
     # first layer of stdcells within fanouts or fanins of the already grouped
     # nodes will be grouped, as well.
     group.setup_fixed_groups(1)
-    s0_id = name_to_id_map["S0"]
-    s1_id = name_to_id_map["S1"]
+    s0_id = name_to_id_map['S0']
+    s1_id = name_to_id_map['S1']
 
-    m0_group = group.get_node_group(name_to_id_map["P0_M0"])
-    m1_group = group.get_node_group(name_to_id_map["P0_M1"])
+    m0_group = group.get_node_group(name_to_id_map['P0_M0'])
+    m1_group = group.get_node_group(name_to_id_map['P0_M1'])
     self.assertTrue((m0_group == 0 and m1_group == 1) or
                     (m0_group == 1 and m1_group == 0))
 
@@ -183,23 +183,25 @@ class GroupingTest(absltest.TestCase):
     group = grouping.Grouping(meta_netlist)
     group.set_cell_area_utilization(1.0)
     name_to_id_map = {node.name: node.id for node in meta_netlist.node}
-    s0_id = name_to_id_map["S0"]
-    s1_id = name_to_id_map["S1"]
+    s0_id = name_to_id_map['S0']
+    s1_id = name_to_id_map['S1']
     group.set_node_group(s0_id, 2)
     group.set_node_group(s1_id, 2)
     # place them to check coord calculation for the group.
     meta_netlist.node[s0_id].coord = mnds.Coord(x=10, y=60)
     meta_netlist.node[s1_id].coord = mnds.Coord(x=30, y=30)
-    tmpfile = os.path.join(FLAGS.test_tmpdir, "netlist.pb.txt")
+    tmpfile = os.path.join(FLAGS.test_tmpdir, 'netlist.pb.txt')
     group.write_grouped_netlist(tmpfile)
     # Compare two protobufs with proto util.
     expected_graph_def = tf.compat.v1.GraphDef()
 
-    with open(tmpfile, "r") as f:
+    with open(tmpfile, 'r') as f:
       tmp_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
-    expected_grouped_netlist_file_path = _EXPECTED_GROUPED_NETLIST_FILE_PATH
-    with open(expected_grouped_netlist_file_path, "r") as f:
+    expected_grouped_netlist_file_path = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR,
+        'simple_grouped_soft_macro_not_bloated.pb.txt')
+    with open(expected_grouped_netlist_file_path, 'r') as f:
       expected_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
     compare.assertProto2Equal(self, tmp_graph_def, expected_graph_def)
@@ -209,26 +211,28 @@ class GroupingTest(absltest.TestCase):
     group = grouping.Grouping(meta_netlist)
     group.set_cell_area_utilization(1.0)
     name_to_id_map = {node.name: node.id for node in meta_netlist.node}
-    s0_id = name_to_id_map["S0"]
-    s1_id = name_to_id_map["S1"]
+    s0_id = name_to_id_map['S0']
+    s1_id = name_to_id_map['S1']
     group.set_node_group(s0_id, 2)
     group.set_node_group(s1_id, 2)
     # place them to check coord calculation for the group.
     meta_netlist.node[s0_id].coord = mnds.Coord(x=10, y=60)
     meta_netlist.node[s1_id].coord = mnds.Coord(x=30, y=30)
 
-    meta_netlist.node[name_to_id_map["M0"]].orientation = mnds.Orientation.S
+    meta_netlist.node[name_to_id_map['M0']].orientation = mnds.Orientation.S
 
-    tmpfile = os.path.join(FLAGS.test_tmpdir, "netlist.pb.txt")
+    tmpfile = os.path.join(FLAGS.test_tmpdir, 'netlist.pb.txt')
     group.write_grouped_netlist(tmpfile)
     # Compare two protobufs with proto util.
     expected_graph_def = tf.compat.v1.GraphDef()
 
-    with open(tmpfile, "r") as f:
+    with open(tmpfile, 'r') as f:
       tmp_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
-    expected_grouped_netlist_file_path = _EXPECTED_GROUPED_NETLIST_S_FILE_PATH
-    with open(expected_grouped_netlist_file_path, "r") as f:
+    expected_grouped_netlist_file_path = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR,
+        'simple_grouped_soft_macro_not_bloated_s.pb.txt')
+    with open(expected_grouped_netlist_file_path, 'r') as f:
       expected_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
     compare.assertProto2Equal(self, tmp_graph_def, expected_graph_def)
@@ -237,8 +241,8 @@ class GroupingTest(absltest.TestCase):
     meta_netlist = copy.deepcopy(self._meta_netlist)
     group = grouping.Grouping(meta_netlist)
     name_to_id_map = {node.name: node.id for node in meta_netlist.node}
-    s0_id = name_to_id_map["S0"]
-    s1_id = name_to_id_map["S1"]
+    s0_id = name_to_id_map['S0']
+    s1_id = name_to_id_map['S1']
     group.set_node_group(s0_id, 5)
     group.set_node_group(s1_id, 2)
 
@@ -264,8 +268,8 @@ class GroupingTest(absltest.TestCase):
     meta_netlist = copy.deepcopy(self._meta_netlist)
     group = grouping.Grouping(meta_netlist)
     name_to_id_map = {node.name: node.id for node in meta_netlist.node}
-    s0_id = name_to_id_map["S0"]
-    s1_id = name_to_id_map["S1"]
+    s0_id = name_to_id_map['S0']
+    s1_id = name_to_id_map['S1']
     group.set_node_group(s0_id, 3)
     group.set_node_group(s1_id, 3)
 
@@ -283,5 +287,5 @@ class GroupingTest(absltest.TestCase):
     self.assertEqual(group.num_groups(), 1)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   absltest.main()

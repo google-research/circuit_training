@@ -21,16 +21,15 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 from absl import flags
 from absl import logging
-
-import sortedcontainers
-
 from circuit_training.environment import placement_util
 from circuit_training.environment import plc_client
 from circuit_training.grouping import grid_size_selection
 from circuit_training.grouping import grouping
+from circuit_training.grouping import hmetis_util
 from circuit_training.grouping import meta_netlist_convertor
 from circuit_training.grouping import meta_netlist_util
-from circuit_training.grouping import hmetis_util
+import sortedcontainers
+
 # Internal gfile dependencies
 
 flags.DEFINE_integer(
