@@ -19,6 +19,8 @@ import os
 from absl import flags
 from absl.testing import absltest
 from circuit_training.grouping import split_proto_netlist
+# Internal gfile dependencies
+
 
 FLAGS = flags.FLAGS
 

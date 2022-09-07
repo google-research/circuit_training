@@ -18,13 +18,11 @@ import itertools
 import os
 
 from absl import flags
-from absl.testing import absltest
 from circuit_training.grouping import grouping
 from circuit_training.grouping import meta_netlist_convertor
 from circuit_training.grouping import meta_netlist_data_structure as mnds
 import tensorflow as tf
 
-from tensorflow.python.util.protobuf import compare
 from google.protobuf import text_format
 # Internal gfile dependencies
 
@@ -33,7 +31,7 @@ FLAGS = flags.FLAGS
 _TESTDATA_DIR = ('circuit_training/grouping/testdata')
 
 
-class GroupingTest(absltest.TestCase):
+class GroupingTest(tf.test.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -204,7 +202,7 @@ class GroupingTest(absltest.TestCase):
     with open(expected_grouped_netlist_file_path, 'r') as f:
       expected_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
-    compare.assertProto2Equal(self, tmp_graph_def, expected_graph_def)
+    self.assertProtoEquals(tmp_graph_def, expected_graph_def)
 
   def test_write_grouped_netlist_with_orientation_change(self):
     meta_netlist = copy.deepcopy(self._meta_netlist)
@@ -235,7 +233,7 @@ class GroupingTest(absltest.TestCase):
     with open(expected_grouped_netlist_file_path, 'r') as f:
       expected_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
-    compare.assertProto2Equal(self, tmp_graph_def, expected_graph_def)
+    self.assertProtoEquals(tmp_graph_def, expected_graph_def)
 
   def test_merge_groups(self):
     meta_netlist = copy.deepcopy(self._meta_netlist)
@@ -288,4 +286,4 @@ class GroupingTest(absltest.TestCase):
 
 
 if __name__ == '__main__':
-  absltest.main()
+  tf.test.main()
