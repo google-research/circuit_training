@@ -192,7 +192,7 @@ class CircuitEnv(object):
     # This results in better placements.
     self._observation_config = observation_config.ObservationConfig()
     self._observation_extractor = observation_extractor.ObservationExtractor(
-        plc=self._plc)
+        plc=self._plc, observation_config=self._observation_config)
 
     if self._make_soft_macros_square:
       # It is better to make the shape of soft macros square before using
