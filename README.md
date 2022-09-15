@@ -3,7 +3,7 @@
   owner: 'azalia'
   owner: 'tobyboyd'
   owner: 'sguada'
-  owner: 'morpheus-oss-team'
+  owner: 'morpheus-core'
   reviewed: '2022-01-11'
   review_interval: '12 months'
 } *-->
