@@ -60,7 +60,8 @@ def train(
     # global_step (number of gradient updates) * per_replica_batch_size *
     # num_replicas.
     num_episodes_per_iteration: int = 1024,
-    allow_variable_length_episodes: bool = False) -> None:
+    allow_variable_length_episodes: bool = False,
+    init_train_step: int = 0) -> None:
   """Trains a PPO agent.
 
   Args:
@@ -98,6 +99,8 @@ def train(
   # Create the agent.
   with strategy.scope():
     train_step = train_utils.create_train_step()
+    train_step.assign(init_train_step)
+    logging.info('Initialize train_step at %s', init_train_step)
     model_id = common.create_variable('model_id')
 
     if use_grl:
