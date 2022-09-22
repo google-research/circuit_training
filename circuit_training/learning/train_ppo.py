@@ -83,7 +83,8 @@ def main(_):
 
   root_dir = os.path.join(_ROOT_DIR.value, str(_GLOBAL_SEED.value))
 
-  strategy = strategy_utils.get_strategy(FLAGS.tpu, FLAGS.use_gpu)
+  strategy = strategy_utils.get_strategy(strategy_utils.TPU.value,
+                                         strategy_utils.USE_GPU.value)
 
   create_env_fn = functools.partial(
       environment.create_circuit_environment,
@@ -91,7 +92,7 @@ def main(_):
       init_placement=_INIT_PLACEMENT.value,
       global_seed=_GLOBAL_SEED.value)
 
-  use_model_tpu = bool(FLAGS.tpu)
+  use_model_tpu = bool(strategy_utils.TPU.value)
 
   batch_size = int(_GLOBAL_BATCH_SIZE.value / strategy.num_replicas_in_sync)
   logging.info('global batch_size=%d', _GLOBAL_BATCH_SIZE.value)
