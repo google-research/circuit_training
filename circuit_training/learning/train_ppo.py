@@ -71,7 +71,7 @@ _ALLOW_VARIABLE_LENGTH_EPISODES = flags.DEFINE_bool(
     'allow_variable_length_episodes', False,
     'Whether to allow variable length episodes for training.')
 _EXTRACT_STATIC_FEATURES_FROM_OBS = flags.DEFINE_bool(
-    'extract_static_features_from_obs', False,
+    'extract_static_features_from_obs', True,
     'Whether to extract static features from the observation.')
 
 FLAGS = flags.FLAGS
