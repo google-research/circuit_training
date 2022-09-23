@@ -18,7 +18,7 @@ import collections
 import os
 import statistics
 import time
-from typing import Text
+from typing import Any, Callable, List, Optional, Text
 
 from absl import logging
 from tf_agents.experimental.distributed import reverb_variable_container
@@ -47,8 +47,8 @@ class InfoMetric(py_metric.PyStepMetric):
 
     Args:
       env: environment.
-      info_metric_key: a string key from the environment info to report,
-        e.g. wirelength, density, congestion.
+      info_metric_key: a string key from the environment info to report, e.g.
+        wirelength, density, congestion.
       buffer_size: size of the buffer for calculating the aggregated metrics.
       name: name of the observer object.
     """
@@ -77,10 +77,11 @@ class InfoMetric(py_metric.PyStepMetric):
     self._buffer.clear()
 
 
-def evaluate(root_dir,
-             variable_container_server_address,
-             create_env_fn,
-             extra_info_metrics=None):
+def evaluate(root_dir: str,
+             variable_container_server_address: str,
+             create_env_fn: Callable[..., Any],
+             extra_info_metrics: Optional[List[str]] = None,
+             summary_subdir: str = ''):
   """Evaluates greedy policy."""
 
   # Create the path for the serialized greedy policy.
@@ -133,7 +134,8 @@ def evaluate(root_dir,
       policy,
       train_step,
       episodes_per_run=1,
-      summary_dir=os.path.join(root_dir, learner.TRAIN_DIR, 'eval'),
+      summary_dir=os.path.join(root_dir, learner.TRAIN_DIR, summary_subdir,
+                               'eval'),
       metrics=[
           py_metrics.NumberOfEpisodes(),
           py_metrics.EnvironmentSteps(),

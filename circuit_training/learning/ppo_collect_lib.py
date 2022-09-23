@@ -16,6 +16,7 @@
 import os
 
 from absl import logging
+from typing import Any, Callable
 
 import reverb
 
@@ -28,13 +29,14 @@ from tf_agents.train.utils import train_utils
 from tf_agents.utils import common
 
 
-def collect(task,
-            root_dir,
-            replay_buffer_server_address,
-            variable_container_server_address,
-            create_env_fn,
-            max_sequence_length,
-            write_summaries_task_threshold=1):
+def collect(task: int,
+            root_dir: str,
+            replay_buffer_server_address: str,
+            variable_container_server_address: str,
+            create_env_fn: Callable[..., Any],
+            max_sequence_length: int,
+            write_summaries_task_threshold: int = 1,
+            summary_subdir: str = ''):
   """Collects experience using a policy updated after every episode."""
   # Create the environment.
   train_step = train_utils.create_train_step()
@@ -83,7 +85,8 @@ def collect(task,
   summary_dir = None
   metrics = []
   if task < write_summaries_task_threshold:
-    summary_dir = os.path.join(root_dir, learner.TRAIN_DIR, str(task))
+    summary_dir = os.path.join(root_dir, learner.TRAIN_DIR, summary_subdir,
+                               str(task))
     metrics = actor.collect_metrics(1)
 
   # Create the collect actor.
