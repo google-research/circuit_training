@@ -139,7 +139,8 @@ class CircuitEnv(object):
       cd_finetune: bool = False,
       cd_plc_file: Text = 'ppo_cd_placement.plc',
       train_step: Optional[tf.Variable] = None,
-      unplace_all_nodes_in_init: bool = True):
+      unplace_all_nodes_in_init: bool = True,
+      extract_static_features_from_obs=True):
     """Creates a CircuitEnv.
 
     Args:
@@ -167,6 +168,8 @@ class CircuitEnv(object):
       train_step: A tf.Variable indicating the training step, only used for
         saving plc files in the evaluation.
       unplace_all_nodes_in_init: Unplace all nodes after initialization.
+      extract_static_features_from_obs: Whether to extract static features from
+        observation.
     """
     del global_seed
     if not netlist_file:
@@ -235,6 +238,7 @@ class CircuitEnv(object):
     self._done = False
     self._current_mask = self._get_mask()
     self._infeasible_state = False
+    self._extract_static_features_from_obs = extract_static_features_from_obs
 
     if unplace_all_nodes_in_init:
       # TODO(b/223026568) Remove unplace_all_nodes from init
@@ -302,10 +306,16 @@ class CircuitEnv(object):
     else:
       current_node_index = 0
 
-    return self._observation_extractor.get_all_features(
-        previous_node_index=previous_node_index,
-        current_node_index=current_node_index,
-        mask=self._current_mask)
+    if self._extract_static_features_from_obs:
+      return self._observation_extractor.get_all_features(
+          previous_node_index=previous_node_index,
+          current_node_index=current_node_index,
+          mask=self._current_mask)
+    else:
+      return self._observation_extractor.get_dynamic_features(
+          previous_node_index=previous_node_index,
+          current_node_index=current_node_index,
+          mask=self._current_mask)
 
   def _run_cd(self):
     """Runs coordinate descent to finetune the current placement."""

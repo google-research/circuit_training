@@ -101,7 +101,9 @@ class EnvironmentTest(test_utils.TestCase):
     init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
                                   'initial.plc')
     env = environment.CircuitEnv(
-        netlist_file=netlist_file, init_placement=init_placement)
+        netlist_file=netlist_file,
+        init_placement=init_placement,
+        extract_static_features_from_obs=True)
 
     obs = env.reset()
     self.assertTrue(env.observation_space.contains(obs))

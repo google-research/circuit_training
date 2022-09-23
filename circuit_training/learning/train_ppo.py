@@ -70,6 +70,9 @@ _GLOBAL_SEED = flags.DEFINE_integer(
 _ALLOW_VARIABLE_LENGTH_EPISODES = flags.DEFINE_bool(
     'allow_variable_length_episodes', False,
     'Whether to allow variable length episodes for training.')
+_EXTRACT_STATIC_FEATURES_FROM_OBS = flags.DEFINE_bool(
+    'extract_static_features_from_obs', False,
+    'Whether to extract static features from the observation.')
 
 FLAGS = flags.FLAGS
 
@@ -90,7 +93,9 @@ def main(_):
       environment.create_circuit_environment,
       netlist_file=_NETLIST_FILE.value,
       init_placement=_INIT_PLACEMENT.value,
-      global_seed=_GLOBAL_SEED.value)
+      global_seed=_GLOBAL_SEED.value,
+      extract_static_features_from_obs=_EXTRACT_STATIC_FEATURES_FROM_OBS.value,
+  )
 
   use_model_tpu = bool(strategy_utils.TPU.value)
 
@@ -101,7 +106,10 @@ def main(_):
   env = create_env_fn()
   observation_tensor_spec, action_tensor_spec, _ = (
       spec_utils.get_tensor_specs(env))
-  static_features = env.wrapped_env().get_static_obs()
+  if _EXTRACT_STATIC_FEATURES_FROM_OBS.value:
+    static_features = None
+  else:
+    static_features = env.wrapped_env().get_static_obs()
   grl_actor_net, grl_value_net = model.create_grl_models(
       observation_tensor_spec,
       action_tensor_spec,
