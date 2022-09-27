@@ -358,6 +358,8 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     if self._gradient_clipping > 0:
       grads, _ = tf.clip_by_global_norm(grads, self._gradient_clipping)
 
+    self._grad_norm = tf.linalg.global_norm(grads)
+
     # Tuple is used for py3, where zip is a generator producing values once.
     grads_and_vars = tuple(zip(grads, variables_to_train))
 
@@ -432,10 +434,9 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
           step=self.train_step_counter)
 
     with tf.name_scope('LearningRate/'):
-      learning_rate = ppo_utils.get_learning_rate(self._optimizer)
       tf.compat.v2.summary.scalar(
           name='learning_rate',
-          data=learning_rate,
+          data=self._optimizer.learning_rate,
           step=self.train_step_counter)
 
     # TODO(b/171573175): remove the condition once histograms are
