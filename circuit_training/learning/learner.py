@@ -201,7 +201,7 @@ class CircuittrainingPPOLearner(object):
       # in mini batches that contain subsets from more than one sequences.
       # PPO agent can handle mini batches across episode boundaries.
       train_dataset = train_dataset.unbatch()
-      train_dataset = train_dataset.batch(1, drop_remainder=True).cache()
+      train_dataset = train_dataset.batch(1, drop_remainder=True)
 
       if self._allow_variable_length_episodes:
         # Ideally we will train on num_episodes_per_iteration if all have the
@@ -218,14 +218,14 @@ class CircuittrainingPPOLearner(object):
           self._minibatch_size, drop_remainder=True)
 
       options = tf.data.Options()
-      options.experimental_deterministic = False
+      options.deterministic = False
       options.experimental_optimization.parallel_batch = True
       train_dataset = train_dataset.with_options(options)
 
       return train_dataset
 
     def make_dataset(_):
-      return tf.data.experimental.Counter().flat_map(_make_dataset)
+      return tf.data.Dataset.counter().flat_map(_make_dataset)
 
     with strategy.scope():
 
