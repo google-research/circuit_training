@@ -46,24 +46,24 @@ class CircuittrainingPPOLearner(object):
       the agent.
   """
 
-  def __init__(
-      self,
-      root_dir: Text,
-      train_step: tf.Variable,
-      model_id: tf.Variable,
-      agent: ppo_agent.PPOAgent,
-      experience_dataset_fn: Callable[[], tf.data.Dataset],
-      sequence_length: int,
-      num_episodes_per_iteration: int,
-      minibatch_size: int,
-      shuffle_buffer_size: int,
-      num_epochs: int = 1,
-      triggers: Optional[List[interval_trigger.IntervalTrigger]] = None,
-      checkpoint_interval: int = 100000,
-      summary_interval: int = 1000,
-      strategy: Optional[tf.distribute.Strategy] = None,
-      per_sequence_fn: Optional[_SequenceFnType] = None,
-      allow_variable_length_episodes: bool = False) -> None:
+  def __init__(self,
+               root_dir: Text,
+               train_step: tf.Variable,
+               model_id: tf.Variable,
+               agent: ppo_agent.PPOAgent,
+               experience_dataset_fn: Callable[[], tf.data.Dataset],
+               sequence_length: int,
+               num_episodes_per_iteration: int,
+               minibatch_size: int,
+               shuffle_buffer_size: int,
+               num_epochs: int = 1,
+               triggers: Optional[List[
+                   interval_trigger.IntervalTrigger]] = None,
+               checkpoint_interval: int = 100000,
+               summary_interval: int = 1000,
+               strategy: Optional[tf.distribute.Strategy] = None,
+               per_sequence_fn: Optional[_SequenceFnType] = None,
+               allow_variable_length_episodes: bool = False) -> None:
     """Initializes a CircuittrainingPPOLearner instance.
 
     Args:
@@ -125,7 +125,7 @@ class CircuittrainingPPOLearner(object):
         batching is enabled.
     """
 
-    strategy = strategy or tf.distribute.get_strategy()
+    self._strategy = strategy or tf.distribute.get_strategy()
     self._agent = agent
     self._minibatch_size = minibatch_size
     self._shuffle_buffer_size = shuffle_buffer_size
@@ -148,16 +148,16 @@ class CircuittrainingPPOLearner(object):
         checkpoint_interval=checkpoint_interval,
         summary_interval=summary_interval,
         use_kwargs_in_agent_train=False,
-        strategy=strategy)
+        strategy=self._strategy)
 
-    self.num_replicas = strategy.num_replicas_in_sync
+    self.num_replicas = self._strategy.num_replicas_in_sync
     self._allow_variable_length_episodes = allow_variable_length_episodes
     self._num_samples = self._num_episodes_per_iteration * self._sequence_length
-    self._create_datasets(strategy)
+    self._create_datasets()
     self._steps_per_iter = self._get_train_steps_per_iteration()
     logging.info('train steps per iteration: %d', self._steps_per_iter)
 
-  def _create_datasets(self, strategy):
+  def _create_datasets(self):
     """Create the training dataset and iterator."""
 
     def _filter_invalid_episodes(sample):
@@ -176,24 +176,17 @@ class CircuittrainingPPOLearner(object):
             tf.math.equal(tf.size(data.discount), self._sequence_length),
             tf.math.equal(self._model_id, data_model_id))
 
-    def _make_dataset(_):
+    def make_dataset(_):
       # `experience_dataset_fn` returns a tf.Dataset. Each item is a (Trajectory
       # , SampleInfo) tuple, and the Trajectory represents one single episode
       # of a fixed sequence length. The Trajectory dimensions are [1, T, ...].
       train_dataset = self._experience_dataset_fn()
       train_dataset = train_dataset.filter(_filter_invalid_episodes)
-      if not self._allow_variable_length_episodes:
-        train_dataset = train_dataset.take(self._num_episodes_per_iteration)
       if self._per_sequence_fn:
         train_dataset = train_dataset.map(
             self._per_sequence_fn,
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=False)
-
-      # We take num_episodes_per_iteration, repeat for `num_epochs` times and
-      # exhaust this data in the current learner run. The next time learner
-      # runs, new batches of data will be sampled, cached and repeated.
-      # This is enabled by the `Counter().flat_map()` trick below.
 
       # We unbatch the dataset shaped [B, T, ...] to a new dataset that
       # contains individual elements.
@@ -202,16 +195,6 @@ class CircuittrainingPPOLearner(object):
       # PPO agent can handle mini batches across episode boundaries.
       train_dataset = train_dataset.unbatch()
       train_dataset = train_dataset.batch(1, drop_remainder=True)
-
-      if self._allow_variable_length_episodes:
-        # Ideally we will train on num_episodes_per_iteration if all have the
-        # max sequence_length, in case of shorter episodes we will train in an
-        # equivalent number of steps num_episodes_per_iteration *
-        # sequence_length.
-
-        # Make sure we have enough samples to train on.
-        train_dataset = train_dataset.take(self._num_samples).cache()
-
       train_dataset = train_dataset.shuffle(self._shuffle_buffer_size)
       train_dataset = train_dataset.repeat(self._num_epochs)
       train_dataset = train_dataset.batch(
@@ -224,14 +207,11 @@ class CircuittrainingPPOLearner(object):
 
       return train_dataset
 
-    def make_dataset(_):
-      return tf.data.Dataset.counter().flat_map(_make_dataset)
+    with self._strategy.scope():
 
-    with strategy.scope():
-
-      if strategy.num_replicas_in_sync > 1:
+      if self._strategy.num_replicas_in_sync > 1:
         self._train_dataset = (
-            strategy.distribute_datasets_from_function(make_dataset))
+            self._strategy.distribute_datasets_from_function(make_dataset))
       else:
         self._train_dataset = make_dataset(0)
       self._train_iterator = iter(self._train_dataset)
@@ -247,6 +227,11 @@ class CircuittrainingPPOLearner(object):
     train_steps = int(num_mini_batches / self.num_replicas)
     return train_steps
 
+  def wait_for_data(self):
+    """Blocking call on dataset."""
+    sample_info = next(self._train_iterator)[1]
+    logging.info('example priority: %s', sample_info.priority)
+
   def run(self):
     """Train `num_episodes_per_iteration` repeating for `num_epochs` of iterations.
 
@@ -256,7 +241,7 @@ class CircuittrainingPPOLearner(object):
     loss_info = self._generic_learner.run(self._steps_per_iter,
                                           self._train_iterator)
     self._model_id.assign_add(1)
-
+    self._create_datasets()
     return loss_info
 
   @property

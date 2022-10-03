@@ -37,6 +37,9 @@ from tf_agents.train.utils import spec_utils
 from tf_agents.train.utils import train_utils
 from tf_agents.utils import common
 
+# Shuffle buffer size should be between 1-3 episode len.
+_SHUFFLE_BUFFER_EPISODE_LEN = 3
+
 
 def train(
     root_dir: str,
@@ -90,6 +93,7 @@ def train(
       epoch.
     allow_variable_length_episodes: Whether to support variable length episodes
       for training.
+    init_train_step: Initial train step.
   """
   # Get the specs from the environment.
   env = create_env_fn()
@@ -203,7 +207,7 @@ def train(
       sequence_length,
       num_episodes_per_iteration=num_episodes_per_iteration,
       minibatch_size=per_replica_batch_size,
-      shuffle_buffer_size=(num_episodes_per_iteration * sequence_length),
+      shuffle_buffer_size=(_SHUFFLE_BUFFER_EPISODE_LEN * sequence_length),
       triggers=learning_triggers,
       summary_interval=1000,
       strategy=strategy,
@@ -216,6 +220,12 @@ def train(
     step_val = train_step.numpy()
     logging.info('Training. Iteration: %d', i)
     start_time = time.time()
+    # `wait_for_data` is not necessary and is added only to measure the data
+    # latency. It takes one batch of data from dataset and print it. So, it 
+    # waits until the data is ready to consume.
+    learner.wait_for_data()
+    data_wait_time = time.time() - start_time
+    logging.info('Data wait time sec: %s', data_wait_time)
     learner.run()
     num_steps = train_step.numpy() - step_val
     run_time = time.time() - start_time
@@ -224,3 +234,12 @@ def train(
     variable_container.push(variables)
     logging.info('clearing replay buffer')
     reverb_replay_train.clear()
+    with tf.name_scope('RunTime/'):
+      tf.summary.scalar(
+          name='data_wait_time_sec',
+          data=data_wait_time,
+          step=train_step)
+      tf.summary.scalar(
+          name='step_per_sec',
+          data=num_steps / run_time,
+          step=train_step)
