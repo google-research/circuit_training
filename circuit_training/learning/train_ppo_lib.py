@@ -185,7 +185,7 @@ def train(
   # Create the learner.
   learning_triggers = [
       save_model_trigger,
-      triggers.StepPerSecondLogTrigger(train_step, interval=1000),
+      triggers.StepPerSecondLogTrigger(train_step, interval=200),
   ]
 
   def per_sequence_fn(sample):
@@ -205,7 +205,7 @@ def train(
       minibatch_size=per_replica_batch_size,
       shuffle_buffer_size=(_SHUFFLE_BUFFER_EPISODE_LEN.value * sequence_length),
       triggers=learning_triggers,
-      summary_interval=1000,
+      summary_interval=200,
       strategy=strategy,
       num_epochs=num_epochs,
       per_sequence_fn=per_sequence_fn,

@@ -114,6 +114,7 @@ def collect(task: int,
       train_step,
       episodes_per_run=1,
       summary_dir=summary_dir,
+      summary_interval=200,
       metrics=metrics,
       observers=observers)
 
