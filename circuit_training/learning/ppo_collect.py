@@ -65,6 +65,7 @@ def main(_):
       netlist_file=FLAGS.netlist_file,
       init_placement=FLAGS.init_placement,
       global_seed=FLAGS.global_seed,
+      netlist_index=0,
   )
 
   ppo_collect_lib.collect(
@@ -75,6 +76,7 @@ def main(_):
       create_env_fn=create_env_fn,
       max_sequence_length=FLAGS.max_sequence_length,
       write_summaries_task_threshold=FLAGS.write_summaries_task_threshold,
+      use_grl=True,
   )
 
 

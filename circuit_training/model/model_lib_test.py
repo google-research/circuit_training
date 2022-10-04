@@ -19,6 +19,7 @@
 from absl import flags
 from absl import logging
 from circuit_training.environment import observation_config
+from circuit_training.learning import static_feature_cache
 from circuit_training.model import model_lib
 from circuit_training.utils import test_utils
 import tensorflow as tf
@@ -49,14 +50,19 @@ class ModelTest(test_utils.TestCase):
   def test_extract_feature(self):
     config = observation_config.ObservationConfig()
     static_features = config.observation_space.sample()
+    cache = static_feature_cache.StaticFeatureCache()
+    cache.add_static_feature(static_features)
+
     strategy = make_strategy()
     with strategy.scope():
       if isinstance(strategy, tf.distribute.TPUStrategy):
         test_model = model_lib.CircuitTrainingTPUModel(
-            static_features=static_features)
+            all_static_features=cache.get_all_static_features(),
+            observation_config=config)
       else:
         test_model = model_lib.CircuitTrainingModel(
-            static_features=static_features)
+            all_static_features=cache.get_all_static_features(),
+            observation_config=config)
 
     @tf.function
     def forward():
@@ -75,17 +81,22 @@ class ModelTest(test_utils.TestCase):
   def test_backwards_pass(self):
     config = observation_config.ObservationConfig()
     static_features = config.observation_space.sample()
+    cache = static_feature_cache.StaticFeatureCache()
+    cache.add_static_feature(static_features)
+
     strategy = make_strategy()
     with strategy.scope():
       if isinstance(strategy, tf.distribute.TPUStrategy):
         test_model = model_lib.CircuitTrainingTPUModel(
-            static_features=static_features)
+            all_static_features=cache.get_all_static_features(),
+            observation_config=config)
       else:
         test_model = model_lib.CircuitTrainingModel(
-            static_features=static_features)
+            all_static_features=cache.get_all_static_features(),
+            observation_config=config)
       optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
 
-    obs = config.observation_space.sample()
+    obs = config.dynamic_observation_space.sample()
     obs = tf.nest.map_structure(lambda x: tf.expand_dims(x, 0), obs)
 
     @tf.function

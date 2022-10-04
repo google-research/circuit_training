@@ -58,7 +58,7 @@ class ObservationExtractorTest(test_utils.TestCase):
     plc.update_port_sides()
     plc.snap_ports_to_edges()
     self.extractor = observation_extractor.ObservationExtractor(
-        plc=plc, observation_config=self._observation_config)
+        plc=plc, observation_config=self._observation_config, netlist_index=0)
 
   def test_static_features(self):
     static_obs = self.extractor.get_static_features()
@@ -104,6 +104,7 @@ class ObservationExtractorTest(test_utils.TestCase):
                         [0] * (self._observation_config.max_grid_size *
                                self._observation_config.max_grid_size))
     self.assertAllClose(dynamic_obs['current_node'], [0])
+    self.assertEqual(dynamic_obs['netlist_index'][0], 0)
 
   def test_initial_all_features(self):
     mask = np.zeros(
@@ -135,6 +136,7 @@ class ObservationExtractorTest(test_utils.TestCase):
                         [0] * (self._observation_config.max_grid_size *
                                self._observation_config.max_grid_size))
     self.assertAllClose(all_obs['current_node'], [0])
+    self.assertEqual(all_obs['netlist_index'][0], 0)
 
     obs_space = self._observation_config.observation_space
     self.assertTrue(obs_space.contains(all_obs))
@@ -163,6 +165,7 @@ class ObservationExtractorTest(test_utils.TestCase):
                         np.asarray([120., 150., 100., 125., 200., 0.0]) / 200.0)
     self.assertAllEqual(all_obs['is_node_placed'], [1, 1, 0, 1, 1, 0])
     self.assertAllClose(all_obs['current_node'], [2])
+    self.assertEqual(all_obs['netlist_index'][0], 0)
 
 
 if __name__ == '__main__':

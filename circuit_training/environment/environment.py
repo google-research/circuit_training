@@ -132,6 +132,7 @@ class CircuitEnv(object):
                              Tuple[float, Dict[Text,
                                                float]]] = cost_info_function,
       global_seed: int = 0,
+      netlist_index: int = 0,
       is_eval: bool = False,
       save_best_cost: bool = False,
       output_plc_file: Text = '',
@@ -139,8 +140,7 @@ class CircuitEnv(object):
       cd_finetune: bool = False,
       cd_plc_file: Text = 'ppo_cd_placement.plc',
       train_step: Optional[tf.Variable] = None,
-      unplace_all_nodes_in_init: bool = True,
-      extract_static_features_from_obs=True):
+      unplace_all_nodes_in_init: bool = True):
     """Creates a CircuitEnv.
 
     Args:
@@ -155,6 +155,7 @@ class CircuitEnv(object):
         cost.
       global_seed: Global seed for initializing env features. This seed should
         be the same across actors. Not used currently.
+      netlist_index: Netlist index in the model static features.
       is_eval: If set, save the final placement in output_dir.
       save_best_cost: Boolean, if set, saves the palcement if its cost is better
         than the previously saved palcement.
@@ -168,8 +169,6 @@ class CircuitEnv(object):
       train_step: A tf.Variable indicating the training step, only used for
         saving plc files in the evaluation.
       unplace_all_nodes_in_init: Unplace all nodes after initialization.
-      extract_static_features_from_obs: Whether to extract static features from
-        observation.
     """
     del global_seed
     if not netlist_file:
@@ -186,6 +185,7 @@ class CircuitEnv(object):
     self._cd_finetune = cd_finetune
     self._cd_plc_file = cd_plc_file
     self._train_step = train_step
+    self._netlist_index = netlist_index
 
     self._plc = create_placement_cost_fn(
         netlist_file=netlist_file, init_placement=init_placement)
@@ -195,7 +195,9 @@ class CircuitEnv(object):
     # This results in better placements.
     self._observation_config = observation_config.ObservationConfig()
     self._observation_extractor = observation_extractor.ObservationExtractor(
-        plc=self._plc, observation_config=self._observation_config)
+        plc=self._plc,
+        observation_config=self._observation_config,
+        netlist_index=self._netlist_index)
 
     if self._make_soft_macros_square:
       # It is better to make the shape of soft macros square before using
@@ -238,7 +240,6 @@ class CircuitEnv(object):
     self._done = False
     self._current_mask = self._get_mask()
     self._infeasible_state = False
-    self._extract_static_features_from_obs = extract_static_features_from_obs
 
     if unplace_all_nodes_in_init:
       # TODO(b/223026568) Remove unplace_all_nodes from init
@@ -249,7 +250,7 @@ class CircuitEnv(object):
   @property
   def observation_space(self) -> gym.spaces.Space:
     """Env Observation space."""
-    return self._observation_config.observation_space
+    return self._observation_config.dynamic_observation_space
 
   @property
   def action_space(self) -> gym.spaces.Space:
@@ -306,16 +307,10 @@ class CircuitEnv(object):
     else:
       current_node_index = 0
 
-    if self._extract_static_features_from_obs:
-      return self._observation_extractor.get_all_features(
-          previous_node_index=previous_node_index,
-          current_node_index=current_node_index,
-          mask=self._current_mask)
-    else:
-      return self._observation_extractor.get_dynamic_features(
-          previous_node_index=previous_node_index,
-          current_node_index=current_node_index,
-          mask=self._current_mask)
+    return self._observation_extractor.get_dynamic_features(
+        previous_node_index=previous_node_index,
+        current_node_index=current_node_index,
+        mask=self._current_mask)
 
   def _run_cd(self):
     """Runs coordinate descent to finetune the current placement."""

@@ -22,6 +22,7 @@ from absl.testing import parameterized
 
 from circuit_training.environment import environment
 from circuit_training.learning import agent
+from circuit_training.learning import static_feature_cache
 from circuit_training.model import model
 
 import numpy as np
@@ -102,13 +103,16 @@ class CollectTest(parameterized.TestCase, test_utils.TestCase):
                                     'initial.plc'))
     observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
         spec_utils.get_tensor_specs(env))
+    cache = static_feature_cache.StaticFeatureCache()
     static_features = env.get_static_obs()
-    grl_actor_net, grl_value_net = model.create_grl_models(
-        observation_tensor_spec,
-        action_tensor_spec,
-        static_features,
-        strategy,
-        use_model_tpu=False)
+    cache.add_static_feature(static_features)
+
+    with strategy.scope():
+      grl_actor_net, grl_value_net = model.create_grl_models(
+          observation_tensor_spec,
+          action_tensor_spec,
+          cache.get_all_static_features(),
+          use_model_tpu=False)
 
     # Create the agent whose collect policy is being tested.
     with strategy.scope():

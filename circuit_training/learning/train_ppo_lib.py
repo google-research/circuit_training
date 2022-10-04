@@ -17,11 +17,7 @@
 import os
 import time
 
-from typing import Callable
-
 from absl import logging
-
-from circuit_training.environment import environment as oss_environment
 from circuit_training.learning import agent
 from circuit_training.learning import learner as learner_lib
 
@@ -35,6 +31,7 @@ from tf_agents.train import learner as actor_learner
 from tf_agents.train import triggers
 from tf_agents.train.utils import spec_utils
 from tf_agents.train.utils import train_utils
+from tf_agents.typing import types
 from tf_agents.utils import common
 
 # Shuffle buffer size should be between 1-3 episode len.
@@ -46,7 +43,8 @@ def train(
     strategy: tf.distribute.Strategy,
     replay_buffer_server_address: str,
     variable_container_server_address: str,
-    create_env_fn: Callable[[], oss_environment.CircuitEnv],
+    action_tensor_spec: types.NestedTensorSpec,
+    time_step_tensor_spec: types.NestedTensorSpec,
     sequence_length: int,
     actor_net: network.Network,
     value_net: network.Network,
@@ -74,7 +72,8 @@ def train(
     replay_buffer_server_address: Address of the reverb replay server.
     variable_container_server_address: The address of the Reverb server for
       ReverbVariableContainer.
-    create_env_fn: Function to create circuit training environment.
+    action_tensor_spec: Action tensor_spec.
+    time_step_tensor_spec: Time step tensor_spec.
     sequence_length: Fixed sequence length for elements in the dataset. Used for
       calculating how many iterations of minibatches to use for training.
     actor_net: TF-Agents actor network.
@@ -95,11 +94,6 @@ def train(
       for training.
     init_train_step: Initial train step.
   """
-  # Get the specs from the environment.
-  env = create_env_fn()
-  _, action_tensor_spec, time_step_tensor_spec = (
-      spec_utils.get_tensor_specs(env))
-
   # Create the agent.
   with strategy.scope():
     train_step = train_utils.create_train_step()

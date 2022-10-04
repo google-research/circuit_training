@@ -44,25 +44,16 @@ class ObservationConfigTest(test_utils.TestCase):
       self.assertAllEqual(obs[k], np_obs[k])
 
   def test_observation_ordering(self):
-    static_observations = (
-        'normalized_num_edges',
-        'normalized_num_hard_macros',
-        'normalized_num_soft_macros',
-        'normalized_num_port_clusters',
-        'horizontal_routes_per_micron',
-        'vertical_routes_per_micron',
-        'macro_horizontal_routing_allocation',
-        'macro_vertical_routing_allocation',
-        'grid_cols',
-        'grid_rows',
-        'sparse_adj_i',
-        'sparse_adj_j',
-        'sparse_adj_weight',
-        'edge_counts',
-        'macros_w',
-        'macros_h',
-        'node_types',
-    )
+    static_observations = ('normalized_num_edges', 'normalized_num_hard_macros',
+                           'normalized_num_soft_macros',
+                           'normalized_num_port_clusters',
+                           'horizontal_routes_per_micron',
+                           'vertical_routes_per_micron',
+                           'macro_horizontal_routing_allocation',
+                           'macro_vertical_routing_allocation', 'grid_cols',
+                           'grid_rows', 'sparse_adj_i', 'sparse_adj_j',
+                           'sparse_adj_weight', 'edge_counts', 'macros_w',
+                           'macros_h', 'node_types', 'netlist_index')
 
     dynamic_observations = (
         'locations_x',
@@ -70,6 +61,7 @@ class ObservationConfigTest(test_utils.TestCase):
         'is_node_placed',
         'current_node',
         'mask',
+        'netlist_index',
     )
 
     all_observations = static_observations + dynamic_observations

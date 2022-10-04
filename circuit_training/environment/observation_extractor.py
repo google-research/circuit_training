@@ -32,11 +32,13 @@ class ObservationExtractor(object):
                plc: plc_client.PlacementCost,
                observation_config: Optional[
                    observation_config_lib.ObservationConfig] = None,
+               netlist_index: int = 0,
                default_location_x: float = 0.5,
                default_location_y: float = 0.5):
     self.plc = plc
     self._observation_config = (
         observation_config or observation_config_lib.ObservationConfig())
+    self._netlist_index = netlist_index
     self._default_location_x = default_location_x
     self._default_location_y = default_location_y
 
@@ -69,6 +71,7 @@ class ObservationExtractor(object):
     self._extract_canvas_size(features)
     self._extract_grid_size(features)
     self._extract_initial_node_locations(features)
+    self._extract_netlist_index(features)
     self._extract_normalized_static_features(features)
     return features
 
@@ -188,6 +191,10 @@ class ObservationExtractor(object):
   def _extract_grid_size(self, features: Dict[Text, np.ndarray]) -> None:
     features['grid_cols'] = np.asarray([self.num_cols]).astype(np.float32)
     features['grid_rows'] = np.asarray([self.num_rows]).astype(np.float32)
+
+  def _extract_netlist_index(self, features: Dict[Text, np.ndarray]) -> None:
+    features['netlist_index'] = np.asarray([self._netlist_index
+                                           ]).astype(np.int32)
 
   def _get_clustered_port_locations(
       self, grid_cell_index: int) -> Tuple[float, float]:
@@ -343,12 +350,6 @@ class ObservationExtractor(object):
     return {
         key: self._features[key]
         for key in observation_config_lib.STATIC_OBSERVATIONS
-    }
-
-  def get_initial_features(self) -> Dict[Text, np.ndarray]:
-    return {
-        key: self._features[key]
-        for key in observation_config_lib.INITIAL_OBSERVATIONS
     }
 
   def _update_dynamic_features(self, previous_node_index: int,

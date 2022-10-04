@@ -22,14 +22,16 @@ import os
 from absl import flags
 from absl.testing import parameterized
 from circuit_training.environment import environment
+from circuit_training.learning import static_feature_cache
 from circuit_training.model import model as grl_model
 from circuit_training.utils import test_utils
 import tensorflow as tf
 from tf_agents.environments import suite_gym
 from tf_agents.environments import tf_py_environment
-import tf_agents.specs.tensor_spec as tensor_spec
+from tf_agents.specs import tensor_spec
 from tf_agents.train.utils import strategy_utils
 from tf_agents.trajectories import time_step as ts
+
 
 flags.DEFINE_enum('strategy_type', 'cpu', [
     'tpu', 'gpu', 'cpu'
@@ -57,10 +59,15 @@ class ActorModelTest(test_utils.TestCase, parameterized.TestCase):
     init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, block_name,
                                   'initial.plc')
     env = environment.create_circuit_environment(
-        netlist_file=netlist_file, init_placement=init_placement)
+        netlist_file=netlist_file,
+        init_placement=init_placement,
+        netlist_index=0)
     tf_env = tf_py_environment.TFPyEnvironment(suite_gym.wrap_env(env))
     self._input_tensors_spec = tf_env.observation_spec()
     self._output_tensors_spec = tf_env.action_spec()
+
+    cache = static_feature_cache.StaticFeatureCache()
+    cache.add_static_feature(env.wrapped_env().get_static_obs())
 
     if FLAGS.strategy_type == 'tpu':
       resolver = tf.distribute.cluster_resolver.TPUClusterResolver('')
@@ -76,6 +83,7 @@ class ActorModelTest(test_utils.TestCase, parameterized.TestCase):
       shared_network = grl_model.GrlModel(
           input_tensors_spec=self._input_tensors_spec,
           output_tensors_spec=None,
+          all_static_features=cache.get_all_static_features(),
           name='grl_model')
       self._value_model = grl_model.GrlValueModel(
           input_tensors_spec=self._input_tensors_spec,

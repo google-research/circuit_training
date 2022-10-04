@@ -21,14 +21,12 @@ import random
 from absl import app
 from absl import flags
 from absl import logging
-
 from circuit_training.environment import environment
+from circuit_training.learning import static_feature_cache
 from circuit_training.learning import train_ppo_lib
 from circuit_training.model import model
-
 import numpy as np
 import tensorflow as tf
-
 from tf_agents.system import system_multiprocessing as multiprocessing
 from tf_agents.train.utils import spec_utils
 from tf_agents.train.utils import strategy_utils
@@ -70,9 +68,6 @@ _GLOBAL_SEED = flags.DEFINE_integer(
 _ALLOW_VARIABLE_LENGTH_EPISODES = flags.DEFINE_bool(
     'allow_variable_length_episodes', False,
     'Whether to allow variable length episodes for training.')
-_EXTRACT_STATIC_FEATURES_FROM_OBS = flags.DEFINE_bool(
-    'extract_static_features_from_obs', True,
-    'Whether to extract static features from the observation.')
 
 FLAGS = flags.FLAGS
 
@@ -94,8 +89,7 @@ def main(_):
       netlist_file=_NETLIST_FILE.value,
       init_placement=_INIT_PLACEMENT.value,
       global_seed=_GLOBAL_SEED.value,
-      extract_static_features_from_obs=_EXTRACT_STATIC_FEATURES_FROM_OBS.value,
-  )
+      netlist_index=0)
 
   use_model_tpu = bool(strategy_utils.TPU.value)
 
@@ -103,28 +97,31 @@ def main(_):
   logging.info('global batch_size=%d', _GLOBAL_BATCH_SIZE.value)
   logging.info('per-replica batch_size=%d', batch_size)
 
+  cache = static_feature_cache.StaticFeatureCache()
+
   env = create_env_fn()
-  observation_tensor_spec, action_tensor_spec, _ = (
+  observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
       spec_utils.get_tensor_specs(env))
-  if _EXTRACT_STATIC_FEATURES_FROM_OBS.value:
-    static_features = None
-  else:
-    static_features = env.wrapped_env().get_static_obs()
-  grl_actor_net, grl_value_net = model.create_grl_models(
-      observation_tensor_spec,
-      action_tensor_spec,
-      static_features,
-      strategy,
-      use_model_tpu=use_model_tpu)
+  static_features = env.wrapped_env().get_static_obs()
+  cache.add_static_feature(static_features)
+
+  with strategy.scope():
+    grl_actor_net, grl_value_net = model.create_grl_models(
+        observation_tensor_spec,
+        action_tensor_spec,
+        cache.get_all_static_features(),
+        use_model_tpu=use_model_tpu,
+        seed=_GLOBAL_SEED.value)
 
   train_ppo_lib.train(
       root_dir=root_dir,
       strategy=strategy,
       replay_buffer_server_address=_REPLAY_BUFFER_SERVER_ADDR.value,
       variable_container_server_address=_VARIABLE_CONTAINER_SERVER_ADDR.value,
-      create_env_fn=create_env_fn,
-      sequence_length=_SEQUENCE_LENGTH.value,
+      action_tensor_spec=action_tensor_spec,
+      time_step_tensor_spec=time_step_tensor_spec,
       use_grl=True,
+      sequence_length=_SEQUENCE_LENGTH.value,
       actor_net=grl_actor_net,
       value_net=grl_value_net,
       per_replica_batch_size=batch_size,

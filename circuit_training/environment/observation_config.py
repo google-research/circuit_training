@@ -50,26 +50,16 @@ NODE_STATIC_FEATURES = (
     'node_types',
 )
 
+NETLIST_INDEX = ('netlist_index',)
+
 STATIC_OBSERVATIONS = (
-    NETLIST_METADATA + GRAPH_ADJACENCY_MATRIX + NODE_STATIC_FEATURES)
+    NETLIST_METADATA + GRAPH_ADJACENCY_MATRIX + NODE_STATIC_FEATURES +
+    NETLIST_INDEX)
 
-INITIAL_DYNAMIC_OBSERVATIONS = (
-    'locations_x',
-    'locations_y',
-    'is_node_placed',
-)
-
-DYNAMIC_OBSERVATIONS = (
-    'locations_x',
-    'locations_y',
-    'is_node_placed',
-    'current_node',
-    'mask',
-)
+DYNAMIC_OBSERVATIONS = ('locations_x', 'locations_y', 'is_node_placed',
+                        'current_node', 'mask') + NETLIST_INDEX
 
 ALL_OBSERVATIONS = STATIC_OBSERVATIONS + DYNAMIC_OBSERVATIONS
-
-INITIAL_OBSERVATIONS = STATIC_OBSERVATIONS + INITIAL_DYNAMIC_OBSERVATIONS
 
 
 @gin.configurable
@@ -86,6 +76,29 @@ class ObservationConfig(object):
     self.max_num_edges = max_num_edges
     self.max_num_nodes = max_num_nodes
     self.max_grid_size = max_grid_size
+
+  @property
+  def dynamic_observation_space(self) -> gym.spaces.Space:
+    """Env Dynamic Observation space."""
+    return gym.spaces.Dict({
+        'is_node_placed':
+            gym.spaces.Box(
+                low=0, high=1, shape=(self.max_num_nodes,), dtype=np.int32),
+        'locations_x':
+            gym.spaces.Box(low=0, high=1, shape=(self.max_num_nodes,)),
+        'locations_y':
+            gym.spaces.Box(low=0, high=1, shape=(self.max_num_nodes,)),
+        'current_node':
+            gym.spaces.Box(
+                low=0, high=self.max_num_nodes - 1, shape=(1,), dtype=np.int32),
+        'mask':
+            gym.spaces.Box(
+                low=0, high=1, shape=(self.max_grid_size**2,), dtype=np.int32),
+        # high is set to 0 intentionally, so when we sample obs for creating
+        # the model parameter, we sample 0 for netlist_index.
+        'netlist_index':
+            gym.spaces.Box(low=0, high=0, shape=(1,), dtype=np.int32),
+    })
 
   @property
   def observation_space(self) -> gym.spaces.Space:
@@ -151,6 +164,8 @@ class ObservationConfig(object):
         'mask':
             gym.spaces.Box(
                 low=0, high=1, shape=(self.max_grid_size**2,), dtype=np.int32),
+        'netlist_index':
+            gym.spaces.Box(low=0, high=0, shape=(1,), dtype=np.int32),
     })
 
 
@@ -185,10 +200,6 @@ def flatten_dynamic(dict_obs: Dict[Text, TensorType]) -> TensorType:
 
 def flatten_all(dict_obs: Dict[Text, TensorType]) -> TensorType:
   return _flatten(dict_obs=dict_obs, keys=ALL_OBSERVATIONS)
-
-
-def flatten_initial(dict_obs: Dict[Text, TensorType]) -> TensorType:
-  return _flatten(dict_obs=dict_obs, keys=INITIAL_OBSERVATIONS)
 
 
 def to_dict_static(

@@ -68,7 +68,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
 
   def __init__(
       self,
-      static_features: Optional[Dict[Text, np.ndarray]] = None,
+      all_static_features: Optional[Dict[str, np.ndarray]] = None,
       observation_config: Optional[
           observation_config_lib.ObservationConfig] = None,
       num_gcn_layers: int = 3,
@@ -81,9 +81,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     """Builds the circuit training model.
 
     Args:
-      static_features: Optional static features that are invariant across steps
-        on the same netlist, such as netlist metadata and the adj graphs. If not
-        provided, use the input features in the call method.
+      all_static_features: the static features keyed by the feature name.
       observation_config: Optional observation config.
       num_gcn_layers: Number of GCN layers.
       edge_fc_layers: Number of fully connected layers in the GCN kernel.
@@ -98,7 +96,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     self._dirichlet_alpha = dirichlet_alpha
     self._policy_noise_weight = policy_noise_weight
     self._seed = seed
-    self._static_features = static_features
+    self._all_static_features = all_static_features
     self._observation_config = (
         observation_config or observation_config_lib.ObservationConfig())
 
@@ -347,18 +345,28 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     Returns:
       A tensor for the static feature.
     """
-    if self._static_features:
-      # For the online single-netlist training, replicates feature by batch
-      # size. Picking an aribitrary non-static feature to get a reference of
-      # the dynamic dimension at runtime.
-      num_batches_dim = tf.shape(inputs['current_node'])[0]
-      return tf.tile(
-          tf.expand_dims(self._static_features[static_feature_key], 0),
-          [num_batches_dim, 1])
-    else:
-      # For the offline multi-netlist training, reading the static feature from
-      # the inputs.
+    if not self._all_static_features:
       return inputs[static_feature_key]
+
+    if static_feature_key not in self._all_static_features:
+      raise ValueError(f'Static feature {static_feature_key} not found.')
+
+    netlist_index = inputs['netlist_index']
+    netlist_index = tf.squeeze(netlist_index, axis=-1)
+    # Cap the index with the size of the number of static features.
+    # In the collect jobs, we use only one static feature, but we have to
+    # index the env with its index in the train job. The cap is added, so we
+    # don't need to change the index for collect jobs for local use and in
+    # replay buffer.
+    netlist_index = tf.cast(
+        tf.minimum(
+            tf.cast(netlist_index, dtype=tf.float32),
+            tf.cast(
+                self._all_static_features[static_feature_key].shape[0] - 1,
+                dtype=tf.float32)),
+        dtype=tf.int32)
+    return tf.gather(self._all_static_features[static_feature_key],
+                     netlist_index)
 
   def call(self,
            inputs: tf.Tensor,
@@ -548,12 +556,10 @@ class CircuitTrainingTPUModel(CircuitTrainingModel):
     """
 
     h_edges_1 = tf.map_fn(
-        lambda x: tf.gather(x[0], x[1], batch_dims=0),
-        (h_nodes, sparse_adj_i),
+        lambda x: tf.gather(x[0], x[1], batch_dims=0), (h_nodes, sparse_adj_i),
         fn_output_signature=tf.float32)
     h_edges_2 = tf.map_fn(
-        lambda x: tf.gather(x[0], x[1], batch_dims=0),
-        (h_nodes, sparse_adj_j),
+        lambda x: tf.gather(x[0], x[1], batch_dims=0), (h_nodes, sparse_adj_j),
         fn_output_signature=tf.float32)
     h_edges = tf.concat([h_edges_1, h_edges_2, sparse_adj_weight], axis=2)
     mask = tf.broadcast_to(sparse_adj_weight != 0.0, tf.shape(h_edges))
@@ -714,8 +720,7 @@ class CircuitTrainingTPUModel(CircuitTrainingModel):
     observation_hiddens.append(h_all_edges)
 
     h_current_node = tf.map_fn(
-        lambda x: tf.gather(x[0], x[1], batch_dims=0),
-        (h_nodes, current_node),
+        lambda x: tf.gather(x[0], x[1], batch_dims=0), (h_nodes, current_node),
         fn_output_signature=tf.float32)
 
     h_attended = self.self_attention(h_current_node, h_nodes, training=training)

@@ -14,17 +14,21 @@
 # limitations under the License.
 """Library for PPO collect job."""
 import os
-
-from absl import logging
 from typing import Any, Callable
 
+from absl import logging
+from circuit_training.learning import agent
+from circuit_training.learning import static_feature_cache
+from circuit_training.model import fully_connected_model_lib
+from circuit_training.model import model
 import reverb
-
+import tensorflow as tf
 from tf_agents.experimental.distributed import reverb_variable_container
 from tf_agents.policies import py_tf_eager_policy
 from tf_agents.replay_buffers import reverb_utils
 from tf_agents.train import actor
 from tf_agents.train import learner
+from tf_agents.train.utils import spec_utils
 from tf_agents.train.utils import train_utils
 from tf_agents.utils import common
 
@@ -36,29 +40,43 @@ def collect(task: int,
             create_env_fn: Callable[..., Any],
             max_sequence_length: int,
             write_summaries_task_threshold: int = 1,
+            use_grl: bool = True,
             summary_subdir: str = ''):
   """Collects experience using a policy updated after every episode."""
   # Create the environment.
   train_step = train_utils.create_train_step()
   env = create_env_fn(train_step=train_step)
+  observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
+      spec_utils.get_tensor_specs(env))
+  static_features = env.wrapped_env().get_static_obs()
+  cache = static_feature_cache.StaticFeatureCache()
+  cache.add_static_feature(static_features)
 
-  # Create the path for the serialized collect policy.
-  policy_saved_model_path = os.path.join(root_dir,
-                                         learner.POLICY_SAVED_MODEL_DIR,
-                                         learner.COLLECT_POLICY_SAVED_MODEL_DIR)
-  saved_model_pb_path = os.path.join(policy_saved_model_path, 'saved_model.pb')
-  try:
-    # Wait for the collect policy to be outputed by learner (timeout after 2
-    # days), then load it.
-    train_utils.wait_for_file(
-        saved_model_pb_path, sleep_time_secs=2, num_retries=86400)
-    policy = py_tf_eager_policy.SavedModelPyTFEagerPolicy(
-        policy_saved_model_path, load_specs_from_pbtxt=True)
-  except TimeoutError as e:
-    # If the collect policy does not become available during the wait time of
-    # the call `wait_for_file`, that probably means the learner is not running.
-    logging.error('Could not get the file %s. Exiting.', saved_model_pb_path)
-    raise e
+  if use_grl:
+    actor_net, value_net = model.create_grl_models(
+        observation_tensor_spec,
+        action_tensor_spec,
+        cache.get_all_static_features(),
+        use_model_tpu=False)
+    creat_agent_fn = agent.create_circuit_ppo_grl_agent
+  else:
+    actor_net = fully_connected_model_lib.create_actor_net(
+        observation_tensor_spec, action_tensor_spec)
+    value_net = fully_connected_model_lib.create_value_net(
+        observation_tensor_spec)
+    creat_agent_fn = agent.create_circuit_ppo_agent
+
+  tf_agent = creat_agent_fn(
+      train_step,
+      action_tensor_spec,
+      time_step_tensor_spec,
+      actor_net,
+      value_net,
+      tf.distribute.get_strategy(),
+  )
+
+  policy = tf_agent.collect_policy
+  tf_policy = py_tf_eager_policy.PyTFEagerPolicy(tf_agent.collect_policy)
 
   # Create the variable container.
   model_id = common.create_variable('model_id')
@@ -92,7 +110,7 @@ def collect(task: int,
   # Create the collect actor.
   collect_actor = actor.Actor(
       env,
-      policy,
+      tf_policy,
       train_step,
       episodes_per_run=1,
       summary_dir=summary_dir,

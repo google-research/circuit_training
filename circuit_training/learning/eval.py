@@ -71,13 +71,15 @@ def main(_):
       save_best_cost=True,
       output_plc_file=output_plc_file,
       global_seed=FLAGS.global_seed,
-      cd_finetune=FLAGS.cd_finetune
+      cd_finetune=FLAGS.cd_finetune,
+      netlist_index=0,
   )
 
   eval_lib.evaluate(
       root_dir=root_dir,
       variable_container_server_address=FLAGS.variable_container_server_address,
       create_env_fn=create_env_fn,
+      use_grl=True,
   )
 
 

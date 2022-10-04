@@ -14,9 +14,8 @@
 # limitations under the License.
 """Circtuittraining GRL Model."""
 
-from typing import Optional, Text
+from typing import Dict, Optional, Text
 
-from absl import logging
 from circuit_training.model import model_lib
 import gin
 import numpy as np
@@ -24,7 +23,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from tf_agents.networks import network
 from tf_agents.specs import distribution_spec
-import tf_agents.specs.tensor_spec as tensor_spec
+from tf_agents.specs import tensor_spec
 from tf_agents.typing import types
 from tf_agents.utils import nest_utils
 
@@ -36,26 +35,26 @@ class GrlModel(network.Network):
   def __init__(self,
                input_tensors_spec: types.NestedTensorSpec,
                output_tensors_spec: types.NestedTensorSpec,
+               all_static_features: Dict[str, np.ndarray],
                name: Optional[Text] = None,
-               state_spec=(),
+               state_spec: types.NestedTensorSpec = (),
                policy_noise_weight: float = 0.0,
-               static_features=None,
-               use_model_tpu=True):
+               use_model_tpu: bool = True,
+               seed: int = 0):
 
     super(GrlModel, self).__init__(
         input_tensor_spec=input_tensors_spec, state_spec=state_spec, name=name)
 
-    if static_features:
-      logging.info('Static features are passed to the model construction.')
-
     if use_model_tpu:
       self._model = model_lib.CircuitTrainingTPUModel(
           policy_noise_weight=policy_noise_weight,
-          static_features=static_features)
+          all_static_features=all_static_features,
+          seed=seed)
     else:
       self._model = model_lib.CircuitTrainingModel(
           policy_noise_weight=policy_noise_weight,
-          static_features=static_features)
+          all_static_features=all_static_features,
+          seed=seed)
 
   def call(self, inputs, network_state=()):
     logits, value = self._model(inputs)
@@ -66,7 +65,8 @@ class GrlModel(network.Network):
 class GrlPolicyModel(network.DistributionNetwork):
   """Circuit GRL Model."""
 
-  def __init__(self, shared_network: network.Network,
+  def __init__(self,
+               shared_network: network.Network,
                input_tensors_spec: types.NestedTensorSpec,
                output_tensors_spec: types.NestedTensorSpec,
                name: Optional[Text] = 'GrlPolicyModel'):
@@ -86,9 +86,7 @@ class GrlPolicyModel(network.DistributionNetwork):
     input_param_spec = {
         'logits':
             tensor_spec.TensorSpec(
-                shape=n_unique_actions,
-                dtype=tf.float32,
-                name=name + '_logits')
+                shape=n_unique_actions, dtype=tf.float32, name=name + '_logits')
     }
     self._output_dist_spec = distribution_spec.DistributionSpec(
         tfp.distributions.Categorical,
@@ -125,8 +123,10 @@ class GrlPolicyModel(network.DistributionNetwork):
 class GrlValueModel(network.Network):
   """Circuit GRL Model."""
 
-  def __init__(self, input_tensors_spec: types.NestedTensorSpec,
-               shared_network: network.Network, name: Optional[Text] = None):
+  def __init__(self,
+               input_tensors_spec: types.NestedTensorSpec,
+               shared_network: network.Network,
+               name: Optional[Text] = None):
 
     super(GrlValueModel, self).__init__(
         input_tensor_spec=input_tensors_spec, state_spec=(), name=name)
@@ -135,8 +135,7 @@ class GrlValueModel(network.Network):
     self._shared_network = shared_network
 
   def call(self, inputs, step_types=None, network_state=()):
-    outer_rank = nest_utils.get_outer_rank(inputs,
-                                           self._input_tensors_spec)
+    outer_rank = nest_utils.get_outer_rank(inputs, self._input_tensors_spec)
     if outer_rank == 0:
       inputs = tf.nest.map_structure(lambda x: tf.reshape(x, (1, -1)), inputs)
     model_out, _ = self._shared_network(inputs)
@@ -144,38 +143,38 @@ class GrlValueModel(network.Network):
     def squeeze_value_dim(value):
       # Make value_prediction's shape from [B, T, 1] to [B, T].
       return tf.squeeze(value, -1)
+
     return squeeze_value_dim(model_out['value']), network_state
 
 
-def create_grl_models(observation_tensor_spec,
-                      action_tensor_spec,
-                      static_features,
-                      strategy,
-                      use_model_tpu=False):
+def create_grl_models(observation_tensor_spec: types.NestedTensorSpec,
+                      action_tensor_spec: types.NestedTensorSpec,
+                      all_static_features: Dict[str, np.ndarray],
+                      use_model_tpu: bool = False,
+                      seed: int = 0):
   """Create the GRL actor and value networks from scratch.
 
   Args:
     observation_tensor_spec: tensor spec for the observations.
     action_tensor_spec: tensor spec for the actions.
-    static_features: static features from the environment to pass into the
-      models. If None, read from the observations.
-    strategy: the tf.distribute strategy to create the models under.
+    all_static_features: static features from the environment to pass into the
+      models.
     use_model_tpu: boolean flag indicating the versions of the GRL models to
       create. TPU models leverage map_fn to speed up performance on TPUs. Both
       versions generate the same output given the same inputs.
+    seed: Random seed.
 
   Returns:
     A tuple containing the GRL policy model and value model.
 
   """
-  with strategy.scope():
-    grl_shared_net = GrlModel(
-        observation_tensor_spec,
-        action_tensor_spec,
-        static_features=static_features,
-        use_model_tpu=use_model_tpu,
-    )
-    grl_actor_net = GrlPolicyModel(grl_shared_net, observation_tensor_spec,
-                                   action_tensor_spec)
-    grl_value_net = GrlValueModel(observation_tensor_spec, grl_shared_net)
-    return grl_actor_net, grl_value_net
+  grl_shared_net = GrlModel(
+      observation_tensor_spec,
+      action_tensor_spec,
+      all_static_features=all_static_features,
+      use_model_tpu=use_model_tpu,
+      seed=seed)
+  grl_actor_net = GrlPolicyModel(grl_shared_net, observation_tensor_spec,
+                                 action_tensor_spec)
+  grl_value_net = GrlValueModel(observation_tensor_spec, grl_shared_net)
+  return grl_actor_net, grl_value_net
