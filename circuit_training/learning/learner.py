@@ -230,7 +230,7 @@ class CircuittrainingPPOLearner(object):
   def wait_for_data(self):
     """Blocking call on dataset."""
     sample_info = next(self._train_iterator)[1]
-    logging.info('example priority: %s', sample_info.priority)
+    logging.info('Sample priority: %s', sample_info.priority)
 
   def run(self):
     """Train `num_episodes_per_iteration` repeating for `num_epochs` of iterations.

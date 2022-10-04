@@ -17,6 +17,7 @@
 import os
 import time
 
+from absl import flags
 from absl import logging
 from circuit_training.learning import agent
 from circuit_training.learning import learner as learner_lib
@@ -29,13 +30,14 @@ from tf_agents.networks import network
 from tf_agents.replay_buffers import reverb_replay_buffer
 from tf_agents.train import learner as actor_learner
 from tf_agents.train import triggers
-from tf_agents.train.utils import spec_utils
 from tf_agents.train.utils import train_utils
 from tf_agents.typing import types
 from tf_agents.utils import common
 
-# Shuffle buffer size should be between 1-3 episode len.
-_SHUFFLE_BUFFER_EPISODE_LEN = 3
+_SHUFFLE_BUFFER_EPISODE_LEN = flags.DEFINE_integer(
+    'shuffle_buffer_episode_len', 3,
+    'The size of buffer for shuffle operation in dataset. '
+    'The buffer size should be between 1-3 episode len.')
 
 
 def train(
@@ -201,7 +203,7 @@ def train(
       sequence_length,
       num_episodes_per_iteration=num_episodes_per_iteration,
       minibatch_size=per_replica_batch_size,
-      shuffle_buffer_size=(_SHUFFLE_BUFFER_EPISODE_LEN * sequence_length),
+      shuffle_buffer_size=(_SHUFFLE_BUFFER_EPISODE_LEN.value * sequence_length),
       triggers=learning_triggers,
       summary_interval=1000,
       strategy=strategy,
@@ -215,7 +217,7 @@ def train(
     logging.info('Training. Iteration: %d', i)
     start_time = time.time()
     # `wait_for_data` is not necessary and is added only to measure the data
-    # latency. It takes one batch of data from dataset and print it. So, it 
+    # latency. It takes one batch of data from dataset and print it. So, it
     # waits until the data is ready to consume.
     learner.wait_for_data()
     data_wait_time = time.time() - start_time
@@ -230,10 +232,7 @@ def train(
     reverb_replay_train.clear()
     with tf.name_scope('RunTime/'):
       tf.summary.scalar(
-          name='data_wait_time_sec',
-          data=data_wait_time,
-          step=train_step)
+          name='data_wait_time_sec', data=data_wait_time, step=train_step)
       tf.summary.scalar(
-          name='step_per_sec',
-          data=num_steps / run_time,
-          step=train_step)
+          name='step_per_sec', data=num_steps / run_time, step=train_step)
+    tf.summary.flush()
