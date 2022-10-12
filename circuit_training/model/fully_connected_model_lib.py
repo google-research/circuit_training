@@ -21,8 +21,6 @@ more suitable that the GCN-based model for reward function development.
 
 import functools
 import sys
-from typing import Optional
-
 import numpy as np
 import tensorflow.compat.v2 as tf
 import tensorflow_probability as tfp
@@ -31,10 +29,9 @@ from tf_agents.networks import sequential
 from tf_agents.typing import types
 
 
-def create_actor_net(
-    observation_tensor_spec: types.NestedTensorSpec,
-    action_tensor_spec: types.NestedTensorSpec,
-    seed: Optional[types.Seed] = None) -> sequential.Sequential:
+def create_actor_net(observation_tensor_spec: types.NestedTensorSpec,
+                     action_tensor_spec: types.NestedTensorSpec,
+                     seed: types.Seed = 0) -> sequential.Sequential:
   """Define the actor network."""
   seed_stream = tfp.util.SeedStream(
       seed=seed, salt='actor_net_weight_init_seed')
@@ -90,7 +87,7 @@ def create_actor_net(
 
 
 def create_value_net(observation_tensor_spec: types.NestedTensorSpec,
-                     seed=None) -> sequential.Sequential:
+                     seed: types.Seed = 0) -> sequential.Sequential:
   """Create the value network."""
   seed_stream = tfp.util.SeedStream(
       seed=seed, salt='value_net_weight_init_seed')
