@@ -40,6 +40,33 @@ _SHUFFLE_BUFFER_EPISODE_LEN = flags.DEFINE_integer(
     'The buffer size should be between 1-3 episode len.')
 
 
+def compute_init_iteration(init_train_step, sequence_length,
+                           num_episodes_per_iteration, num_epochs,
+                           per_replica_batch_size, num_replicas_in_sync):
+  """Computes the initial iterations number.
+
+  In case of restarting, the init_train_step might not be zero. We need to
+  compute the initial iteration number to offset the total number of iterations.
+
+  Args:
+    init_train_step: Initial train step.
+    sequence_length: Fixed sequence length for elements in the dataset. Used for
+      calculating how many iterations of minibatches to use for training.
+    num_episodes_per_iteration: This is the number of episodes we train in each
+      epoch.
+    num_epochs: The number of iterations to go through the same sequences. The
+      num_episodes_per_iteration are repeated for num_epochs times in a
+      particular learner run.
+    per_replica_batch_size: The minibatch size for learner. The dataset used for
+      training is shaped `[minibatch_size, 1, ...]`. If None, full sequences
+      will be fed into the agent. Please set this parameter to None for RNN
+      networks which requires full sequences.
+    num_replicas_in_sync: The number of replicas training in sync.
+  """
+  return int(init_train_step * per_replica_batch_size * num_replicas_in_sync /
+             sequence_length / num_episodes_per_iteration / num_epochs)
+
+
 def train(
     root_dir: str,
     strategy: tf.distribute.Strategy,
@@ -96,12 +123,22 @@ def train(
       for training.
     init_train_step: Initial train step.
   """
+
+  init_iteration = compute_init_iteration(init_train_step, sequence_length,
+                                          num_episodes_per_iteration,
+                                          num_epochs, per_replica_batch_size,
+                                          strategy.num_replicas_in_sync)
+  logging.info('Initialize iteration at: init_iteration %s.', init_iteration)
+
   # Create the agent.
   with strategy.scope():
     train_step = train_utils.create_train_step()
     train_step.assign(init_train_step)
     logging.info('Initialize train_step at %s', init_train_step)
     model_id = common.create_variable('model_id')
+    # The model_id should equal to the iteration number.
+    model_id.assign(init_iteration)
+
 
     if use_grl:
       logging.info('Using GRL agent networks.')
@@ -212,7 +249,7 @@ def train(
       allow_variable_length_episodes=allow_variable_length_episodes)
 
   # Run the training loop.
-  for i in range(num_iterations):
+  for i in range(init_iteration, num_iterations):
     step_val = train_step.numpy()
     logging.info('Training. Iteration: %d', i)
     start_time = time.time()
