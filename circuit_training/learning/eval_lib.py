@@ -86,7 +86,7 @@ class InfoMetric(py_metric.PyStepMetric):
 def evaluate(root_dir: str,
              variable_container_server_address: str,
              create_env_fn: Callable[..., Any],
-             use_grl: bool,
+             rl_architecture: str = 'generalization',
              extra_info_metrics: Optional[List[str]] = None,
              summary_subdir: str = ''):
   """Evaluates greedy policy."""
@@ -103,7 +103,7 @@ def evaluate(root_dir: str,
   cache = static_feature_cache.StaticFeatureCache()
   cache.add_static_feature(static_features)
 
-  if use_grl:
+  if rl_architecture == 'generalization':
     actor_net, value_net = model.create_grl_models(
         observation_tensor_spec,
         action_tensor_spec,

@@ -40,7 +40,7 @@ def collect(task: int,
             create_env_fn: Callable[..., Any],
             max_sequence_length: int,
             write_summaries_task_threshold: int = 1,
-            use_grl: bool = True,
+            rl_architecture: str = 'generalization',
             summary_subdir: str = ''):
   """Collects experience using a policy updated after every episode."""
   # Create the environment.
@@ -52,7 +52,7 @@ def collect(task: int,
   cache = static_feature_cache.StaticFeatureCache()
   cache.add_static_feature(static_features)
 
-  if use_grl:
+  if rl_architecture == 'generalization':
     actor_net, value_net = model.create_grl_models(
         observation_tensor_spec,
         action_tensor_spec,

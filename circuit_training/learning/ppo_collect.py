@@ -76,7 +76,7 @@ def main(_):
       create_env_fn=create_env_fn,
       max_sequence_length=FLAGS.max_sequence_length,
       write_summaries_task_threshold=FLAGS.write_summaries_task_threshold,
-      use_grl=True,
+      rl_architecture='generalization',
   )
 
 

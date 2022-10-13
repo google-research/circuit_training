@@ -81,7 +81,7 @@ def train(
     # This is the per replica batch size. The global batch size can be computed
     # by this number multiplied by the number of replicas (8 in the case of 2x2
     # TPUs).
-    use_grl: bool = True,
+    rl_architecture: str = 'generalization',
     per_replica_batch_size: int = 32,
     num_epochs: int = 4,
     num_iterations: int = 10000,
@@ -107,8 +107,7 @@ def train(
       calculating how many iterations of minibatches to use for training.
     actor_net: TF-Agents actor network.
     value_net: TF-Agents value network.
-    use_grl: Whether to use GRL agent network or RL fully connected agent
-      network.
+    rl_architecture: RL observation and model architecture. 
     per_replica_batch_size: The minibatch size for learner. The dataset used for
       training is shaped `[minibatch_size, 1, ...]`. If None, full sequences
       will be fed into the agent. Please set this parameter to None for RNN
@@ -140,7 +139,7 @@ def train(
     model_id.assign(init_iteration)
 
 
-    if use_grl:
+    if rl_architecture == 'generalization':
       logging.info('Using GRL agent networks.')
       creat_agent_fn = agent.create_circuit_ppo_grl_agent
     else:

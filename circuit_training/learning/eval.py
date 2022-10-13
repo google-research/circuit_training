@@ -79,7 +79,7 @@ def main(_):
       root_dir=root_dir,
       variable_container_server_address=FLAGS.variable_container_server_address,
       create_env_fn=create_env_fn,
-      use_grl=True,
+      rl_architecture='generalization',
   )
 
 

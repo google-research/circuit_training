@@ -120,7 +120,7 @@ def main(_):
       variable_container_server_address=_VARIABLE_CONTAINER_SERVER_ADDR.value,
       action_tensor_spec=action_tensor_spec,
       time_step_tensor_spec=time_step_tensor_spec,
-      use_grl=True,
+      rl_architecture='generalization',
       sequence_length=_SEQUENCE_LENGTH.value,
       actor_net=grl_actor_net,
       value_net=grl_value_net,
