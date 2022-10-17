@@ -58,15 +58,15 @@ def collect(task: int,
         action_tensor_spec,
         cache.get_all_static_features(),
         use_model_tpu=False)
-    creat_agent_fn = agent.create_circuit_ppo_grl_agent
+    create_agent_fn = agent.create_circuit_ppo_grl_agent
   else:
     actor_net = fully_connected_model_lib.create_actor_net(
         observation_tensor_spec, action_tensor_spec)
     value_net = fully_connected_model_lib.create_value_net(
         observation_tensor_spec)
-    creat_agent_fn = agent.create_circuit_ppo_agent
+    create_agent_fn = agent.create_circuit_ppo_agent
 
-  tf_agent = creat_agent_fn(
+  tf_agent = create_agent_fn(
       train_step,
       action_tensor_spec,
       time_step_tensor_spec,
