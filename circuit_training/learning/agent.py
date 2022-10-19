@@ -152,7 +152,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
         log_prob_clipping=0.0,
         policy_l2_reg=0.,
         value_function_l2_reg=0.,
-        shared_vars_l2_reg=0.,
+        shared_vars_l2_reg=0.0005,
         # Skips parameters used for the adaptive KL loss penalty version of PPO.
         kl_cutoff_factor=0.0,
         kl_cutoff_coef=0.0,
@@ -455,20 +455,20 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     return loss_info
 
 
-def create_circuit_ppo_grl_agent(
-    train_step: tf.Variable,
-    action_tensor_spec: types.NestedTensorSpec,
-    time_step_tensor_spec: types.TimeStep,
-    grl_actor_net: model.GrlPolicyModel,
-    grl_value_net: model.GrlValueModel,
-    strategy: tf.distribute.Strategy,
-    **kwargs) -> CircuitPPOAgent:
+def create_circuit_ppo_grl_agent(train_step: tf.Variable,
+                                 action_tensor_spec: types.NestedTensorSpec,
+                                 time_step_tensor_spec: types.TimeStep,
+                                 grl_actor_net: model.GrlPolicyModel,
+                                 grl_value_net: model.GrlValueModel,
+                                 strategy: tf.distribute.Strategy,
+                                 optimizer: Optional[types.Optimizer] = None,
+                                 **kwargs) -> CircuitPPOAgent:
   """Creates a PPO agent using the GRL networks."""
 
   return CircuitPPOAgent(
       time_step_tensor_spec,
       action_tensor_spec,
-      optimizer=tf.keras.optimizers.Adam(learning_rate=4e-4, epsilon=1e-5),
+      optimizer=optimizer,
       actor_net=grl_actor_net,
       value_net=grl_value_net,
       value_pred_loss_coef=0.5,
@@ -490,12 +490,13 @@ def create_circuit_ppo_agent(train_step: tf.Variable,
                              actor_net: network.Network,
                              value_net: network.Network,
                              strategy: tf.distribute.Strategy,
+                             optimizer: Optional[types.Optimizer] = None,
                              **kwargs) -> CircuitPPOAgent:
   """Creates a PPO agent using the simpler fully connected RL networks."""
   return CircuitPPOAgent(
       time_step_tensor_spec,
       action_tensor_spec,
-      optimizer=tf.keras.optimizers.Adam(learning_rate=4e-4, epsilon=1e-5),
+      optimizer=optimizer,
       actor_net=actor_net,
       value_net=value_net,
       value_pred_loss_coef=0.5,

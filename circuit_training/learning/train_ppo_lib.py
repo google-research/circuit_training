@@ -78,10 +78,36 @@ def compute_init_iteration(init_train_step: int, sequence_length: int,
     num_replicas_in_sync: The number of replicas training in sync.
 
   Returns:
-      The initial interaction.
+    The initial iteration number.
   """
   return int(init_train_step * per_replica_batch_size * num_replicas_in_sync /
              sequence_length / num_episodes_per_iteration / num_epochs)
+
+
+def compute_total_training_step(sequence_length, num_iterations,
+                                num_episodes_per_iteration, num_epochs,
+                                per_replica_batch_size,
+                                num_replicas_in_sync) -> int:
+  """Computes the total training step.
+
+  Args:
+    sequence_length: Fixed sequence length for elements in the dataset. Used for
+      calculating how many iterations of minibatches to use for training.
+    num_iterations: The number of iterations to run the training.
+    num_episodes_per_iteration: This is the number of episodes we train in each
+      epoch.
+    num_epochs: The number of iterations to go through the same sequences. The
+      num_episodes_per_iteration are repeated for num_epochs times in a
+      particular learner run.
+    per_replica_batch_size: The minibatch size for learner. The dataset used for
+      training is shaped `[minibatch_size, 1, ...]`. If None, full sequences
+      will be fed into the agent. Please set this parameter to None for RNN
+      networks which requires full sequences.
+    num_replicas_in_sync: The number of replicas training in sync.
+  returns: The total training step.
+  """
+  return int(sequence_length * num_iterations * num_episodes_per_iteration *
+             num_epochs / per_replica_batch_size / num_replicas_in_sync)
 
 
 @gin.configurable(allowlist=[
@@ -106,13 +132,13 @@ def train(
     # TPUs).
     per_replica_batch_size: int = 128,
     num_epochs: int = 4,
-    num_iterations: int = 10000,
+    num_iterations: int = 200,
     # This is the number of episodes we train on in each iteration.
     # num_episodes_per_iteration * epsisode_length * num_epochs =
     # global_step (number of gradient updates) * per_replica_batch_size *
     # num_replicas.
-    num_episodes_per_iteration: int = 1024
-) -> None:
+    num_episodes_per_iteration: int = 1024,
+    init_learning_rate: float = 0.004) -> None:
   """Trains a PPO agent.
 
   Args:
@@ -148,6 +174,10 @@ def train(
                                           strategy.num_replicas_in_sync)
   logging.info('Initialize iteration at: init_iteration %s.', init_iteration)
 
+  total_training_step = compute_total_training_step(
+      sequence_length, num_iterations, num_episodes_per_iteration, num_epochs,
+      per_replica_batch_size, strategy.num_replicas_in_sync)
+
   # Create the agent.
   with strategy.scope():
     train_step = train_utils.create_train_step()
@@ -164,14 +194,15 @@ def train(
       logging.info('Using RL fully connected agent networks.')
       creat_agent_fn = agent.create_circuit_ppo_agent
 
-    tf_agent = creat_agent_fn(
-        train_step,
-        action_tensor_spec,
-        time_step_tensor_spec,
-        actor_net,
-        value_net,
-        strategy,
-    )
+    lr = tf.keras.optimizers.schedules.CosineDecay(
+        initial_learning_rate=init_learning_rate,
+        decay_steps=total_training_step,
+        alpha=0.1)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=lr, epsilon=1e-5)
+
+    tf_agent = creat_agent_fn(train_step, action_tensor_spec,
+                              time_step_tensor_spec, actor_net, value_net,
+                              strategy, optimizer)
     tf_agent.initialize()
 
   # Create the policy saver which saves the initial model now, then it
