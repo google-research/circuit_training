@@ -17,10 +17,10 @@
 import os
 import time
 
-from absl import flags
 from absl import logging
 from circuit_training.learning import agent
 from circuit_training.learning import learner as learner_lib
+import gin
 
 import reverb
 import tensorflow as tf
@@ -34,15 +34,29 @@ from tf_agents.train.utils import train_utils
 from tf_agents.typing import types
 from tf_agents.utils import common
 
-_SHUFFLE_BUFFER_EPISODE_LEN = flags.DEFINE_integer(
-    'shuffle_buffer_episode_len', 3,
-    'The size of buffer for shuffle operation in dataset. '
-    'The buffer size should be between 1-3 episode len.')
+
+@gin.configurable(allowlist=['shuffle_buffer_episode_len'])
+def get_shuffle_buffer_size(
+    sequence_length: int,
+    shuffle_buffer_episode_len: int = 3,
+) -> int:
+  """Returns shuffle buffer size.
+
+  Args:
+    sequence_length: The sequence length.
+    shuffle_buffer_episode_len: The size of buffer for shuffle operation in
+      dataset. The buffer size should be between 1-3 episode len.
+
+  Returns:
+    The shuffle buffer size.
+  """
+  return sequence_length * shuffle_buffer_episode_len
 
 
-def compute_init_iteration(init_train_step, sequence_length,
-                           num_episodes_per_iteration, num_epochs,
-                           per_replica_batch_size, num_replicas_in_sync):
+def compute_init_iteration(init_train_step: int, sequence_length: int,
+                           num_episodes_per_iteration: int, num_epochs: int,
+                           per_replica_batch_size: int,
+                           num_replicas_in_sync: int) -> int:
   """Computes the initial iterations number.
 
   In case of restarting, the init_train_step might not be zero. We need to
@@ -62,11 +76,18 @@ def compute_init_iteration(init_train_step, sequence_length,
       will be fed into the agent. Please set this parameter to None for RNN
       networks which requires full sequences.
     num_replicas_in_sync: The number of replicas training in sync.
+
+  Returns:
+      The initial interaction.
   """
   return int(init_train_step * per_replica_batch_size * num_replicas_in_sync /
              sequence_length / num_episodes_per_iteration / num_epochs)
 
 
+@gin.configurable(allowlist=[
+    'per_replica_batch_size', 'num_epochs', 'num_iterations',
+    'num_episodes_per_iteration'
+])
 def train(
     root_dir: str,
     strategy: tf.distribute.Strategy,
@@ -78,20 +99,20 @@ def train(
     actor_net: network.Network,
     value_net: network.Network,
     # Training params
+    init_train_step: int = 0,
+    rl_architecture: str = 'generalization',
     # This is the per replica batch size. The global batch size can be computed
     # by this number multiplied by the number of replicas (8 in the case of 2x2
     # TPUs).
-    rl_architecture: str = 'generalization',
-    per_replica_batch_size: int = 32,
+    per_replica_batch_size: int = 128,
     num_epochs: int = 4,
     num_iterations: int = 10000,
     # This is the number of episodes we train on in each iteration.
     # num_episodes_per_iteration * epsisode_length * num_epochs =
     # global_step (number of gradient updates) * per_replica_batch_size *
     # num_replicas.
-    num_episodes_per_iteration: int = 1024,
-    allow_variable_length_episodes: bool = False,
-    init_train_step: int = 0) -> None:
+    num_episodes_per_iteration: int = 1024
+) -> None:
   """Trains a PPO agent.
 
   Args:
@@ -107,7 +128,8 @@ def train(
       calculating how many iterations of minibatches to use for training.
     actor_net: TF-Agents actor network.
     value_net: TF-Agents value network.
-    rl_architecture: RL observation and model architecture. 
+    init_train_step: Initial train step.
+    rl_architecture: RL observation and model architecture.
     per_replica_batch_size: The minibatch size for learner. The dataset used for
       training is shaped `[minibatch_size, 1, ...]`. If None, full sequences
       will be fed into the agent. Please set this parameter to None for RNN
@@ -118,9 +140,6 @@ def train(
     num_iterations: The number of iterations to run the training.
     num_episodes_per_iteration: This is the number of episodes we train in each
       epoch.
-    allow_variable_length_episodes: Whether to support variable length episodes
-      for training.
-    init_train_step: Initial train step.
   """
 
   init_iteration = compute_init_iteration(init_train_step, sequence_length,
@@ -137,7 +156,6 @@ def train(
     model_id = common.create_variable('model_id')
     # The model_id should equal to the iteration number.
     model_id.assign(init_iteration)
-
 
     if rl_architecture == 'generalization':
       logging.info('Using GRL agent networks.')
@@ -239,13 +257,11 @@ def train(
       sequence_length,
       num_episodes_per_iteration=num_episodes_per_iteration,
       minibatch_size=per_replica_batch_size,
-      shuffle_buffer_size=(_SHUFFLE_BUFFER_EPISODE_LEN.value * sequence_length),
+      shuffle_buffer_size=get_shuffle_buffer_size(sequence_length),
       triggers=learning_triggers,
-      summary_interval=200,
       strategy=strategy,
       num_epochs=num_epochs,
-      per_sequence_fn=per_sequence_fn,
-      allow_variable_length_episodes=allow_variable_length_episodes)
+      per_sequence_fn=per_sequence_fn)
 
   # Run the training loop.
   for i in range(init_iteration, num_iterations):

@@ -7,11 +7,11 @@ rest of the hyperparameters are documented [below](#hyperparameters).
 
 ## Results
 
-The results in the table below are reported for training from scratch. We trained with 3
-different seeds run 3 times each. This is slightly different than what was used
-in the paper (8 runs each with a different seed), but better captures the
-different sources of variability. Our results training from scratch are
-comparable or better than the reported results in the
+The results in the table below are reported for training from scratch. We
+trained with 3 different seeds run 3 times each. This is slightly different than
+what was used in the paper (8 runs each with a different seed), but better
+captures the different sources of variability. Our results training from scratch
+are comparable or better than the reported results in the
 [paper](https://www.nature.com/articles/s41586-021-03544-w.epdf?sharing_token=tYaxh2mR5EozfsSL0WHZLdRgN0jAjWel9jnR3ZoTv0PW0K0NmVrRsFPaMa9Y5We9O4Hqf_liatg-lvhiVcYpHL_YQpqkurA31sxqtmA-E1yNUWVMMVSBxWSp7ZFFIWawYQYnEXoBE4esRDSWqubhDFWUPyI5wK_5B_YIO-D_kS8%3D)
 (on page 22) which used fine-tuning from a pre-trained model. We are training
 from scratch because we cannot publish the pre-trained model at this time and
@@ -21,30 +21,27 @@ iterations which results in ~107K steps (gradient updates). This
 [tensorboard link](https://tensorboard.dev/experiment/NRlmrDeOT2i4QV334hrywQ)
 contains the raw results of the runs for full transparency and usefulness.
 
-Run id   | Seed | Proxy Wirelength | Proxy Congestion | Proxy Density | Step
--------- | ---- | ---------------- | ---------------- | ------------- | -------
-run_00   | 111  | 0.1051           | 0.8746           | 0.5154        | 77,184
-run_01   | 111  | 0.0979           | 0.8749           | 0.5217        | 51,992
-run_02   | 111  | 0.1052           | 0.9069           | 0.5289        | 94,872
-run_03   | 222  | 0.1021           | 0.9667           | 0.5799        | 33,232
-run_04   | 222  | 0.0963           | 0.9945           | 0.6795        | 103,984
-run_05   | 222  | 0.1060           | 1.0352           | 0.5886        | 37,520
-run_06   | 333  | 0.1012           | 0.8738           | 0.5110        | 46,096
-run_07   | 333  | 0.0977           | 0.8684           | 0.5109        | 35,912
-run_08   | 333  | 0.1004           | 0.8613           | 0.5160        | 48,776
-
+Run id | Seed | Proxy Wirelength | Proxy Congestion | Proxy Density | Step
+------ | ---- | ---------------- | ---------------- | ------------- | -------
+run_00 | 111  | 0.1051           | 0.8746           | 0.5154        | 77,184
+run_01 | 111  | 0.0979           | 0.8749           | 0.5217        | 51,992
+run_02 | 111  | 0.1052           | 0.9069           | 0.5289        | 94,872
+run_03 | 222  | 0.1021           | 0.9667           | 0.5799        | 33,232
+run_04 | 222  | 0.0963           | 0.9945           | 0.6795        | 103,984
+run_05 | 222  | 0.1060           | 1.0352           | 0.5886        | 37,520
+run_06 | 333  | 0.1012           | 0.8738           | 0.5110        | 46,096
+run_07 | 333  | 0.0977           | 0.8684           | 0.5109        | 35,912
+run_08 | 333  | 0.1004           | 0.8613           | 0.5160        | 48,776
 
 _        | Proxy Wirelength | Proxy Congestion | Proxy Density
 -------- | ---------------- | ---------------- | -------------
 **mean** | 0.1013           | 0.9174           | 0.5502
 **std**  | 0.0036           | 0.0647           | 0.0568
 
-
 Applying coordinated descent after training resulted in improved proxy numbers
 for complex blocks like those used in TPUs as referenced in the paper. However,
 for the simpler Ariane RISC-V there were modest (1-2%) improvements to proxy
 wirelength and congestion.
-
 
 _        | Proxy Wirelength | Proxy Congestion | Proxy Density
 -------- | ---------------- | ---------------- | -------------
@@ -78,8 +75,8 @@ waiting for the replay buffer to refill based on the last policy. 500 collect
 agents worked well for this example to feed 8xV100s. It is not necessary to have
 that many collect jobs. Having less will slow down total training time
 (walltime) but will not impact the quality of the result. We have noticed that
-using a smaller `global_batch_size` or smaller `num_episodes_per_iteration` can
-reduce quality.
+using a smaller `per_replica_batch_size` or smaller `num_episodes_per_iteration`
+can reduce quality.
 
 ### Execution outline and highlights
 
@@ -314,47 +311,56 @@ divergence penalty implemented by
 hyperparameters, if not specified in the table, is the same as the defaults in
 the tf-agents.
 
-| Configuration              | Default Value     | Comments                   |
-| -------------------------- | ----------------- | -------------------------- |
-| **Proxy reward calculation**                                                |
-| wirelength_weight          | 1.0               |                            |
-| density_weight             | 1.0               | Changed from 0.1 in the paper, since it produces more stable training from scratch on Ariane blocks. |
-| congestion_weight          | 0.5               | Changed from 0.1 in the paper, since it produces more stable training from scratch on Ariane blocks. |
-| **Standard cell placement**                                                 |
-| num_steps                  | [100, 100, 100]   |                            |
-| io_factor                  | 1.0               |                            |
-| move_distance_factors      | [1, 1, 1]         |                            |
-| attract_factors            | [100, 1e-3, 1e-5] |                            |
-| repel_factors              | [0, 1e6, 1e7]     |                            |
-| **Environment observation**                                                 |
-| max_num_nodes              | 4700              |                            |
-| max_num_edges              | 28400             |                            |
-| max_grid_size              | 128               |                            |
-| default_location_x         | 0.5               |                            |
-| default_location_y         | 0.5               |                            |
-| **Model architecture**                                                      |
-| num_gcn_layers             | 3                 |                            |
-| edge_fc_layers             | 1                 |                            |
-| gcn_node_dim               | 8                 |                            |
-| dirichlet_alpha            | 0.1               |                            |
-| policy_noise_weight        | 0.0               |                            |
-| **Training**                                                                |
-| optimizer                  | Adam              |                            |
-| learning_rate              | 4e-4              |                            |
-| sequence_length            | 134               |                            |
-| num_episodes_per_iteration | 1024              |                            |
-| global_batch_size          | 1024              |                            |
-| num_epochs                 | 4                 |                            |
-| value_pred_loss_coef       | 0.5               |                            |
-| entropy_regularization     | 0.01              |                            |
-| importance_ratio_clipping  | 0.2               |                            |
-| discount_factor            | 1.0               |                            |
-| entropy_regularization     | 0.01              |                            |
-| value_pred_loss_coef       | 0.5               |                            |
-| gradient_clipping          | 1.0               |                            |
-| use_gae                    | False             |                            |
-| use_td_lambda_return       | False             |                            |
-| log_prob_clipping          | 0.0               |                            |
-| policy_l2_reg              | 0.0               |                            |
-| value_function_l2_reg      | 0.0               |                            |
-| shared_vars_l2_reg         | 0.0               |                            |
+| Configuration              | Default Value     | Comments                  |
+| -------------------------- | ----------------- | ------------------------- |
+| **Proxy reward             |                   |                           |
+: calculation**              :                   :                           :
+| wirelength_weight          | 1.0               |                           |
+| density_weight             | 1.0               | Changed from 0.1 in the   |
+:                            :                   : paper, since it produces  :
+:                            :                   : more stable training from :
+:                            :                   : scratch on Ariane blocks. :
+| congestion_weight          | 0.5               | Changed from 0.1 in the   |
+:                            :                   : paper, since it produces  :
+:                            :                   : more stable training from :
+:                            :                   : scratch on Ariane blocks. :
+| **Standard cell            |                   |                           |
+: placement**                :                   :                           :
+| num_steps                  | [100, 100, 100]   |                           |
+| io_factor                  | 1.0               |                           |
+| move_distance_factors      | [1, 1, 1]         |                           |
+| attract_factors            | [100, 1e-3, 1e-5] |                           |
+| repel_factors              | [0, 1e6, 1e7]     |                           |
+| **Environment              |                   |                           |
+: observation**              :                   :                           :
+| max_num_nodes              | 4700              |                           |
+| max_num_edges              | 28400             |                           |
+| max_grid_size              | 128               |                           |
+| default_location_x         | 0.5               |                           |
+| default_location_y         | 0.5               |                           |
+| **Model architecture**     |                   |                           |
+| num_gcn_layers             | 3                 |                           |
+| edge_fc_layers             | 1                 |                           |
+| gcn_node_dim               | 8                 |                           |
+| dirichlet_alpha            | 0.1               |                           |
+| policy_noise_weight        | 0.0               |                           |
+| **Training**               |                   |                           |
+| optimizer                  | Adam              |                           |
+| learning_rate              | 4e-4              |                           |
+| sequence_length            | 134               |                           |
+| num_episodes_per_iteration | 1024              |                           |
+| per_replica_batch_size     | 128               |                           |
+| num_epochs                 | 4                 |                           |
+| value_pred_loss_coef       | 0.5               |                           |
+| entropy_regularization     | 0.01              |                           |
+| importance_ratio_clipping  | 0.2               |                           |
+| discount_factor            | 1.0               |                           |
+| entropy_regularization     | 0.01              |                           |
+| value_pred_loss_coef       | 0.5               |                           |
+| gradient_clipping          | 1.0               |                           |
+| use_gae                    | False             |                           |
+| use_td_lambda_return       | False             |                           |
+| log_prob_clipping          | 0.0               |                           |
+| policy_l2_reg              | 0.0               |                           |
+| value_function_l2_reg      | 0.0               |                           |
+| shared_vars_l2_reg         | 0.0               |                           |

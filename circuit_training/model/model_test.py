@@ -37,9 +37,7 @@ flags.DEFINE_enum('strategy_type', 'cpu', [
     'tpu', 'gpu', 'cpu'
 ], ('Distribution Strategy type to use for training. `tpu` uses TPUStrategy for'
     ' running on TPUs (1x1), `gpu` uses GPUs with single host.'))
-flags.DEFINE_integer(
-    'global_batch_size', 64, 'Defines the global batch size. '
-    'Note that for TPU the per TC batch size will be 32 for 1x1 TPU.')
+flags.DEFINE_integer('batch_size', 64, 'Defines the batch size.')
 flags.DEFINE_integer('dataset_repeat', 16,
                      'Defines the number of dataset repeat.')
 
@@ -95,14 +93,14 @@ class ActorModelTest(test_utils.TestCase, parameterized.TestCase):
   def test_backwards_pass(self):
     observation_spec = self._input_tensors_spec
     time_step_spec = ts.time_step_spec(observation_spec)
-    outer_dims = (FLAGS.global_batch_size,)
+    outer_dims = (FLAGS.batch_size,)
     time_step = tensor_spec.sample_spec_nest(
         time_step_spec, outer_dims=outer_dims)
     # TPU on forge has two cores (1x1).
     # The batch defined here represents the global batch size.
     # Will be evenly divided between the two cores.
     dataset = tf.data.Dataset.from_tensor_slices(time_step.observation).repeat(
-        FLAGS.dataset_repeat).batch(FLAGS.global_batch_size)
+        FLAGS.dataset_repeat).batch(FLAGS.batch_size)
     dist_dataset = self._strategy.experimental_distribute_dataset(dataset)
     with self._strategy.scope():
 
