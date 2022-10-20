@@ -60,7 +60,8 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-  gin.parse_config_files_and_bindings(_GIN_FILE.value, _GIN_BINDINGS.value)
+  gin.parse_config_files_and_bindings(
+      _GIN_FILE.value, _GIN_BINDINGS.value, skip_unknown=True)
   root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))
 
   if FLAGS.output_placement_save_dir:

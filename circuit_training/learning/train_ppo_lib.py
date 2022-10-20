@@ -166,6 +166,7 @@ def train(
     num_iterations: The number of iterations to run the training.
     num_episodes_per_iteration: This is the number of episodes we train in each
       epoch.
+    init_learning_rate: Initial learning rate.
   """
 
   init_iteration = compute_init_iteration(init_train_step, sequence_length,

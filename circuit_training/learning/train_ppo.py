@@ -67,7 +67,8 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-  gin.parse_config_files_and_bindings(_GIN_FILE.value, _GIN_BINDINGS.value)
+  gin.parse_config_files_and_bindings(
+      _GIN_FILE.value, _GIN_BINDINGS.value, skip_unknown=True)
 
   logging.info('global seed=%d', _GLOBAL_SEED.value)
   np.random.seed(_GLOBAL_SEED.value)
