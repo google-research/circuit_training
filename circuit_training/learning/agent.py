@@ -73,7 +73,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
                debug_summaries: bool = False,
                summarize_grads_and_vars: bool = False,
                train_step_counter: Optional[tf.Variable] = None,
-               aggregate_losses_across_replicas=False,
+               aggregate_losses_across_replicas=True,
                loss_scaling_factor=1.,
                name: Optional[Text] = 'PPOClipAgent'):
     """Creates a PPO Agent implementing the clipped probability ratios.
@@ -479,8 +479,8 @@ def create_circuit_ppo_grl_agent(train_step: tf.Variable,
       debug_summaries=False,
       train_step_counter=train_step,
       value_clipping=None,
-      aggregate_losses_across_replicas=False,
-      loss_scaling_factor=1. / float(strategy.num_replicas_in_sync),
+      aggregate_losses_across_replicas=True,
+      loss_scaling_factor=1.,
       **kwargs)
 
 
@@ -507,6 +507,6 @@ def create_circuit_ppo_agent(train_step: tf.Variable,
       debug_summaries=False,
       train_step_counter=train_step,
       value_clipping=None,
-      aggregate_losses_across_replicas=False,
-      loss_scaling_factor=1. / float(strategy.num_replicas_in_sync),
+      aggregate_losses_across_replicas=True,
+      loss_scaling_factor=1.,
       **kwargs)
