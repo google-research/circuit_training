@@ -104,7 +104,10 @@ def compute_total_training_step(sequence_length, num_iterations,
       will be fed into the agent. Please set this parameter to None for RNN
       networks which requires full sequences.
     num_replicas_in_sync: The number of replicas training in sync.
-  returns: The total training step.
+
+  Returns:
+    The total training step.
+
   """
   return int(sequence_length * num_iterations * num_episodes_per_iteration *
              num_epochs / per_replica_batch_size / num_replicas_in_sync)
@@ -132,7 +135,7 @@ def train(
     # TPUs).
     per_replica_batch_size: int = 128,
     num_epochs: int = 4,
-    num_iterations: int = 200,
+    num_iterations: int = 10000,
     # This is the number of episodes we train on in each iteration.
     # num_episodes_per_iteration * epsisode_length * num_epochs =
     # global_step (number of gradient updates) * per_replica_batch_size *
