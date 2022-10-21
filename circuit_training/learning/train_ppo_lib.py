@@ -200,6 +200,9 @@ def train(
         decay_steps=total_training_step,
         alpha=0.1)
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr, epsilon=1e-5)
+    # Assigns the train step to optimizer iterations to ensure that the step is
+    # correct when resuming training.
+    optimizer.iterations = train_step
 
     tf_agent = creat_agent_fn(train_step, action_tensor_spec,
                               time_step_tensor_spec, actor_net, value_net,
