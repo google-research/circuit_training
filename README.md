@@ -65,11 +65,11 @@ scaling to 100s of actors.
     resources (in routes per micron) and macro routing allocation.
 *   Generates
     [clustered netlists](https://github.com/google-research/circuit_training/tree/main/circuit_training/grouping).
-*   **[Update 11-JULY-2022]** Working with vendors for approval to release tcl
-    scripts for major EDA tools (Innovus, ICC2) that generate the
+*   [TILOS-AI-Institute](https://www.tilos.ai/) has created a
+    [script](https://github.com/TILOS-AI-Institute/MacroPlacement/tree/main/CodeElements/FormatTranslators)
+    to convert LEF/DEF and Bookshelf to the
     [Netlist Protocol Buffer](https://github.com/google-research/circuit_training/blob/main/docs/NETLIST_FORMAT.md)
     used as the input for circuit training.
-    [Issue #3](https://github.com/google-research/circuit_training/issues/3)
 
 <a id='Installation'></a>
 
