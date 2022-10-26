@@ -135,7 +135,7 @@ def train(
     # TPUs).
     per_replica_batch_size: int = 128,
     num_epochs: int = 4,
-    num_iterations: int = 200,
+    num_iterations: int = 500,
     # This is the number of episodes we train on in each iteration.
     # num_episodes_per_iteration * epsisode_length * num_epochs =
     # global_step (number of gradient updates) * per_replica_batch_size *
