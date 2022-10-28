@@ -61,7 +61,11 @@ FLAGS = flags.FLAGS
 
 def main(_):
   gin.parse_config_files_and_bindings(
-      _GIN_FILE.value, _GIN_BINDINGS.value, skip_unknown=True)
+      _GIN_FILE.value,
+      # Turn off noise for GRL model.
+      _GIN_BINDINGS.value +
+      ['circuittraining.models.GrlModel.policy_noise_weight=0'],
+      skip_unknown=True)
   root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))
 
   if FLAGS.output_placement_save_dir:
