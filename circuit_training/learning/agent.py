@@ -428,7 +428,12 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
 
       tf.compat.v2.summary.scalar(
           name='total_abs_loss',
-          data=total_abs_loss,
+          data=total_abs_loss * self._report_loss_scaling_factor,
+          step=self.train_step_counter)
+
+      tf.compat.v2.summary.scalar(
+          name='total_loss',
+          data=loss_info.loss * self._report_loss_scaling_factor,
           step=self.train_step_counter)
 
     with tf.name_scope('LearningRate/'):
