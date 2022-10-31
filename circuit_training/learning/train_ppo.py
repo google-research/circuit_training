@@ -25,12 +25,17 @@ from circuit_training.environment import environment
 from circuit_training.learning import static_feature_cache
 from circuit_training.learning import train_ppo_lib
 from circuit_training.model import model
+import gin
 import numpy as np
 import tensorflow as tf
 from tf_agents.system import system_multiprocessing as multiprocessing
 from tf_agents.train.utils import spec_utils
 from tf_agents.train.utils import strategy_utils
 
+_GIN_FILE = flags.DEFINE_multi_string('gin_file', None,
+                                      'Paths to the gin-config files.')
+_GIN_BINDINGS = flags.DEFINE_multi_string('gin_bindings', None,
+                                          'Gin binding parameters.')
 _NETLIST_FILE = flags.DEFINE_string('netlist_file', '',
                                     'File path to the netlist file.')
 _INIT_PLACEMENT = flags.DEFINE_string('init_placement', '',
@@ -49,30 +54,21 @@ _REPLAY_BUFFER_SERVER_ADDR = flags.DEFINE_string(
 _VARIABLE_CONTAINER_SERVER_ADDR = flags.DEFINE_string(
     'variable_container_server_address', None,
     'Variable container server address.')
-_NUM_ITERATIONS = flags.DEFINE_integer(
-    'num_iterations', 10000, 'Total number train/eval iterations to perform.')
 _SEQUENCE_LENGTH = flags.DEFINE_integer(
     'sequence_length', 134,
     'The sequence length to estimate shuffle size. Depends on the environment.'
     'Max horizon = T translates to sequence_length T+1 because of the '
     'additional boundary step (last -> first).')
-_NUM_EPISODES_PER_ITERATION = flags.DEFINE_integer(
-    'num_episodes_per_iteration', 1024,
-    'This is the number of episodes we train on in each iteration.')
-_GLOBAL_BATCH_SIZE = flags.DEFINE_integer(
-    'global_batch_size', 1024, 'Global batch size across all replicas.')
-
 _GLOBAL_SEED = flags.DEFINE_integer(
     'global_seed', 111,
     'Used in env and weight initialization, does not impact action sampling.')
-_ALLOW_VARIABLE_LENGTH_EPISODES = flags.DEFINE_bool(
-    'allow_variable_length_episodes', False,
-    'Whether to allow variable length episodes for training.')
 
 FLAGS = flags.FLAGS
 
 
 def main(_):
+  gin.parse_config_files_and_bindings(
+      _GIN_FILE.value, _GIN_BINDINGS.value, skip_unknown=True)
 
   logging.info('global seed=%d', _GLOBAL_SEED.value)
   np.random.seed(_GLOBAL_SEED.value)
@@ -92,10 +88,6 @@ def main(_):
       netlist_index=0)
 
   use_model_tpu = bool(strategy_utils.TPU.value)
-
-  batch_size = int(_GLOBAL_BATCH_SIZE.value / strategy.num_replicas_in_sync)
-  logging.info('global batch_size=%d', _GLOBAL_BATCH_SIZE.value)
-  logging.info('per-replica batch_size=%d', batch_size)
 
   cache = static_feature_cache.StaticFeatureCache()
 
@@ -123,11 +115,7 @@ def main(_):
       rl_architecture='generalization',
       sequence_length=_SEQUENCE_LENGTH.value,
       actor_net=grl_actor_net,
-      value_net=grl_value_net,
-      per_replica_batch_size=batch_size,
-      num_iterations=_NUM_ITERATIONS.value,
-      num_episodes_per_iteration=_NUM_EPISODES_PER_ITERATION.value,
-      allow_variable_length_episodes=_ALLOW_VARIABLE_LENGTH_EPISODES.value)
+      value_net=grl_value_net)
 
 
 if __name__ == '__main__':

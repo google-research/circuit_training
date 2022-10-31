@@ -63,12 +63,13 @@ scaling to 100s of actors.
 *   Supports macro-to-macro, macro-to-boundary spacing constraints.
 *   Allows users to specify their own technology parameters, e.g. and routing
     resources (in routes per micron) and macro routing allocation.
-*   Generates [clustered netlists](https://github.com/google-research/circuit_training/tree/main/circuit_training/grouping).
-*   **[Update 11-JULY-2022]** Working with vendors for approval to release
-    tcl scripts for major EDA tools (Innovus, ICC2) that generate the
+*   Generates
+    [clustered netlists](https://github.com/google-research/circuit_training/tree/main/circuit_training/grouping).
+*   [TILOS-AI-Institute](https://www.tilos.ai/) has created a
+    [script](https://github.com/TILOS-AI-Institute/MacroPlacement/tree/main/CodeElements/FormatTranslators)
+    to convert LEF/DEF and Bookshelf to the
     [Netlist Protocol Buffer](https://github.com/google-research/circuit_training/blob/main/docs/NETLIST_FORMAT.md)
     used as the input for circuit training.
-    [Issue #3](https://github.com/google-research/circuit_training/issues/3)
 
 <a id='Installation'></a>
 
@@ -98,10 +99,10 @@ $  git clone https://github.com/google-research/circuit-training.git
 ## Quick start
 
 This quick start places the Ariane RISC-V CPU macros by training the deep
-reinforcement policy from scratch. The `num_episodes_per_iteration` and
-`global_batch_size` used below were picked to work on a single machine training
-on CPU. The purpose is to illustrate a running system, not optimize the result.
-The result of a few thousand steps is shown in this
+reinforcement policy from scratch. The `per_replica_batch_size` and
+`num_episodes_per_iteration` used below were picked to work on a single machine
+training on CPU. The purpose is to illustrate a running system, not optimize the
+result. The result of a few thousand steps is shown in this
 [tensorboard](https://tensorboard.dev/experiment/r1Xn1pD3SGKTGyo64saeaw). The
 full scale Ariane RISC-V experiment matching the paper is detailed in
 [Circuit training for Ariane RISC-V](./docs/ARIANE.md).
@@ -147,7 +148,7 @@ $  python3 -m circuit_training.learning.train_ppo \
   --replay_buffer_server_address=${REVERB_SERVER} \
   --variable_container_server_address=${REVERB_SERVER} \
   --num_episodes_per_iteration=16 \
-  --global_batch_size=64 \
+  --gin_bindings='train.per_replica_batch_size=64' \
   --netlist_file=${NETLIST_FILE} \
   --init_placement=${INIT_PLACEMENT}
 

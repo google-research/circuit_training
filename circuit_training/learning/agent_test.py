@@ -72,14 +72,13 @@ class AgentTest(test_utils.TestCase):
           cache.get_all_static_features(),
           use_model_tpu=False)
 
-    grl_agent = agent.create_circuit_ppo_grl_agent(
-        train_step,
-        action_tensor_spec,
-        time_step_tensor_spec,
-        grl_actor_net,
-        grl_value_net,
-        strategy,
-    )
+    optimizer = tf.keras.optimizers.Adam(learning_rate=4e-4, epsilon=1e-5)
+
+    grl_agent = agent.create_circuit_ppo_grl_agent(train_step,
+                                                   action_tensor_spec,
+                                                   time_step_tensor_spec,
+                                                   grl_actor_net, grl_value_net,
+                                                   strategy, optimizer)
 
     batch_size = 4
     # Check that value prediction outputs the correct shape (B, ).
@@ -113,13 +112,13 @@ class AgentTest(test_utils.TestCase):
           cache.get_all_static_features(),
           use_model_tpu=False)
 
-    grl_agent = agent.create_circuit_ppo_grl_agent(
-        train_step,
-        action_tensor_spec,
-        time_step_tensor_spec,
-        grl_actor_net,
-        grl_value_net,
-        strategy)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=4e-4, epsilon=1e-5)
+
+    grl_agent = agent.create_circuit_ppo_grl_agent(train_step,
+                                                   action_tensor_spec,
+                                                   time_step_tensor_spec,
+                                                   grl_actor_net, grl_value_net,
+                                                   strategy, optimizer)
 
     batch_size = 4
     sample_time_steps = tensor_spec.sample_spec_nest(

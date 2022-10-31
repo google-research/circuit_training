@@ -73,8 +73,8 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
                debug_summaries: bool = False,
                summarize_grads_and_vars: bool = False,
                train_step_counter: Optional[tf.Variable] = None,
-               aggregate_losses_across_replicas=False,
-               loss_scaling_factor=1.,
+               aggregate_losses_across_replicas: bool = True,
+               report_loss_scaling_factor: float = 1.,
                name: Optional[Text] = 'PPOClipAgent'):
     """Creates a PPO Agent implementing the clipped probability ratios.
 
@@ -108,15 +108,15 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
         relicas. Default to aggregating across multiple cores using common.
         aggregate_losses. If set to `False`, use `reduce_mean` directly, which
         is faster but may impact learning results.
-      loss_scaling_factor: the multiplier for scaling the loss, oftentimes
-        1/num_replicas_in_sync.
+      report_loss_scaling_factor: the multiplier for scaling the loss in the
+        report.
       name: The name of this agent. All variables in this module will fall under
         that name. Defaults to the class name.
 
     Raises:
       ValueError: If the actor_net is not a DistributionNetwork.
     """
-    self._loss_scaling_factor = loss_scaling_factor
+    self._report_loss_scaling_factor = report_loss_scaling_factor
     self._use_tpu = bool(tf.config.list_logical_devices('TPU'))
 
     super(CircuitPPOAgent, self).__init__(
@@ -152,7 +152,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
         log_prob_clipping=0.0,
         policy_l2_reg=0.,
         value_function_l2_reg=0.,
-        shared_vars_l2_reg=0.,
+        shared_vars_l2_reg=0.0005,
         # Skips parameters used for the adaptive KL loss penalty version of PPO.
         kl_cutoff_factor=0.0,
         kl_cutoff_coef=0.0,
@@ -288,9 +288,9 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
 
     # Compute log probability of actions taken during data collection, using the
     #   collect policy distribution.
-    old_act_log_probs = common.log_probability(
-        old_actions_distribution, processed_experience.action,
-        self._action_spec)
+    old_act_log_probs = common.log_probability(old_actions_distribution,
+                                               processed_experience.action,
+                                               self._action_spec)
 
     # TODO(b/171573175): remove the condition once histograms are
     # supported on TPUs.
@@ -323,8 +323,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
           name='advantages_normalized',
           data=normalized_advantages,
           step=self.train_step_counter)
-    old_value_predictions = processed_experience.policy_info[
-        'value_prediction']
+    old_value_predictions = processed_experience.policy_info['value_prediction']
 
     batch_size = nest_utils.get_outer_shape(time_steps, self._time_step_spec)[0]
 
@@ -350,11 +349,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
           old_value_predictions=old_value_predictions,
           training=True)
 
-      # Scales the loss, often set to 1/num_replicas, which results in using
-      # the average loss across all of the replicas for backprop.
-      scaled_loss = loss_info.loss * self._loss_scaling_factor
-
-    grads = tape.gradient(scaled_loss, variables_to_train)
+    grads = tape.gradient(loss_info.loss, variables_to_train)
     if self._gradient_clipping > 0:
       grads, _ = tf.clip_by_global_norm(grads, self._gradient_clipping)
 
@@ -374,7 +369,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     self._optimizer.apply_gradients(grads_and_vars)
     self.train_step_counter.assign_add(1)
 
-    # TODO(b/1613650790: Move this logic to PPOKLPenaltyAgent.
+    # TODO(b/1613650790): Move this logic to PPOKLPenaltyAgent.
     if self._initial_adaptive_kl_beta > 0:
       # After update epochs, update adaptive kl beta, then update observation
       #   normalizer and reward normalizer.
@@ -394,32 +389,35 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     with tf.name_scope('Losses/'):
       tf.compat.v2.summary.scalar(
           name='policy_gradient_loss',
-          data=loss_info.extra.policy_gradient_loss,
+          data=loss_info.extra.policy_gradient_loss *
+          self._report_loss_scaling_factor,
           step=self.train_step_counter)
       tf.compat.v2.summary.scalar(
           name='value_estimation_loss',
-          data=loss_info.extra.value_estimation_loss,
+          data=loss_info.extra.value_estimation_loss *
+          self._report_loss_scaling_factor,
           step=self.train_step_counter)
       tf.compat.v2.summary.scalar(
           name='l2_regularization_loss',
-          data=loss_info.extra.l2_regularization_loss,
+          data=loss_info.extra.l2_regularization_loss *
+          self._report_loss_scaling_factor,
           step=self.train_step_counter)
       tf.compat.v2.summary.scalar(
           name='entropy_regularization_loss',
-          data=loss_info.extra.entropy_regularization_loss,
+          data=loss_info.extra.entropy_regularization_loss *
+          self._report_loss_scaling_factor,
           step=self.train_step_counter)
       tf.compat.v2.summary.scalar(
           name='kl_penalty_loss',
-          data=loss_info.extra.kl_penalty_loss,
+          data=loss_info.extra.kl_penalty_loss *
+          self._report_loss_scaling_factor,
           step=self.train_step_counter)
       tf.compat.v2.summary.scalar(
           name='clip_fraction',
           data=loss_info.extra.clip_fraction,
           step=self.train_step_counter)
       tf.compat.v2.summary.scalar(
-          name='grad_norm',
-          data=self._grad_norm,
-          step=self.train_step_counter)
+          name='grad_norm', data=self._grad_norm, step=self.train_step_counter)
 
       total_abs_loss = (
           tf.abs(loss_info.extra.policy_gradient_loss) +
@@ -430,7 +428,12 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
 
       tf.compat.v2.summary.scalar(
           name='total_abs_loss',
-          data=total_abs_loss,
+          data=total_abs_loss * self._report_loss_scaling_factor,
+          step=self.train_step_counter)
+
+      tf.compat.v2.summary.scalar(
+          name='total_loss',
+          data=loss_info.loss * self._report_loss_scaling_factor,
           step=self.train_step_counter)
 
     with tf.name_scope('LearningRate/'):
@@ -455,20 +458,26 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     return loss_info
 
 
-def create_circuit_ppo_grl_agent(
-    train_step: tf.Variable,
-    action_tensor_spec: types.NestedTensorSpec,
-    time_step_tensor_spec: types.TimeStep,
-    grl_actor_net: model.GrlPolicyModel,
-    grl_value_net: model.GrlValueModel,
-    strategy: tf.distribute.Strategy,
-    **kwargs) -> CircuitPPOAgent:
+def create_circuit_ppo_grl_agent(train_step: tf.Variable,
+                                 action_tensor_spec: types.NestedTensorSpec,
+                                 time_step_tensor_spec: types.TimeStep,
+                                 grl_actor_net: model.GrlPolicyModel,
+                                 grl_value_net: model.GrlValueModel,
+                                 strategy: tf.distribute.Strategy,
+                                 optimizer: Optional[types.Optimizer] = None,
+                                 **kwargs) -> CircuitPPOAgent:
   """Creates a PPO agent using the GRL networks."""
+
+  aggregate_losses_across_replicas = True
+  if aggregate_losses_across_replicas:
+    report_loss_scaling_factor = strategy.num_replicas_in_sync
+  else:
+    report_loss_scaling_factor = 1.0
 
   return CircuitPPOAgent(
       time_step_tensor_spec,
       action_tensor_spec,
-      optimizer=tf.keras.optimizers.Adam(learning_rate=4e-4, epsilon=1e-5),
+      optimizer=optimizer,
       actor_net=grl_actor_net,
       value_net=grl_value_net,
       value_pred_loss_coef=0.5,
@@ -479,8 +488,8 @@ def create_circuit_ppo_grl_agent(
       debug_summaries=False,
       train_step_counter=train_step,
       value_clipping=None,
-      aggregate_losses_across_replicas=False,
-      loss_scaling_factor=1. / float(strategy.num_replicas_in_sync),
+      aggregate_losses_across_replicas=aggregate_losses_across_replicas,
+      report_loss_scaling_factor=report_loss_scaling_factor,
       **kwargs)
 
 
@@ -490,12 +499,20 @@ def create_circuit_ppo_agent(train_step: tf.Variable,
                              actor_net: network.Network,
                              value_net: network.Network,
                              strategy: tf.distribute.Strategy,
+                             optimizer: Optional[types.Optimizer] = None,
                              **kwargs) -> CircuitPPOAgent:
   """Creates a PPO agent using the simpler fully connected RL networks."""
+
+  aggregate_losses_across_replicas = True
+  if aggregate_losses_across_replicas:
+    report_loss_scaling_factor = strategy.num_replicas_in_sync
+  else:
+    report_loss_scaling_factor = 1.0
+
   return CircuitPPOAgent(
       time_step_tensor_spec,
       action_tensor_spec,
-      optimizer=tf.keras.optimizers.Adam(learning_rate=4e-4, epsilon=1e-5),
+      optimizer=optimizer,
       actor_net=actor_net,
       value_net=value_net,
       value_pred_loss_coef=0.5,
@@ -506,6 +523,6 @@ def create_circuit_ppo_agent(train_step: tf.Variable,
       debug_summaries=False,
       train_step_counter=train_step,
       value_clipping=None,
-      aggregate_losses_across_replicas=False,
-      loss_scaling_factor=1. / float(strategy.num_replicas_in_sync),
+      aggregate_losses_across_replicas=aggregate_losses_across_replicas,
+      report_loss_scaling_factor=report_loss_scaling_factor,
       **kwargs)

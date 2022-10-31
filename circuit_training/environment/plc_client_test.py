@@ -19,7 +19,6 @@ import os
 from absl import flags
 from circuit_training.environment import plc_client
 from circuit_training.utils import test_utils
-import gin
 
 FLAGS = flags.FLAGS
 
@@ -567,6 +566,7 @@ class PlcClientTest(test_utils.TestCase):
     self.assertEqual(plc.get_source_filename(), netlist_file)
     self.assertEqual(plc.get_blockages(), [])
     self.assertEqual(plc.get_ref_node_id(13), -1)
+    self.assertEqual(plc.get_node_weight(0), 1.0)
     initial_placement = os.path.join(self.create_tempdir(), 'initial.plc')
     self.assertTrue(plc.save_placement(initial_placement, 'Info'))
     self.assertTrue(os.path.exists(initial_placement))

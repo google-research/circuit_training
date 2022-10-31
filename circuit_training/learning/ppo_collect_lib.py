@@ -15,6 +15,7 @@
 """Library for PPO collect job."""
 import os
 from typing import Any, Callable
+import gin
 
 from absl import logging
 from circuit_training.learning import agent
@@ -33,15 +34,16 @@ from tf_agents.train.utils import train_utils
 from tf_agents.utils import common
 
 
+@gin.configurable(allowlist=['write_summaries_task_threshold'])
 def collect(task: int,
             root_dir: str,
             replay_buffer_server_address: str,
             variable_container_server_address: str,
             create_env_fn: Callable[..., Any],
             max_sequence_length: int,
-            write_summaries_task_threshold: int = 1,
             rl_architecture: str = 'generalization',
-            summary_subdir: str = ''):
+            summary_subdir: str = '',
+            write_summaries_task_threshold: int = 1):
   """Collects experience using a policy updated after every episode."""
   # Create the environment.
   train_step = train_utils.create_train_step()

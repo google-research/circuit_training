@@ -21,11 +21,15 @@ from absl import app
 from absl import flags
 from circuit_training.environment import environment
 from circuit_training.learning import eval_lib
-
+import gin
 
 from tf_agents.policies import greedy_policy  # pylint: disable=unused-import
 from tf_agents.system import system_multiprocessing as multiprocessing
 
+_GIN_FILE = flags.DEFINE_multi_string('gin_file', None,
+                                      'Paths to the gin-config files.')
+_GIN_BINDINGS = flags.DEFINE_multi_string('gin_bindings', None,
+                                          'Gin binding parameters.')
 flags.DEFINE_string('netlist_file', '', 'File path to the netlist file.')
 flags.DEFINE_string('init_placement', '',
                     'File path to the init placement file.')
@@ -44,9 +48,10 @@ flags.DEFINE_integer(
     'Used in env and weight initialization, does not impact action sampling.')
 
 # TODO(b/211519018): Remove after the optimal placement can be written in GCS.
-flags.DEFINE_string('output_placement_save_dir', '',
-                    'File path to the output placement directory. If not set,'
-                    'defaults to root_dir/global_seed.')
+flags.DEFINE_string(
+    'output_placement_save_dir', '',
+    'File path to the output placement directory. If not set,'
+    'defaults to root_dir/global_seed.')
 flags.DEFINE_bool(
     'cd_finetune', False, 'runs coordinate descent to finetune macro '
     'orientations. Supposed to run in eval only, not training.')
@@ -55,11 +60,17 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
+  gin.parse_config_files_and_bindings(
+      _GIN_FILE.value,
+      # Turn off noise for GRL model.
+      _GIN_BINDINGS.value +
+      ['circuittraining.models.GrlModel.policy_noise_weight=0'],
+      skip_unknown=True)
   root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))
 
   if FLAGS.output_placement_save_dir:
-    output_plc_file = os.path.join(
-        FLAGS.output_placement_save_dir, 'rl_opt_placement.plc')
+    output_plc_file = os.path.join(FLAGS.output_placement_save_dir,
+                                   'rl_opt_placement.plc')
   else:
     output_plc_file = os.path.join(root_dir, 'rl_opt_placement.plc')
 

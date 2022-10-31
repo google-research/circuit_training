@@ -19,15 +19,17 @@ import os
 
 from absl import app
 from absl import flags
+import gin
 
 from circuit_training.environment import environment
 from circuit_training.learning import ppo_collect_lib
 
 from tf_agents.system import system_multiprocessing as multiprocessing
 
-
-FLAGS = flags.FLAGS
-
+_GIN_FILE = flags.DEFINE_multi_string('gin_file', None,
+                                      'Paths to the gin-config files.')
+_GIN_BINDINGS = flags.DEFINE_multi_string('gin_bindings', None,
+                                          'Gin binding parameters.')
 flags.DEFINE_string('netlist_file', '', 'File path to the netlist file.')
 flags.DEFINE_string('init_placement', '',
                     'File path to the init placement file.')
@@ -46,18 +48,18 @@ flags.DEFINE_string('variable_container_server_address', None,
 flags.DEFINE_integer(
     'task_id', 0, 'Identifier of the collect task. Must be unique in a job.')
 flags.DEFINE_integer(
-    'write_summaries_task_threshold', 1,
-    'Collect jobs with tas ID smaller than this value writes '
-    'summaries only.')
-flags.DEFINE_integer(
     'max_sequence_length', 134,
     'The sequence length for Reverb replay buffer. Depends on the environment.')
 flags.DEFINE_integer(
     'global_seed', 111,
     'Used in env and weight initialization, does not impact action sampling.')
 
+FLAGS = flags.FLAGS
+
 
 def main(_):
+  gin.parse_config_files_and_bindings(
+      _GIN_FILE.value, _GIN_BINDINGS.value, skip_unknown=True)
   root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))
 
   create_env_fn = functools.partial(
@@ -75,7 +77,6 @@ def main(_):
       variable_container_server_address=FLAGS.variable_container_server_address,
       create_env_fn=create_env_fn,
       max_sequence_length=FLAGS.max_sequence_length,
-      write_summaries_task_threshold=FLAGS.write_summaries_task_threshold,
       rl_architecture='generalization',
   )
 

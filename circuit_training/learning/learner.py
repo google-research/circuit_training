@@ -17,6 +17,7 @@
 from typing import Callable, List, Optional, Text, Tuple
 
 from absl import logging
+import gin
 
 import tensorflow as tf
 from tf_agents.agents.ppo import ppo_agent
@@ -30,6 +31,9 @@ _SequenceParamsType = Tuple[types.NestedTensor, types.ReverbSampleInfo]
 _SequenceFnType = Callable[[_SequenceParamsType], _SequenceParamsType]
 
 
+@gin.configurable(allowlist=[
+    'checkpoint_interval', 'summary_interval', 'allow_variable_length_episodes'
+])
 class CircuittrainingPPOLearner(object):
   """Manages all the learning details needed.
 
@@ -56,13 +60,13 @@ class CircuittrainingPPOLearner(object):
                num_episodes_per_iteration: int,
                minibatch_size: int,
                shuffle_buffer_size: int,
-               num_epochs: int = 1,
+               num_epochs: int,
                triggers: Optional[List[
                    interval_trigger.IntervalTrigger]] = None,
-               checkpoint_interval: int = 100000,
-               summary_interval: int = 1000,
                strategy: Optional[tf.distribute.Strategy] = None,
                per_sequence_fn: Optional[_SequenceFnType] = None,
+               checkpoint_interval: int = 100000,
+               summary_interval: int = 200,
                allow_variable_length_episodes: bool = False) -> None:
     """Initializes a CircuittrainingPPOLearner instance.
 
@@ -102,6 +106,10 @@ class CircuittrainingPPOLearner(object):
       triggers: List of callables of the form `trigger(train_step)`. After every
         `run` call every trigger is called with the current `train_step` value
         as an np scalar.
+      strategy: (Optional) `tf.distribute.Strategy` to use during training.
+      per_sequence_fn: (Optional): sequence-wise preprecessing, pass in agent.
+        preprocess for advantage calculation. This operation happens after
+        take() and before rebatching.
       checkpoint_interval: Number of train steps in between checkpoints. Note
         these are placed into triggers and so a check to generate a checkpoint
         only occurs after every `run` call. Set to -1 to disable (this is not
@@ -112,10 +120,6 @@ class CircuittrainingPPOLearner(object):
       summary_interval: Number of train steps in between summaries. Note these
         are placed into triggers and so a check to generate a checkpoint only
         occurs after every `run` call.
-      strategy: (Optional) `tf.distribute.Strategy` to use during training.
-      per_sequence_fn: (Optional): sequence-wise preprecessing, pass in agent.
-        preprocess for advantage calculation. This operation happens after
-        take() and before rebatching.
       allow_variable_length_episodes: Whether to support variable length
         episodes for training.
 
