@@ -25,18 +25,92 @@ from circuit_training.learning import agent
 from circuit_training.learning import static_feature_cache
 from circuit_training.model import fully_connected_model_lib
 from circuit_training.model import model
+import numpy as np
 import tensorflow as tf
 from tf_agents.experimental.distributed import reverb_variable_container
 from tf_agents.metrics import py_metric
 from tf_agents.metrics import py_metrics
+from tf_agents.networks import network
 from tf_agents.policies import greedy_policy
 from tf_agents.policies import py_tf_eager_policy
 from tf_agents.train import actor
 from tf_agents.train import learner
 from tf_agents.train.utils import spec_utils
 from tf_agents.train.utils import train_utils
+from tf_agents.trajectories import time_step as ts
 from tf_agents.trajectories import trajectory
 from tf_agents.utils import common
+
+
+class PlacementImage(py_metric.PyStepMetric):
+  """Observer for recording the placement image."""
+
+  def __init__(self, max_grid_size: int):
+    """Placement Image.
+
+    Args:
+      max_grid_size: maximum grid size to determine the image size.
+    """
+    super(PlacementImage, self).__init__('placement_image')
+
+    self._max_grid_size = max_grid_size
+    self._locations = []
+
+  def call(self, traj: trajectory.Trajectory) -> None:
+
+    if traj.step_type == ts.StepType.FIRST:
+      self._locations = []
+
+    self._locations.append(traj.action)
+
+  def result(self) -> np.ndarray:
+    macro_locations = np.zeros((self._max_grid_size**2,))
+    macro_locations[self._locations] = (
+        np.arange(1, len(self._locations) + 1, dtype=np.float32) /
+        len(self._locations))
+    return np.reshape(macro_locations,
+                      (1, self._max_grid_size, self._max_grid_size, 1))
+
+  def reset(self) -> None:
+    self._locations = []
+
+
+class FirstPolicyImage(py_metric.PyStepMetric):
+  """Observer for recording the first policy image."""
+
+  def __init__(self, max_grid_size: int,
+               actor_net: network.DistributionNetwork):
+    """First Policy Image.
+
+    Args:
+      max_grid_size: maximum grid size to determine the image size.
+      actor_net: Actor net.
+    """
+    super(FirstPolicyImage, self).__init__('first_policy_image')
+
+    self._max_grid_size = max_grid_size
+    self._actor_net = actor_net
+    self._first_policy_image = np.zeros(
+        (self._max_grid_size, self._max_grid_size))
+
+  def call(self, traj: trajectory.Trajectory) -> None:
+
+    def normalize_image(image: np.ndarray) -> np.ndarray:
+      max_val = np.amax(image)
+      min_val = np.amin(image)
+      return (image - min_val) / (max_val - min_val)
+
+    if traj.step_type == ts.StepType.FIRST:
+      dist, _ = self._actor_net(traj.observation)
+      self._first_policy_image = normalize_image(dist.probs_parameter())
+
+  def result(self) -> np.ndarray:
+    return np.reshape(self._first_policy_image,
+                      (1, self._max_grid_size, self._max_grid_size, 1))
+
+  def reset(self) -> None:
+    self._first_policy_image = np.zeros(
+        (self._max_grid_size, self._max_grid_size))
 
 
 class InfoMetric(py_metric.PyStepMetric):
@@ -164,6 +238,10 @@ def evaluate(root_dir: str,
               name='eval_episode_return', buffer_size=1),
           py_metrics.AverageEpisodeLengthMetric(buffer_size=1),
       ] + info_metrics,
+      image_metrics=[
+          PlacementImage(env.observation_config.max_grid_size),
+          FirstPolicyImage(env.observation_config.max_grid_size, actor_net),
+      ],
       name='performance')
 
   # Run the experience evaluation loop.

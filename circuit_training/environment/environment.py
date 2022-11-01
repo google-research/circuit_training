@@ -260,6 +260,10 @@ class CircuitEnv(object):
   def environment_name(self) -> Text:
     return self.netlist_file
 
+  @property
+  def observation_config(self) -> observation_config.ObservationConfig:
+    return self._observation_config
+
   def get_static_obs(self):
     """Get the static observation for the environment.
 
