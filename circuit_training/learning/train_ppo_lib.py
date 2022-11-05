@@ -320,9 +320,11 @@ def train(
     variable_container.push(variables)
     logging.info('clearing replay buffer')
     reverb_replay_train.clear()
-    with tf.name_scope('RunTime/'):
-      tf.summary.scalar(
-          name='data_wait_time_sec', data=data_wait_time, step=train_step)
-      tf.summary.scalar(
-          name='step_per_sec', data=num_steps / run_time, step=train_step)
-    tf.summary.flush()
+    with learner.train_summary_writer.as_default(), \
+         common.soft_device_placement(), \
+         tf.summary.record_if(lambda: True):
+      with tf.name_scope('RunTime/'):
+        tf.summary.scalar(
+            name='data_wait_time_sec', data=data_wait_time, step=train_step)
+        tf.summary.scalar(
+            name='step_per_sec', data=num_steps / run_time, step=train_step)

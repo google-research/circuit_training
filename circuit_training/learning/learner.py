@@ -161,6 +161,10 @@ class CircuittrainingPPOLearner(object):
     self._steps_per_iter = self._get_train_steps_per_iteration()
     logging.info('train steps per iteration: %d', self._steps_per_iter)
 
+  @property
+  def train_summary_writer(self):
+    return self._generic_learner.train_summary_writer
+
   def _create_datasets(self):
     """Create the training dataset and iterator."""
 
