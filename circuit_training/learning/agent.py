@@ -17,11 +17,9 @@
 from typing import Optional, Text, Tuple
 
 from absl import logging
-
 from circuit_training.model import model
-
+import gin
 import tensorflow as tf
-
 from tf_agents.agents.ppo import ppo_agent
 from tf_agents.agents.ppo import ppo_utils
 from tf_agents.networks import network
@@ -41,6 +39,7 @@ def _normalize_advantages(advantages, axes=(0), variance_epsilon=1e-8):
   return normalized_advantages
 
 
+@gin.configurable
 class CircuitPPOAgent(ppo_agent.PPOAgent):
   """A PPO Agent for circuit training aligned with Menger.
 
@@ -135,30 +134,17 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars,
         train_step_counter=train_step_counter,
-        name=name,
         aggregate_losses_across_replicas=aggregate_losses_across_replicas,
         # Epochs are set through the tf.Data pipeline outside of the agent.
         num_epochs=1,
         # Value and advantages are computed as part of the data pipeline, this
         # is set to False for all setups using minibatching and PPOLearner.
         compute_value_and_advantage_in_train=False,
-        # Skips GAE, TD lambda returns, rewards and observations normalization.
-        use_gae=False,
-        use_td_lambda_return=False,
         normalize_rewards=False,
         normalize_observations=False,
         update_normalizers_in_train=False,
-        # Skips log probability clipping and L2 losses.
-        log_prob_clipping=0.0,
-        policy_l2_reg=0.,
-        value_function_l2_reg=0.,
-        shared_vars_l2_reg=0.0005,
-        # Skips parameters used for the adaptive KL loss penalty version of PPO.
-        kl_cutoff_factor=0.0,
-        kl_cutoff_coef=0.0,
-        initial_adaptive_kl_beta=0.0,
-        adaptive_kl_target=0.0,
-        adaptive_kl_tolerance=0.0)
+        name=name,
+    )
 
   def compute_return_and_advantage(
       self, next_time_steps: ts.TimeStep,
@@ -369,7 +355,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     self._optimizer.apply_gradients(grads_and_vars)
     self.train_step_counter.assign_add(1)
 
-    # TODO(b/1613650790): Move this logic to PPOKLPenaltyAgent.
+    # TODO(b/161365079): Move this logic to PPOKLPenaltyAgent.
     if self._initial_adaptive_kl_beta > 0:
       # After update epochs, update adaptive kl beta, then update observation
       #   normalizer and reward normalizer.
@@ -480,14 +466,7 @@ def create_circuit_ppo_grl_agent(train_step: tf.Variable,
       optimizer=optimizer,
       actor_net=grl_actor_net,
       value_net=grl_value_net,
-      value_pred_loss_coef=0.5,
-      entropy_regularization=0.01,
-      importance_ratio_clipping=0.2,
-      discount_factor=1.0,
-      gradient_clipping=0.1,
-      debug_summaries=False,
       train_step_counter=train_step,
-      value_clipping=None,
       aggregate_losses_across_replicas=aggregate_losses_across_replicas,
       report_loss_scaling_factor=report_loss_scaling_factor,
       **kwargs)
@@ -515,14 +494,7 @@ def create_circuit_ppo_agent(train_step: tf.Variable,
       optimizer=optimizer,
       actor_net=actor_net,
       value_net=value_net,
-      value_pred_loss_coef=0.5,
-      entropy_regularization=0.01,
-      importance_ratio_clipping=0.2,
-      discount_factor=1.0,
-      gradient_clipping=0.1,
-      debug_summaries=False,
       train_step_counter=train_step,
-      value_clipping=None,
       aggregate_losses_across_replicas=aggregate_losses_across_replicas,
       report_loss_scaling_factor=report_loss_scaling_factor,
       **kwargs)

@@ -115,7 +115,7 @@ def compute_total_training_step(sequence_length, num_iterations,
 
 @gin.configurable(allowlist=[
     'per_replica_batch_size', 'num_epochs', 'num_iterations',
-    'num_episodes_per_iteration'
+    'num_episodes_per_iteration', 'init_learning_rate'
 ])
 def train(
     root_dir: str,
@@ -135,7 +135,7 @@ def train(
     # TPUs).
     per_replica_batch_size: int = 128,
     num_epochs: int = 4,
-    num_iterations: int = 500,
+    num_iterations: int = 650,
     # This is the number of episodes we train on in each iteration.
     # num_episodes_per_iteration * epsisode_length * num_epochs =
     # global_step (number of gradient updates) * per_replica_batch_size *
