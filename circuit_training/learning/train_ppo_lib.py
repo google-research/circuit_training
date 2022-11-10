@@ -107,7 +107,6 @@ def compute_total_training_step(sequence_length, num_iterations,
 
   Returns:
     The total training step.
-
   """
   return int(sequence_length * num_iterations * num_episodes_per_iteration *
              num_epochs / per_replica_batch_size / num_replicas_in_sync)
@@ -135,7 +134,9 @@ def train(
     # TPUs).
     per_replica_batch_size: int = 128,
     num_epochs: int = 4,
-    num_iterations: int = 650,
+    # Set to a very large number so the learning rate remains the same, and
+    # also the deadline stops the training rather than this param.
+    num_iterations: int = 1_000_000_000,
     # This is the number of episodes we train on in each iteration.
     # num_episodes_per_iteration * epsisode_length * num_epochs =
     # global_step (number of gradient updates) * per_replica_batch_size *
