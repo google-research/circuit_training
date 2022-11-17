@@ -140,7 +140,8 @@ class CircuitEnv(object):
       cd_finetune: bool = False,
       cd_plc_file: Text = 'ppo_cd_placement.plc',
       train_step: Optional[tf.Variable] = None,
-      unplace_all_nodes_in_init: bool = True):
+      unplace_all_nodes_in_init: bool = True,
+      output_all_features: bool = False):
     """Creates a CircuitEnv.
 
     Args:
@@ -169,6 +170,8 @@ class CircuitEnv(object):
       train_step: A tf.Variable indicating the training step, only used for
         saving plc files in the evaluation.
       unplace_all_nodes_in_init: Unplace all nodes after initialization.
+      output_all_features: If true, it outputs all the observation features.
+        Otherwise, it only outputs the dynamic observations.
     """
     del global_seed
     if not netlist_file:
@@ -186,6 +189,7 @@ class CircuitEnv(object):
     self._cd_plc_file = cd_plc_file
     self._train_step = train_step
     self._netlist_index = netlist_index
+    self._output_all_features = output_all_features
 
     self._plc = create_placement_cost_fn(
         netlist_file=netlist_file, init_placement=init_placement)
@@ -250,6 +254,9 @@ class CircuitEnv(object):
   @property
   def observation_space(self) -> gym.spaces.Space:
     """Env Observation space."""
+    if self._output_all_features:
+      return self._observation_config.observation_space
+
     return self._observation_config.dynamic_observation_space
 
   @property
@@ -311,10 +318,16 @@ class CircuitEnv(object):
     else:
       current_node_index = 0
 
-    return self._observation_extractor.get_dynamic_features(
-        previous_node_index=previous_node_index,
-        current_node_index=current_node_index,
-        mask=self._current_mask)
+    if self._output_all_features:
+      return self._observation_extractor.get_all_features(
+          previous_node_index=previous_node_index,
+          current_node_index=current_node_index,
+          mask=self._current_mask)
+    else:
+      return self._observation_extractor.get_dynamic_features(
+          previous_node_index=previous_node_index,
+          current_node_index=current_node_index,
+          mask=self._current_mask)
 
   def _run_cd(self):
     """Runs coordinate descent to finetune the current placement."""
