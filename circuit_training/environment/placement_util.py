@@ -413,12 +413,14 @@ def fd_placement_schedule(plc: plc_client.PlacementCost,
 
 def get_ordered_node_indices(mode: str,
                              plc: plc_client.PlacementCost,
+                             seed: int = 111,
                              exclude_fixed_nodes: bool = True) -> List[int]:
   """Returns an ordering of node indices according to the specified mode.
 
   Args:
     mode: node ordering mode
     plc: placement cost object
+    seed: RNG seed used for random order.
     exclude_fixed_nodes: Whether fixed nodes should be excluded.
 
   Returns:
@@ -434,15 +436,20 @@ def get_ordered_node_indices(mode: str,
     w, h = plc.get_node_width_height(idx)
     return w * h
 
+  # Make sure node order is consistent across all collectors, if random.
+  logging.info('node_order: %s', mode)
   if mode == 'descending_size_macro_first':
     ordered_indices = (
         sorted(hard_macro_indices, key=macro_area)[::-1] +
         sorted(soft_macro_indices, key=macro_area)[::-1])
   elif mode == 'random':
+    np.random.seed(seed)
     np.random.shuffle(macro_indices)
     ordered_indices = macro_indices
   elif mode == 'random_macro_first':
+    np.random.seed(seed)
     np.random.shuffle(hard_macro_indices)
+    logging.info('ordered hard macros: %s', hard_macro_indices)
     ordered_indices = hard_macro_indices + soft_macro_indices
   else:
     raise ValueError('{} is an unsupported node placement mode.'.format(mode))

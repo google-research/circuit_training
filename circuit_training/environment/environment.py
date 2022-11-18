@@ -141,7 +141,9 @@ class CircuitEnv(object):
       cd_plc_file: Text = 'ppo_cd_placement.plc',
       train_step: Optional[tf.Variable] = None,
       unplace_all_nodes_in_init: bool = True,
-      output_all_features: bool = False):
+      output_all_features: bool = False,
+      node_order: Text = 'descending_size_macro_first',
+      ):
     """Creates a CircuitEnv.
 
     Args:
@@ -155,7 +157,7 @@ class CircuitEnv(object):
       cost_info_fn: The cost function that given the plc object returns the RL
         cost.
       global_seed: Global seed for initializing env features. This seed should
-        be the same across actors. Not used currently.
+        be the same across actors.
       netlist_index: Netlist index in the model static features.
       is_eval: If set, save the final placement in output_dir.
       save_best_cost: Boolean, if set, saves the palcement if its cost is better
@@ -172,8 +174,9 @@ class CircuitEnv(object):
       unplace_all_nodes_in_init: Unplace all nodes after initialization.
       output_all_features: If true, it outputs all the observation features.
         Otherwise, it only outputs the dynamic observations.
+      node_order: The sequence order of nodes placed by RL.
     """
-    del global_seed
+    self._global_seed = global_seed
     if not netlist_file:
       raise ValueError('netlist_file must be provided.')
 
@@ -190,7 +193,7 @@ class CircuitEnv(object):
     self._train_step = train_step
     self._netlist_index = netlist_index
     self._output_all_features = output_all_features
-
+    self._node_order = node_order
     self._plc = create_placement_cost_fn(
         netlist_file=netlist_file, init_placement=init_placement)
 
@@ -219,7 +222,7 @@ class CircuitEnv(object):
     self._num_hard_macros = len(self._hard_macro_indices)
 
     self._sorted_node_indices = placement_util.get_ordered_node_indices(
-        mode='descending_size_macro_first', plc=self._plc)
+        mode=self._node_order, plc=self._plc, seed=self._global_seed)
 
     self._sorted_soft_macros = self._sorted_node_indices[self._num_hard_macros:]
 
