@@ -20,7 +20,7 @@ from absl import app
 from absl import flags
 from circuit_training.dreamplace import dreamplace_core
 from circuit_training.dreamplace import dreamplace_util
-from dreamplace.v3 import Params
+from dreamplace import Params
 import numpy as np
 import torch
 

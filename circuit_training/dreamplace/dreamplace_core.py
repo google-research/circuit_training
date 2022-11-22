@@ -17,7 +17,7 @@ import time
 from absl import logging
 from circuit_training.dreamplace import dreamplace_util
 from circuit_training.dreamplace import placedb_plc
-from dreamplace.v3 import NonLinearPlace
+from dreamplace import NonLinearPlace
 
 
 class SoftMacroPlacer(object):

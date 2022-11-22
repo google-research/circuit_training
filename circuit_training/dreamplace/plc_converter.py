@@ -21,7 +21,7 @@ Convention:
 import pickle
 
 from absl import logging
-from dreamplace.v3 import PlaceDB
+from dreamplace import PlaceDB
 import numpy as np
 
 # Internal gfile dependencies
