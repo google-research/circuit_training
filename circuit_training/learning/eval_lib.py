@@ -184,12 +184,17 @@ def evaluate(root_dir: str,
         cache.get_all_static_features(),
         use_model_tpu=False)
     creat_agent_fn = agent.create_circuit_ppo_grl_agent
+    image_metrics = [
+        PlacementImage(env.observation_config.max_grid_size),
+        FirstPolicyImage(env.observation_config.max_grid_size, actor_net),
+    ]
   else:
     actor_net = fully_connected_model_lib.create_actor_net(
         observation_tensor_spec, action_tensor_spec)
     value_net = fully_connected_model_lib.create_value_net(
         observation_tensor_spec)
     creat_agent_fn = agent.create_circuit_ppo_agent
+    image_metrics = []
 
   tf_agent = creat_agent_fn(
       train_step,
@@ -238,10 +243,7 @@ def evaluate(root_dir: str,
               name='eval_episode_return', buffer_size=1),
           py_metrics.AverageEpisodeLengthMetric(buffer_size=1),
       ] + info_metrics,
-      image_metrics=[
-          PlacementImage(env.observation_config.max_grid_size),
-          FirstPolicyImage(env.observation_config.max_grid_size, actor_net),
-      ],
+      image_metrics=image_metrics,
       name='performance')
 
   # Run the experience evaluation loop.
