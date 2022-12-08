@@ -311,6 +311,24 @@ class PlacementUtilTest(test_utils.TestCase):
   def test_disconnect_high_fanout_nets(self):
     placement_util.disconnect_high_fanout_nets(self.plc, 500)
 
+  def test_fix_macros_by_regex(self):
+    macro_regex_list = ['M_R0_[A-Z]0', 'M_R0_[A-Z]1', 'M_R0_[A-Z]2']
+    placement_util.fix_macros_by_regex(self.plc, macro_regex_list)
+
+    for m in self.plc.get_macro_indices():
+      if not self.plc.is_node_soft_macro(m):
+        macro_name = self.plc.get_node_name(m)
+        if macro_name in ['M_R0_C0', 'M_R0_C1', 'M_R0_C2']:
+          self.assertTrue(self.plc.is_node_fixed(m))
+        else:
+          self.assertFalse(self.plc.is_node_fixed(m))
+
+  def test_blockage_with_spacing_constraints(self):
+    blockages = placement_util.create_blockages_by_spacing_constraints(
+        10, 20, 1, 2)
+    expected_blockages = [[0, 0, 1, 20, 0.1], [9, 0, 10, 20, 0.1],
+                          [0, 0, 10, 2, 0.1], [0, 18, 10, 20, 0.1]]
+    self.assertEqual(blockages, expected_blockages)
 
 if __name__ == '__main__':
   test_utils.main()

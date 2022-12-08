@@ -48,12 +48,16 @@ $ export PLC_WRAPPER_MAIN=/path/to/the/plc_wrapper_main
 ## 2. Run the grouping (clustering) code
 
 ```shell
-$ python circuittraining/grouping/groupermain \
+$ python circuittraining/grouping/grouper_main \
 --output_dir=$OUTPUT_DIR \
 --netlist_file=$NETLIST_FILE \
 --block_name=$BLOCK_NAME \
 --hmetis_dir=$HMETIS_DIR \
---plc_wrapper_main=$PLC_WRAPPER_MAIN
+--plc_wrapper_main=$PLC_WRAPPER_MAIN \
+--fixed_macro_names_regex=<Optional first fixed macro regex> \
+--fixed_macro_names_regex=<Optional second fixed macro regex> \
+--macro_boundary_x_spacing=<Optional macro to boundary X spacing constraint> \
+--macro_boundary_y_spacing=<Optional macro to boundary Y spacing constraint>
 ```
 
 #### Example output example

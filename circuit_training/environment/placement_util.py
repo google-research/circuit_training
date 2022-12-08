@@ -18,7 +18,6 @@ All the dependencies in this files should be non-prod.
 """
 
 import datetime
-import os
 import re
 import textwrap
 from typing import Dict, Iterator, List, Optional, Tuple, Union
@@ -199,6 +198,7 @@ def create_placement_cost(
     macro_horizontal_routing_allocation: float = 51.79,
     macro_vertical_routing_allocation: float = 51.79,
     blockages: Optional[List[List[float]]] = None,
+    fixed_macro_names_regex: Optional[List[str]] = None,
 ) -> plc_client.PlacementCost:
   """Creates a placement_cost object.
 
@@ -216,6 +216,8 @@ def create_placement_cost(
     macro_horizontal_routing_allocation: Macro horizontal routing allocation.
     macro_vertical_routing_allocation: Macro vertical routing allocation.
     blockages: List of blockages.
+    fixed_macro_names_regex: A list of macro names regex that should be fixed
+      in the placement.
 
   Returns:
     A PlacementCost object.
@@ -260,6 +262,10 @@ def create_placement_cost(
   if init_placement:
     plc.restore_placement(init_placement)
     fix_port_coordinates(plc)
+
+  if fixed_macro_names_regex:
+    logging.info('Fixing macro locations using regex.')
+    fix_macros_by_regex(plc, fixed_macro_names_regex)
 
   return plc
 
@@ -641,3 +647,63 @@ def legalize_placement(plc: plc_client.PlacementCost) -> bool:
   print('Total macro displacement: {}, avg: {}'.format(
       total_macro_displacement, total_macro_displacement / total_macros))
   return True
+
+
+def fix_macros_by_regex(plc: plc_client.PlacementCost,
+                        macro_regex_str_list: List[str]):
+  """Fix macro locations given a list of macro name regex strings."""
+  regexs = []
+  for regex_str in macro_regex_str_list:
+    regexs.append(re.compile(regex_str))
+
+  hard_macros = []
+  for m in plc.get_macro_indices():
+    if plc.is_node_soft_macro(m):
+      continue
+    hard_macros.append(m)
+
+  total = 0
+  for m in plc.get_macro_indices():
+    if plc.is_node_soft_macro(m):
+      # Do not fix soft macro.
+      continue
+    macro_name = plc.get_node_name(m)
+    for regex in regexs:
+      if regex.fullmatch(macro_name):
+        plc.fix_node_coord(m)
+        total += 1
+        logging.info('Fixed macro: %s', macro_name)
+        continue
+  logging.info('Total number of fixed macros: %d', total)
+
+
+def create_blockages_by_spacing_constraints(
+    canvas_width: float,
+    canvas_height: float,
+    macro_boundary_x_spacing: float = 0,
+    macro_boundary_y_spacing: float = 0) -> List[List[float]]:
+  """Create blockages using macro-to-boundary spacing constraints."""
+  blockages = []
+  # Not macro overlap but allow stedcells to be placed within.
+  blockage_rate = 0.1
+  if macro_boundary_x_spacing:
+    assert 0 < macro_boundary_x_spacing <= canvas_width
+    # Left horizontal
+    blockages.append(
+        [0, 0, macro_boundary_x_spacing, canvas_height, blockage_rate])
+    # Right horizontal
+    blockages.append([
+        canvas_width - macro_boundary_x_spacing, 0, canvas_width, canvas_height,
+        blockage_rate
+    ])
+  if macro_boundary_y_spacing:
+    assert 0 < macro_boundary_y_spacing <= canvas_height
+    # Bottom vertical
+    blockages.append(
+        [0, 0, canvas_width, macro_boundary_y_spacing, blockage_rate])
+    # Top vertical
+    blockages.append([
+        0, canvas_height - macro_boundary_y_spacing, canvas_width,
+        canvas_height, blockage_rate
+    ])
+  return blockages

@@ -42,7 +42,10 @@ flags.DEFINE_bool('breakup', True, 'Break up groups after hmetis run')
 flags.DEFINE_bool(
     'extract_blockages', True,
     'Extract blockage information from project specific TCL file')
-
+flags.DEFINE_float('macro_boundary_x_spacing', None,
+                   'Macro-to-boundary x spacing in microns.')
+flags.DEFINE_float('macro_boundary_y_spacing', None,
+                   'Macro-to-boundary y spacing in microns.')
 flags.DEFINE_float(
     'cell_area_utilization', 0.5,
     'This is used to bloat soft macro areas. If it\'s 0.5, it means 50% '
@@ -56,7 +59,9 @@ flags.DEFINE_bool(
     'If True, the blockage spec will be interpreted for rectilinear floorplan.')
 flags.DEFINE_integer('num_groups', 500,
                      'Number of std-cell groups (soft macros)')
-
+flags.DEFINE_multi_string(
+    'fixed_macro_names_regex', None,
+    'A list of macro names regex that should be fixed in the placement.')
 FLAGS = flags.FLAGS
 
 
@@ -378,6 +383,16 @@ def add_blockage(plc: plc_client.PlacementCost,
       logging.info('Blockage: %s', blockage)
       plc.create_blockage(*blockage)
 
+  # Create macro-to-boundary spacing blockage.
+  macro_boundary_x_spacing = FLAGS.macro_boundary_x_spacing
+  macro_boundary_y_spacing = FLAGS.macro_boundary_y_spacing
+  if macro_boundary_x_spacing or macro_boundary_y_spacing:
+    blockages = placement_util.create_blockages_by_spacing_constraints(
+        w, h, macro_boundary_x_spacing, macro_boundary_y_spacing)
+    for blockage in blockages:
+      logging.info('Macro-to-boundary spacing blockage: %s', blockage)
+      plc.create_blockage(*blockage)
+
 
 def select_grid_size(plc: plc_client.PlacementCost) -> None:
   """Selects grid size."""
@@ -445,7 +460,9 @@ def group_stdcells(
   print_cost_info(plc)
 
   grouped_plc = create_placement_cost_fn(
-      netlist_file=part_file, init_placement=plc_file)
+      netlist_file=part_file,
+      init_placement=plc_file,
+      fixed_macro_names_regex=FLAGS.fixed_macro_names_regex)
 
   logging.info('Costs for partitioned netlist:')
   print_cost_info(grouped_plc)
