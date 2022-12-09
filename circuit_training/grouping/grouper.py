@@ -52,11 +52,8 @@ flags.DEFINE_float(
     'utilization is targeted.')
 flags.DEFINE_string(
     'blockage_file', None,
-    'Floorplan blockage tcl file which specifies clock strap or macro blockage '
-    'to model rectilinear floorplan.')
-flags.DEFINE_bool(
-    'is_rectilinear', False,
-    'If True, the blockage spec will be interpreted for rectilinear floorplan.')
+    'Floorplan blockage file which specifies clock strap, or macro blockage, '
+    'or to define rectilinear floorplan.')
 flags.DEFINE_integer('num_groups', 500,
                      'Number of std-cell groups (soft macros)')
 flags.DEFINE_multi_string(
@@ -377,8 +374,7 @@ def add_blockage(plc: plc_client.PlacementCost,
 
   if blockage_file:
     w, h = plc.get_canvas_width_height()
-    blockages = placement_util.extract_blockages_from_tcl(
-        blockage_file, block_name, w, h, FLAGS.is_rectilinear)
+    blockages = placement_util.extract_blockages_from_file(blockage_file, w, h)
     for blockage in blockages:
       logging.info('Blockage: %s', blockage)
       plc.create_blockage(*blockage)

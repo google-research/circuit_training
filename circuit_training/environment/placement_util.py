@@ -465,78 +465,52 @@ def get_ordered_node_indices(mode: str,
   return ordered_indices
 
 
-def extract_blockages_from_tcl(filename: str,
-                               block_name: str,
-                               canvas_width: float,
-                               canvas_height: float,
-                               is_rectilinear: bool = False):
-  """Reads blockage information from a given tcl file."""
-  # Assumptions: project is viperlite or viperfish.
-  # This is not a TCL parser, it just reads in a line of the format:
-  # dict set ::clockstrap <block name> <blockage index> <corner> <float number>
-  # corner is expected to be one of lly, ury.
-  blockage_info = dict()
+def extract_blockages_from_file(
+    filename: str, canvas_width: float,
+    canvas_height: float) -> Optional[List[List[float]]]:
+  """Reads blockage information from a given file.
+
+  Args:
+    filename: Input blockage file. Each line represents a retangular blockage,
+      in the format of <llx> <lly> <urx> <ury>, in micron unit.
+    canvas_width: Block canvas width.
+    canvas_height: Block canvas height.
+
+  Returns:
+    A list of blockages.
+  """
+  blockages = []
   try:
     with open(filename, 'r') as infile:
       for line in infile:
-        if line.startswith('dict set ::clockstrap '):
-          block, index, corner, value = line.split()[3:7]
-          if block != block_name:
-            continue
-          blockage_info[corner + index] = float(value)
+        if line.startswith('#'):
+          continue
+        items = line.split()
+        if len(items) != 4:
+          raise ValueError('Blockage file does not meet expected format'
+                           'Expected format <llx> <lly> <urx> <ury>')
+        llx = float(items[0])
+        lly = float(items[1])
+        urx = float(items[2])
+        ury = float(items[3])
+        if llx >= urx:
+          raise ValueError(f'Illegal blockage llx {llx} >= urx {urx}')
+        if lly >= ury:
+          raise ValueError(f'Illegal blockage lly {lly} >= ury {ury}')
+        if llx < 0:
+          raise ValueError(f'Illegal blockage llx {llx} < 0')
+        if urx > canvas_width:
+          raise ValueError(
+              f'Illegal blockage urx {urx} > canvas width {canvas_width}')
+        if lly < 0:
+          raise ValueError(f'Illegal blockage lly {lly} < 0')
+        if ury > canvas_height:
+          raise ValueError(
+              f'Illegal blockage ury {ury} > canvas height {canvas_height}')
+        # Set 1.0 blockage rate so no macros or stdcells are allowed.
+        blockages.append([llx, lly, urx, ury, 1.0])
   except IOError:
-    logging.error('could not read file %s', filename)
-    return []
-  blockages = []
-
-  if is_rectilinear:
-    # Use blockage to model rectilinear floorplan.
-    index = 0
-    while ('llx' + str(index) in blockage_info and
-           'lly' + str(index) in blockage_info and
-           'urx' + str(index) in blockage_info and
-           'ury' + str(index) in blockage_info):
-      minx = blockage_info['llx' + str(index)]
-      maxx = blockage_info['urx' + str(index)]
-      miny = blockage_info['lly' + str(index)]
-      maxy = blockage_info['ury' + str(index)]
-      if minx < 0:
-        raise ValueError(f'Illegal blockage at index {index}: llx {minx} < 0')
-      if maxx > canvas_width:
-        raise ValueError(
-            f'Illegal blockage at index {index}: urx {maxx} > canvas '
-            f'width {canvas_width}')
-      if miny < 0:
-        raise ValueError(f'Illegal blockage at index {index}: lly {miny} < 0')
-      if maxy > canvas_height:
-        raise ValueError(
-            f'Illegal blockage at index {index}: ury {maxy} > canvas '
-            f'height {canvas_height}')
-      blockages.append([minx, miny, maxx, maxy, 1])
-      index += 1
-  else:
-    # Fully horizontal or vertical blockage.
-    # Horizontal straps.
-    index = 0
-    while 'lly' + str(index) in blockage_info and 'ury' + str(
-        index) in blockage_info:
-      minx = 0.0
-      maxx = canvas_width
-      miny = blockage_info['lly' + str(index)]
-      maxy = blockage_info['ury' + str(index)]
-      blockages.append([minx, miny, maxx, maxy, 1])
-      index += 1
-    # We don't have any vertical straps, now. Should we still support it?
-    # Vertical straps.
-    index = 0
-    while 'llx' + str(index) in blockage_info and 'urx' + str(
-        index) in blockage_info:
-      minx = blockage_info['llx' + str(index)]
-      maxx = blockage_info['urx' + str(index)]
-      miny = 0.0
-      maxy = canvas_height
-      blockages.append([minx, miny, maxx, maxy, 1])
-      index += 1
+    logging.error('Could not read file %s', filename)
   return blockages
 
 
