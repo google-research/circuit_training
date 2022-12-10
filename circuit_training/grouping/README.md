@@ -57,7 +57,8 @@ $ python circuittraining/grouping/grouper_main \
 --fixed_macro_names_regex=<Optional first fixed macro regex> \
 --fixed_macro_names_regex=<Optional second fixed macro regex> \
 --macro_boundary_x_spacing=<Optional macro to boundary X spacing constraint> \
---macro_boundary_y_spacing=<Optional macro to boundary Y spacing constraint>
+--macro_boundary_y_spacing=<Optional macro to boundary Y spacing constraint> \
+--blockage_file=<Optional blockage file>
 ```
 
 #### Example output example
