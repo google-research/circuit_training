@@ -45,15 +45,17 @@ from tf_agents.utils import common
 class PlacementImage(py_metric.PyStepMetric):
   """Observer for recording the placement image."""
 
-  def __init__(self, max_grid_size: int):
+  def __init__(self, num_rows: int, num_cols: int):
     """Placement Image.
 
     Args:
-      max_grid_size: maximum grid size to determine the image size.
+      num_rows: number of rows of the policy image.
+      num_cols: number of cols of the policy image.
     """
     super(PlacementImage, self).__init__('placement_image')
 
-    self._max_grid_size = max_grid_size
+    self._num_rows = num_rows
+    self._num_cols = num_cols
     self._locations = []
 
   def call(self, traj: trajectory.Trajectory) -> None:
@@ -64,12 +66,11 @@ class PlacementImage(py_metric.PyStepMetric):
     self._locations.append(traj.action)
 
   def result(self) -> np.ndarray:
-    macro_locations = np.zeros((self._max_grid_size**2,))
+    macro_locations = np.zeros((self._num_rows * self._num_cols,))
     macro_locations[self._locations] = (
         np.arange(1, len(self._locations) + 1, dtype=np.float32) /
         len(self._locations))
-    return np.reshape(macro_locations,
-                      (1, self._max_grid_size, self._max_grid_size, 1))
+    return np.reshape(macro_locations, (1, self._num_rows, self._num_cols, 1))
 
   def reset(self) -> None:
     self._locations = []
@@ -78,20 +79,20 @@ class PlacementImage(py_metric.PyStepMetric):
 class FirstPolicyImage(py_metric.PyStepMetric):
   """Observer for recording the first policy image."""
 
-  def __init__(self, max_grid_size: int,
-               actor_net: network.DistributionNetwork):
+  def __init__(self, num_rows: int, num_cols: int, actor_net: network.Network):
     """First Policy Image.
 
     Args:
-      max_grid_size: maximum grid size to determine the image size.
+      num_rows: number of rows of the policy image.
+      num_cols: number of cols of the policy image.
       actor_net: Actor net.
     """
     super(FirstPolicyImage, self).__init__('first_policy_image')
 
-    self._max_grid_size = max_grid_size
+    self._num_rows = num_rows
+    self._num_cols = num_cols
     self._actor_net = actor_net
-    self._first_policy_image = np.zeros(
-        (self._max_grid_size, self._max_grid_size))
+    self._first_policy_image = np.zeros((self._num_rows, self._num_cols))
 
   def call(self, traj: trajectory.Trajectory) -> None:
 
@@ -101,16 +102,18 @@ class FirstPolicyImage(py_metric.PyStepMetric):
       return (image - min_val) / (max_val - min_val)
 
     if traj.step_type == ts.StepType.FIRST:
-      dist, _ = self._actor_net(traj.observation)
-      self._first_policy_image = normalize_image(dist.probs_parameter())
+      obs = tf.nest.map_structure(lambda t: tf.expand_dims(t, 0),
+                                  traj.observation)
+      dist, _ = self._actor_net(obs)
+      self._first_policy_image = normalize_image(
+          tf.squeeze(dist.probs_parameter()))
 
   def result(self) -> np.ndarray:
     return np.reshape(self._first_policy_image,
-                      (1, self._max_grid_size, self._max_grid_size, 1))
+                      (1, self._num_rows, self._num_cols, 1))
 
   def reset(self) -> None:
-    self._first_policy_image = np.zeros(
-        (self._max_grid_size, self._max_grid_size))
+    self._first_policy_image = np.zeros((self._num_rows, self._num_cols))
 
 
 class InfoMetric(py_metric.PyStepMetric):
@@ -185,8 +188,10 @@ def evaluate(root_dir: str,
         use_model_tpu=False)
     creat_agent_fn = agent.create_circuit_ppo_grl_agent
     image_metrics = [
-        PlacementImage(env.observation_config.max_grid_size),
-        FirstPolicyImage(env.observation_config.max_grid_size, actor_net),
+        PlacementImage(env.observation_config.max_grid_size,
+                       env.observation_config.max_grid_size),
+        FirstPolicyImage(env.observation_config.max_grid_size,
+                         env.observation_config.max_grid_size, actor_net),
     ]
   else:
     actor_net = fully_connected_model_lib.create_actor_net(
@@ -194,7 +199,10 @@ def evaluate(root_dir: str,
     value_net = fully_connected_model_lib.create_value_net(
         observation_tensor_spec)
     creat_agent_fn = agent.create_circuit_ppo_agent
-    image_metrics = []
+    image_metrics = [
+        PlacementImage(env.grid_rows, env.grid_cols),
+        FirstPolicyImage(env.grid_rows, env.grid_cols, actor_net),
+    ]
 
   tf_agent = creat_agent_fn(
       train_step,

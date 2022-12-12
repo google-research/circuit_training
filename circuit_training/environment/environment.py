@@ -274,6 +274,14 @@ class CircuitEnv(object):
   def observation_config(self) -> observation_config.ObservationConfig:
     return self._observation_config
 
+  @property
+  def grid_cols(self) -> int:
+    return  self._grid_cols
+
+  @property
+  def grid_rows(self) -> int:
+    return self._grid_rows
+
   def get_static_obs(self):
     """Get the static observation for the environment.
 
