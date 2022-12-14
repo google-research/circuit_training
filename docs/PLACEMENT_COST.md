@@ -29,11 +29,11 @@ costs given a placement.
 -   `get_congestion_cost() -> float` : Returns the average routing congestion of
     the top 10% congested routing grid cells.
 -   `get_congestion_smooth_range() -> int` : Gets congestion smooth range.
--   `get_cost() -> float` : Calculates cost associated with the current
-    placement of the nodes (stdcells, macros and ports). It returns a number
-    between 0 and 1. 0 meaning 0 wirelength, 1 meaning worst possible placement
-    leading to all wires spanning the entire placement area (half perimeter of
-    canvas).
+-   `get_cost() -> float` : Calculates the normalized wirelength cost associated
+    with the current placement of the nodes (stdcells, macros and ports). It
+    returns a number between 0 and 1. 0 meaning 0 wirelength, 1 meaning worst
+    possible placement leading to all wires spanning the entire placement area
+    (half perimeter of canvas).
 -   `get_density_cost() -> float` : Returns the average density of the 10% most
     dense placement grid cells.
 -   `get_fan_outs_of_node(node_index: int) -> list<int>` : Returns the vector of
@@ -93,9 +93,9 @@ costs given a placement.
     Repelling forces push overlapping nodes from each other regardless they are
     connected or not.
 -   `place_node_by_name(node_name: str, grid_cell_index: int) -> Status` :
-    Places the node using canvas grid cell positions (col, row). Converts to the
-    x, y positions corresponding to the center coordinates of the grid cell.
-    Returns error if unsuccessful or if the node is not found.
+    Places the node using canvas grid_cell_index = col + row * num_cols.
+    Converts to the x, y positions corresponding to the center coordinates of
+    the grid cell. Returns error if unsuccessful or if the node is not found.
 -   `place_node(node_index: int, grid_cell_index: int) -> Status` : Uses a node
     index to place a node.
 -   `restore_placement(filename: str) -> Status` : Save and restore placement
@@ -105,7 +105,7 @@ costs given a placement.
 -   `set_canvas_size(width: float, height: float) -> Status` : Sets the size of
     the placement area (canvas).
 -   `set_congestion_smooth_range(range: int)` : Set the number of neighboring
-    rows and columns to distribute the calculated congestion for a cell
+    rows and columns to distribute the calculated routing congestion for a cell
 -   `set_placement_grid(columns: int, rows: int) -> Status` : Sets the number of
     columns and rows used by placement. By default, there are 100 rows and 100
     columns.
