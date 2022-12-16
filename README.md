@@ -220,7 +220,7 @@ for 3 different seeds run 3 times each. This is slightly different than what was
 used in the paper (8 runs each with a different seed), but better captures the
 different sources of variability.
 
-         | Proxy Wirelength | Proxy Congestion | Proxy Density
+ Metric  | Proxy Wirelength | Proxy Congestion | Proxy Density
 -------- | ---------------- | ---------------- | -------------
 **mean** | 0.1013           | 0.9174           | 0.5502
 **std**  | 0.0036           | 0.0647           | 0.0568
@@ -230,7 +230,7 @@ The table below summarizes the
 result for fine-tuning from a pre-trained model over 8 runs with each one using
 a different seed.
 
-         | Proxy Wirelength | Proxy Congestion | Proxy Density
+ Metric  | Proxy Wirelength | Proxy Congestion | Proxy Density
 -------- | ---------------- | ---------------- | -------------
 **mean** | 0.1198           | 0.9718           | 0.5729
 **std**  | 0.0019           | 0.0346           | 0.0086
