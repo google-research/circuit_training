@@ -66,7 +66,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
                discount_factor: types.Float = 1.0,
                entropy_regularization: types.Float = 0.01,
                value_pred_loss_coef: types.Float = 0.5,
-               gradient_clipping: Optional[types.Float] = 1.0,
+               gradient_clipping: Optional[types.Float] = 0.1,
                value_clipping: Optional[types.Float] = None,
                check_numerics: bool = False,
                debug_summaries: bool = False,
