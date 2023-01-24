@@ -91,6 +91,7 @@ def main(_):
       variable_container_server_address=FLAGS.variable_container_server_address,
       create_env_fn=create_env_fn,
       rl_architecture='generalization',
+      info_metric_names=environment.COST_COMPONENTS,
   )
 
 

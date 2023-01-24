@@ -55,6 +55,8 @@ class InfeasibleActionError(ValueError):
     return 'Infeasible action (%s) when the mask is (%s)' % (self.action,
                                                              self.mask)
 
+COST_COMPONENTS = ['wirelength', 'congestion', 'density']
+
 
 @gin.configurable
 def cost_info_function(
@@ -82,35 +84,22 @@ def cost_info_function(
   Notes: we found the default congestion and density weights more stable.
   """
   proxy_cost = 0.0
+  info = {cost: -1.0 for cost in COST_COMPONENTS}
 
   if not done:
-    return proxy_cost, {
-        'wirelength': -1.0,
-        'congestion': -1.0,
-        'density': -1.0,
-    }
-
-  wirelength = -1.0
-  congestion = -1.0
-  density = -1.0
+    return proxy_cost, info
 
   if wirelength_weight > 0.0:
-    wirelength = plc.get_cost()
-    proxy_cost += wirelength_weight * wirelength
+    info['wirelength'] = plc.get_cost()
+    proxy_cost += wirelength_weight * info['wirelength']
 
   if congestion_weight > 0.0:
-    congestion = plc.get_congestion_cost()
-    proxy_cost += congestion_weight * congestion
+    info['congestion'] = plc.get_congestion_cost()
+    proxy_cost += congestion_weight * info['congestion']
 
   if density_weight > 0.0:
-    density = plc.get_density_cost()
-    proxy_cost += density_weight * density
-
-  info = {
-      'wirelength': wirelength,
-      'congestion': congestion,
-      'density': density,
-  }
+    info['density'] = plc.get_density_cost()
+    proxy_cost += density_weight * info['density']
 
   return proxy_cost, info
 

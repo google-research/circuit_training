@@ -59,7 +59,6 @@ class PlacementImage(py_metric.PyStepMetric):
     self._locations = []
 
   def call(self, traj: trajectory.Trajectory) -> None:
-
     if traj.step_type == ts.StepType.FIRST:
       self._locations = []
 
@@ -68,8 +67,8 @@ class PlacementImage(py_metric.PyStepMetric):
   def result(self) -> np.ndarray:
     macro_locations = np.zeros((self._num_rows * self._num_cols,))
     macro_locations[self._locations] = (
-        np.arange(1, len(self._locations) + 1, dtype=np.float32) /
-        len(self._locations))
+        np.arange(1, len(self._locations) + 1, dtype=np.float32)
+    ) / len(self._locations)
     return np.reshape(macro_locations, (1, self._num_rows, self._num_cols, 1))
 
   def reset(self) -> None:
@@ -95,22 +94,24 @@ class FirstPolicyImage(py_metric.PyStepMetric):
     self._first_policy_image = np.zeros((self._num_rows, self._num_cols))
 
   def call(self, traj: trajectory.Trajectory) -> None:
-
     def normalize_image(image: np.ndarray) -> np.ndarray:
       max_val = np.amax(image)
       min_val = np.amin(image)
       return (image - min_val) / (max_val - min_val)
 
     if traj.step_type == ts.StepType.FIRST:
-      obs = tf.nest.map_structure(lambda t: tf.expand_dims(t, 0),
-                                  traj.observation)
+      obs = tf.nest.map_structure(
+          lambda t: tf.expand_dims(t, 0), traj.observation
+      )
       dist, _ = self._actor_net(obs)
       self._first_policy_image = normalize_image(
-          tf.squeeze(dist.probs_parameter()))
+          tf.squeeze(dist.probs_parameter())
+      )
 
   def result(self) -> np.ndarray:
-    return np.reshape(self._first_policy_image,
-                      (1, self._num_rows, self._num_cols, 1))
+    return np.reshape(
+        self._first_policy_image, (1, self._num_rows, self._num_cols, 1)
+    )
 
   def reset(self) -> None:
     self._first_policy_image = np.zeros((self._num_rows, self._num_cols))
@@ -160,12 +161,14 @@ class InfoMetric(py_metric.PyStepMetric):
     self._buffer.clear()
 
 
-def evaluate(root_dir: str,
-             variable_container_server_address: str,
-             create_env_fn: Callable[..., Any],
-             rl_architecture: str = 'generalization',
-             extra_info_metrics: Optional[List[str]] = None,
-             summary_subdir: str = ''):
+def evaluate(
+    root_dir: str,
+    variable_container_server_address: str,
+    create_env_fn: Callable[..., Any],
+    rl_architecture: str = 'generalization',
+    info_metric_names: Optional[List[str]] = None,
+    summary_subdir: str = '',
+):
   """Evaluates greedy policy."""
 
   # Create the variable container.
@@ -175,7 +178,8 @@ def evaluate(root_dir: str,
   # Create the environment.
   env = create_env_fn()
   observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
-      spec_utils.get_tensor_specs(env))
+      spec_utils.get_tensor_specs(env)
+  )
   static_features = env.wrapped_env().get_static_obs()
   cache = static_feature_cache.StaticFeatureCache()
   cache.add_static_feature(static_features)
@@ -185,19 +189,27 @@ def evaluate(root_dir: str,
         observation_tensor_spec,
         action_tensor_spec,
         cache.get_all_static_features(),
-        use_model_tpu=False)
+        use_model_tpu=False,
+    )
     creat_agent_fn = agent.create_circuit_ppo_grl_agent
     image_metrics = [
-        PlacementImage(env.observation_config.max_grid_size,
-                       env.observation_config.max_grid_size),
-        FirstPolicyImage(env.observation_config.max_grid_size,
-                         env.observation_config.max_grid_size, actor_net),
+        PlacementImage(
+            env.observation_config.max_grid_size,
+            env.observation_config.max_grid_size,
+        ),
+        FirstPolicyImage(
+            env.observation_config.max_grid_size,
+            env.observation_config.max_grid_size,
+            actor_net,
+        ),
     ]
   else:
     actor_net = fully_connected_model_lib.create_actor_net(
-        observation_tensor_spec, action_tensor_spec)
+        observation_tensor_spec, action_tensor_spec
+    )
     value_net = fully_connected_model_lib.create_value_net(
-        observation_tensor_spec)
+        observation_tensor_spec
+    )
     creat_agent_fn = agent.create_circuit_ppo_agent
     image_metrics = [
         PlacementImage(env.grid_rows, env.grid_cols),
@@ -223,43 +235,39 @@ def evaluate(root_dir: str,
   }
   variable_container = reverb_variable_container.ReverbVariableContainer(
       variable_container_server_address,
-      table_names=[reverb_variable_container.DEFAULT_TABLE])
+      table_names=[reverb_variable_container.DEFAULT_TABLE],
+  )
   variable_container.update(variables)
 
   # Create the evaluator actor.
-  info_metrics = [
-      InfoMetric(env, 'wirelength'),
-      InfoMetric(env, 'congestion'),
-      InfoMetric(env, 'density'),
-  ]
-
-  if extra_info_metrics:
-    for info_metric in extra_info_metrics:
-      info_metrics.append(InfoMetric(env, info_metric))
-
   eval_actor = actor.Actor(
       env,
       tf_policy,
       train_step,
       episodes_per_run=1,
-      summary_dir=os.path.join(root_dir, learner.TRAIN_DIR, summary_subdir,
-                               'eval'),
+      summary_dir=os.path.join(
+          root_dir, learner.TRAIN_DIR, summary_subdir, 'eval'
+      ),
       metrics=[
           py_metrics.NumberOfEpisodes(),
           py_metrics.EnvironmentSteps(),
           py_metrics.AverageReturnMetric(
-              name='eval_episode_return', buffer_size=1),
+              name='eval_episode_return', buffer_size=1
+          ),
           py_metrics.AverageEpisodeLengthMetric(buffer_size=1),
-      ] + info_metrics,
+      ]
+      + [InfoMetric(env, info_metric) for info_metric in info_metric_names],
       image_metrics=image_metrics,
-      name='performance')
+      name='performance',
+  )
 
   # Run the experience evaluation loop.
   while True:
     eval_actor.run()
     variable_container.update(variables)
-    logging.info('Evaluating using greedy policy at step: %d',
-                 train_step.numpy())
+    logging.info(
+        'Evaluating using greedy policy at step: %d', train_step.numpy()
+    )
     # Write out summaries at the end of each evaluation iteration. This way,
     # we can look at the wirelength, density and congestion metrics more
     # frequently.
