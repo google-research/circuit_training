@@ -65,7 +65,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
                discount_factor: types.Float = 1.0,
                entropy_regularization: types.Float = 0.01,
                value_pred_loss_coef: types.Float = 0.5,
-               gradient_clipping: Optional[types.Float] = 0.1,
+               gradient_clipping: Optional[types.Float] = 1.0,
                value_clipping: Optional[types.Float] = None,
                check_numerics: bool = False,
                debug_summaries: bool = False,
@@ -444,6 +444,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     return loss_info
 
 
+@gin.configurable(allowlist=['aggregate_losses_across_replicas'])
 def create_circuit_ppo_agent(train_step: tf.Variable,
                              action_tensor_spec: types.NestedTensorSpec,
                              time_step_tensor_spec: types.TimeStep,
@@ -451,10 +452,10 @@ def create_circuit_ppo_agent(train_step: tf.Variable,
                              value_net: network.Network,
                              strategy: tf.distribute.Strategy,
                              optimizer: Optional[types.Optimizer] = None,
+                             aggregate_losses_across_replicas: bool = True,
                              **kwargs) -> CircuitPPOAgent:
   """Creates a PPO agent."""
 
-  aggregate_losses_across_replicas = True
   if aggregate_losses_across_replicas:
     report_loss_scaling_factor = strategy.num_replicas_in_sync
   else:
