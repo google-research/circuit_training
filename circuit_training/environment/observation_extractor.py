@@ -16,6 +16,8 @@
 
 from typing import Dict, Optional, Text, Tuple
 
+from absl import logging
+
 from circuit_training.environment import observation_config as observation_config_lib
 from circuit_training.environment import plc_client
 import gin
@@ -26,18 +28,22 @@ import numpy as np
 class ObservationExtractor(object):
   """Extracts observation features from plc."""
 
-  EPSILON = 1E-6
+  EPSILON = 1e-6
 
-  def __init__(self,
-               plc: plc_client.PlacementCost,
-               observation_config: Optional[
-                   observation_config_lib.ObservationConfig] = None,
-               netlist_index: int = 0,
-               default_location_x: float = 0.5,
-               default_location_y: float = 0.5):
+  def __init__(
+      self,
+      plc: plc_client.PlacementCost,
+      observation_config: Optional[
+          observation_config_lib.ObservationConfig
+      ] = None,
+      netlist_index: int = 0,
+      default_location_x: float = 0.5,
+      default_location_y: float = 0.5,
+  ):
     self.plc = plc
     self._observation_config = (
-        observation_config or observation_config_lib.ObservationConfig())
+        observation_config or observation_config_lib.ObservationConfig()
+    )
     self._netlist_index = netlist_index
     self._default_location_x = default_location_x
     self._default_location_y = default_location_y
@@ -50,7 +56,8 @@ class ObservationExtractor(object):
     # Since there are too many I/O ports, we have to cluster them together to
     # make it manageable for the model to process. The ports that are located in
     # the same grid cell are clustered togheter.
-    self.adj_vec, grid_cell_of_clustered_ports_vec = self.plc.get_macro_and_clustered_port_adjacency(
+    self.adj_vec, grid_cell_of_clustered_ports_vec = (
+        self.plc.get_macro_and_clustered_port_adjacency()
     )
     self.clustered_port_locations_vec = [
         self._get_clustered_port_locations(i)
@@ -76,7 +83,8 @@ class ObservationExtractor(object):
     return features
 
   def _extract_normalized_static_features(
-      self, features: Dict[Text, np.ndarray]) -> None:
+      self, features: Dict[Text, np.ndarray]
+  ) -> None:
     """Normalizes static features."""
     self._add_netlist_metadata(features)
     self._normalize_adj_matrix(features)
@@ -89,26 +97,28 @@ class ObservationExtractor(object):
     self._pad_macro_dynamic_features(features)
 
   def _extract_num_macros(self, features: Dict[Text, np.ndarray]) -> None:
-    features['num_macros'] = np.asarray([len(self.plc.get_macro_indices())
-                                        ]).astype(np.int32)
+    features['num_macros'] = np.asarray(
+        [len(self.plc.get_macro_indices())]
+    ).astype(np.int32)
 
   def _extract_technology_info(self, features: Dict[Text, np.ndarray]) -> None:
     """Extracts Technology-related information."""
     routing_resources = {
-        'horizontal_routes_per_micron':
-            self.plc.get_routes_per_micron()[0],
-        'vertical_routes_per_micron':
-            self.plc.get_routes_per_micron()[1],
-        'macro_horizontal_routing_allocation':
-            self.plc.get_macro_routing_allocation()[0],
-        'macro_vertical_routing_allocation':
-            self.plc.get_macro_routing_allocation()[0],
+        'horizontal_routes_per_micron': self.plc.get_routes_per_micron()[0],
+        'vertical_routes_per_micron': self.plc.get_routes_per_micron()[1],
+        'macro_horizontal_routing_allocation': (
+            self.plc.get_macro_routing_allocation()[0]
+        ),
+        'macro_vertical_routing_allocation': (
+            self.plc.get_macro_routing_allocation()[0]
+        ),
     }
     for k in routing_resources:
       features[k] = np.asarray([routing_resources[k]]).astype(np.float32)
 
-  def _extract_initial_node_locations(self, features: Dict[Text,
-                                                           np.ndarray]) -> None:
+  def _extract_initial_node_locations(
+      self, features: Dict[Text, np.ndarray]
+  ) -> None:
     """Extracts initial node locations."""
     locations_x = []
     locations_y = []
@@ -158,16 +168,19 @@ class ObservationExtractor(object):
     features['macros_h'] = np.asarray(macros_h).astype(np.float32)
 
   def _extract_macro_and_port_adj_matrix(
-      self, features: Dict[Text, np.ndarray]) -> None:
+      self, features: Dict[Text, np.ndarray]
+  ) -> None:
     """Extracts adjacency matrix."""
     num_nodes = len(self.plc.get_macro_indices()) + len(
-        self.clustered_port_locations_vec)
+        self.clustered_port_locations_vec
+    )
     assert num_nodes * num_nodes == len(self.adj_vec)
     sparse_adj_i = []
     sparse_adj_j = []
     sparse_adj_weight = []
-    edge_counts = np.zeros((self._observation_config.max_num_nodes,),
-                           dtype=np.int32)
+    edge_counts = np.zeros(
+        (self._observation_config.max_num_nodes,), dtype=np.int32
+    )
     for i in range(num_nodes):
       for j in range(i + 1, num_nodes):
         weight = self.adj_vec[i + num_nodes * j]
@@ -181,7 +194,8 @@ class ObservationExtractor(object):
     features['sparse_adj_i'] = np.asarray(sparse_adj_i).astype(np.int32)
     features['sparse_adj_j'] = np.asarray(sparse_adj_j).astype(np.int32)
     features['sparse_adj_weight'] = np.asarray(sparse_adj_weight).astype(
-        np.float32)
+        np.float32
+    )
     features['edge_counts'] = edge_counts
 
   def _extract_canvas_size(self, features: Dict[Text, np.ndarray]) -> None:
@@ -193,11 +207,13 @@ class ObservationExtractor(object):
     features['grid_rows'] = np.asarray([self.num_rows]).astype(np.float32)
 
   def _extract_netlist_index(self, features: Dict[Text, np.ndarray]) -> None:
-    features['netlist_index'] = np.asarray([self._netlist_index
-                                           ]).astype(np.int32)
+    features['netlist_index'] = np.asarray([self._netlist_index]).astype(
+        np.int32
+    )
 
   def _get_clustered_port_locations(
-      self, grid_cell_index: int) -> Tuple[float, float]:
+      self, grid_cell_index: int
+  ) -> Tuple[float, float]:
     """Returns clustered port locations.
 
     This function returns an approximation location of the ports in a grid
@@ -235,61 +251,92 @@ class ObservationExtractor(object):
 
   def _add_netlist_metadata(self, features: Dict[Text, np.ndarray]) -> None:
     """Adds netlist metadata info."""
-    features['normalized_num_edges'] = np.asarray([
-        np.sum(features['sparse_adj_weight']) /
-        self._observation_config.max_num_edges
-    ]).astype(np.float32)
-    features['normalized_num_hard_macros'] = np.asarray([
-        np.sum(
-            np.equal(features['node_types'],
-                     observation_config_lib.HARD_MACRO).astype(np.float32)) /
-        self._observation_config.max_num_nodes
-    ]).astype(np.float32)
-    features['normalized_num_soft_macros'] = np.asarray([
-        np.sum(
-            np.equal(features['node_types'],
-                     observation_config_lib.SOFT_MACRO).astype(np.float32)) /
-        self._observation_config.max_num_nodes
-    ]).astype(np.float32)
-    features['normalized_num_port_clusters'] = np.asarray([
-        np.sum(
-            np.equal(features['node_types'],
-                     observation_config_lib.PORT_CLUSTER).astype(np.float32)) /
-        self._observation_config.max_num_nodes
-    ]).astype(np.float32)
+    features['normalized_num_edges'] = np.asarray(
+        [
+            np.sum(features['sparse_adj_weight'])
+            / self._observation_config.max_num_edges
+        ]
+    ).astype(np.float32)
+    features['normalized_num_hard_macros'] = np.asarray(
+        [
+            np.sum(
+                np.equal(
+                    features['node_types'], observation_config_lib.HARD_MACRO
+                ).astype(np.float32)
+            )
+            / self._observation_config.max_num_nodes
+        ]
+    ).astype(np.float32)
+    features['normalized_num_soft_macros'] = np.asarray(
+        [
+            np.sum(
+                np.equal(
+                    features['node_types'], observation_config_lib.SOFT_MACRO
+                ).astype(np.float32)
+            )
+            / self._observation_config.max_num_nodes
+        ]
+    ).astype(np.float32)
+    features['normalized_num_port_clusters'] = np.asarray(
+        [
+            np.sum(
+                np.equal(
+                    features['node_types'], observation_config_lib.PORT_CLUSTER
+                ).astype(np.float32)
+            )
+            / self._observation_config.max_num_nodes
+        ]
+    ).astype(np.float32)
 
   def _normalize_adj_matrix(self, features: Dict[Text, np.ndarray]) -> None:
     """Normalizes adj matrix weights."""
     mean_weight = np.mean(features['sparse_adj_weight'])
     features['sparse_adj_weight'] = (
-        features['sparse_adj_weight'] /
-        (mean_weight + ObservationExtractor.EPSILON)).astype(np.float32)
+        features['sparse_adj_weight']
+        / (mean_weight + ObservationExtractor.EPSILON)
+    ).astype(np.float32)
 
   def _pad_1d_tensor(self, tensor: np.ndarray, pad_size: int) -> np.ndarray:
     return np.pad(
-        tensor, (0, pad_size - tensor.shape[0]),
+        tensor,
+        (0, pad_size - tensor.shape[0]),
         mode='constant',
-        constant_values=0)
+        constant_values=0,
+    )
 
   def _pad_adj_matrix(self, features: Dict[Text, np.ndarray]) -> None:
     """Pads indices and weights with zero to make their shape known."""
+    logging.info(
+        'Pad a tensor with shape %s by %s',
+        features['sparse_adj_i'].shape,
+        self._observation_config.max_num_edges,
+    )
     for var in ['sparse_adj_i', 'sparse_adj_j', 'sparse_adj_weight']:
       features[var] = self._pad_1d_tensor(
-          features[var], self._observation_config.max_num_edges)
+          features[var], self._observation_config.max_num_edges
+      )
 
-  def _pad_macro_static_features(self, features: Dict[Text,
-                                                      np.ndarray]) -> None:
+  def _pad_macro_static_features(
+      self, features: Dict[Text, np.ndarray]
+  ) -> None:
     """Pads macro features to make their shape knwon."""
+    logging.info(
+        'Pad a tensor with shape %s by %s',
+        features['macros_w'].shape,
+        self._observation_config.max_num_nodes,
+    )
     for var in [
         'macros_w',
         'macros_h',
         'node_types',
     ]:
       features[var] = self._pad_1d_tensor(
-          features[var], self._observation_config.max_num_nodes)
+          features[var], self._observation_config.max_num_nodes
+      )
 
-  def _pad_macro_dynamic_features(self, features: Dict[Text,
-                                                       np.ndarray]) -> None:
+  def _pad_macro_dynamic_features(
+      self, features: Dict[Text, np.ndarray]
+  ) -> None:
     """Pads macro features to make their shape knwon."""
     for var in [
         'locations_x',
@@ -297,42 +344,46 @@ class ObservationExtractor(object):
         'is_node_placed',
     ]:
       features[var] = self._pad_1d_tensor(
-          features[var], self._observation_config.max_num_nodes)
+          features[var], self._observation_config.max_num_nodes
+      )
 
   def _normalize_grid_size(self, features: Dict[Text, np.ndarray]) -> None:
-    features['grid_cols'] = (features['grid_cols'] /
-                             self._observation_config.max_grid_size).astype(
-                                 np.float32)
-    features['grid_rows'] = (features['grid_rows'] /
-                             self._observation_config.max_grid_size).astype(
-                                 np.float32)
+    features['grid_cols'] = (
+        features['grid_cols'] / self._observation_config.max_grid_size
+    ).astype(np.float32)
+    features['grid_rows'] = (
+        features['grid_rows'] / self._observation_config.max_grid_size
+    ).astype(np.float32)
 
-  def _normalize_macro_size_by_canvas(self, features: Dict[Text,
-                                                           np.ndarray]) -> None:
+  def _normalize_macro_size_by_canvas(
+      self, features: Dict[Text, np.ndarray]
+  ) -> None:
     """Normalizes macro sizes with the canvas size."""
     features['macros_w'] = (
-        features['macros_w'] /
-        (features['canvas_width'] + ObservationExtractor.EPSILON)).astype(
-            np.float32)
+        features['macros_w']
+        / (features['canvas_width'] + ObservationExtractor.EPSILON)
+    ).astype(np.float32)
     features['macros_h'] = (
-        features['macros_h'] /
-        (features['canvas_height'] + ObservationExtractor.EPSILON)).astype(
-            np.float32)
+        features['macros_h']
+        / (features['canvas_height'] + ObservationExtractor.EPSILON)
+    ).astype(np.float32)
 
-  def _normalize_locations_by_canvas(self, features: Dict[Text,
-                                                          np.ndarray]) -> None:
+  def _normalize_locations_by_canvas(
+      self, features: Dict[Text, np.ndarray]
+  ) -> None:
     """Normalizes locations with the canvas size."""
     features['locations_x'] = (
-        features['locations_x'] /
-        (features['canvas_width'] + ObservationExtractor.EPSILON)).astype(
-            np.float32)
+        features['locations_x']
+        / (features['canvas_width'] + ObservationExtractor.EPSILON)
+    ).astype(np.float32)
     features['locations_y'] = (
-        features['locations_y'] /
-        (features['canvas_height'] + ObservationExtractor.EPSILON)).astype(
-            np.float32)
+        features['locations_y']
+        / (features['canvas_height'] + ObservationExtractor.EPSILON)
+    ).astype(np.float32)
 
-  def _replace_unplace_node_location(self, features: Dict[Text,
-                                                          np.ndarray]) -> None:
+  def _replace_unplace_node_location(
+      self, features: Dict[Text, np.ndarray]
+  ) -> None:
     """Replace the location of the unplaced macros with a constant."""
     is_node_placed = np.equal(features['is_node_placed'], 1)
     features['locations_x'] = np.where(
@@ -352,25 +403,29 @@ class ObservationExtractor(object):
         for key in observation_config_lib.STATIC_OBSERVATIONS
     }
 
-  def _update_dynamic_features(self, previous_node_index: int,
-                               current_node_index: int,
-                               mask: np.ndarray) -> None:
+  def _update_dynamic_features(
+      self, previous_node_index: int, current_node_index: int, mask: np.ndarray
+  ) -> None:
     """Updates the dynamic features."""
     if previous_node_index >= 0:
       x, y = self.plc.get_node_location(
-          self.plc.get_macro_indices()[previous_node_index])
+          self.plc.get_macro_indices()[previous_node_index]
+      )
       self._features['locations_x'][previous_node_index] = (
-          x / (self.width + ObservationExtractor.EPSILON))
+          x / self.width + ObservationExtractor.EPSILON
+      )
       self._features['locations_y'][previous_node_index] = (
-          y / (self.height + ObservationExtractor.EPSILON))
+          y / self.height + ObservationExtractor.EPSILON
+      )
       self._features['is_node_placed'][previous_node_index] = 1
     self._features['mask'] = mask.astype(np.int32)
-    self._features['current_node'] = np.asarray([current_node_index
-                                                ]).astype(np.int32)
+    self._features['current_node'] = np.asarray([current_node_index]).astype(
+        np.int32
+    )
 
-  def get_dynamic_features(self, previous_node_index: int,
-                           current_node_index: int,
-                           mask: np.ndarray) -> Dict[Text, np.ndarray]:
+  def get_dynamic_features(
+      self, previous_node_index: int, current_node_index: int, mask: np.ndarray
+  ) -> Dict[Text, np.ndarray]:
     self._update_dynamic_features(previous_node_index, current_node_index, mask)
     return {
         key: self._features[key]
@@ -378,12 +433,15 @@ class ObservationExtractor(object):
         if key in self._features
     }
 
-  def get_all_features(self, previous_node_index: int, current_node_index: int,
-                       mask: np.ndarray) -> Dict[Text, np.ndarray]:
+  def get_all_features(
+      self, previous_node_index: int, current_node_index: int, mask: np.ndarray
+  ) -> Dict[Text, np.ndarray]:
     features = self.get_static_features()
     features.update(
         self.get_dynamic_features(
             previous_node_index=previous_node_index,
             current_node_index=current_node_index,
-            mask=mask))
+            mask=mask,
+        )
+    )
     return features
