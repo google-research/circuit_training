@@ -108,7 +108,7 @@ class CollectTest(parameterized.TestCase, test_utils.TestCase):
     cache.add_static_feature(static_features)
 
     with strategy.scope():
-      grl_actor_net, grl_value_net = model.create_grl_models(
+      actor_net, value_net = model.create_grl_models(
           observation_tensor_spec,
           action_tensor_spec,
           cache.get_all_static_features(),
@@ -117,12 +117,10 @@ class CollectTest(parameterized.TestCase, test_utils.TestCase):
     # Create the agent whose collect policy is being tested.
     with strategy.scope():
       train_step = train_utils.create_train_step()
-      tf_agent = agent.create_circuit_ppo_grl_agent(train_step,
-                                                    action_tensor_spec,
-                                                    time_step_tensor_spec,
-                                                    grl_actor_net,
-                                                    grl_value_net,
-                                                    strategy)
+      tf_agent = agent.create_circuit_ppo_agent(train_step, action_tensor_spec,
+                                                time_step_tensor_spec,
+                                                actor_net, value_net,
+                                                strategy)
       tf_agent.initialize()
 
     # Create, run driver and check the data in an observer performing asserts

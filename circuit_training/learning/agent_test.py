@@ -40,10 +40,10 @@ _TESTDATA_DIR = ('circuit_training/'
 
 def create_test_circuit_env():
   env = environment.create_circuit_environment(
-      netlist_file=os.path.join(
-          FLAGS.test_srcdir, _TESTDATA_DIR, 'netlist.pb.txt'),
-      init_placement=os.path.join(
-          FLAGS.test_srcdir, _TESTDATA_DIR, 'initial.plc'))
+      netlist_file=os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
+                                'netlist.pb.txt'),
+      init_placement=os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
+                                  'initial.plc'))
   return env
 
 
@@ -66,7 +66,7 @@ class AgentTest(test_utils.TestCase):
     observation_tensor_spec, action_tensor_spec, _ = (
         spec_utils.get_tensor_specs(env))
     with strategy.scope():
-      grl_actor_net, grl_value_net = model.create_grl_models(
+      actor_net, value_net = model.create_grl_models(
           observation_tensor_spec,
           action_tensor_spec,
           cache.get_all_static_features(),
@@ -74,11 +74,9 @@ class AgentTest(test_utils.TestCase):
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=4e-4, epsilon=1e-5)
 
-    grl_agent = agent.create_circuit_ppo_grl_agent(train_step,
-                                                   action_tensor_spec,
-                                                   time_step_tensor_spec,
-                                                   grl_actor_net, grl_value_net,
-                                                   strategy, optimizer)
+    grl_agent = agent.create_circuit_ppo_agent(train_step, action_tensor_spec,
+                                               time_step_tensor_spec, actor_net,
+                                               value_net, strategy, optimizer)
 
     batch_size = 4
     # Check that value prediction outputs the correct shape (B, ).
@@ -106,7 +104,7 @@ class AgentTest(test_utils.TestCase):
     cache.add_static_feature(static_features)
 
     with strategy.scope():
-      grl_actor_net, grl_value_net = model.create_grl_models(
+      actor_net, value_net = model.create_grl_models(
           observation_tensor_spec,
           action_tensor_spec,
           cache.get_all_static_features(),
@@ -114,11 +112,9 @@ class AgentTest(test_utils.TestCase):
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=4e-4, epsilon=1e-5)
 
-    grl_agent = agent.create_circuit_ppo_grl_agent(train_step,
-                                                   action_tensor_spec,
-                                                   time_step_tensor_spec,
-                                                   grl_actor_net, grl_value_net,
-                                                   strategy, optimizer)
+    grl_agent = agent.create_circuit_ppo_agent(train_step, action_tensor_spec,
+                                               time_step_tensor_spec, actor_net,
+                                               value_net, strategy, optimizer)
 
     batch_size = 4
     sample_time_steps = tensor_spec.sample_spec_nest(
@@ -142,6 +138,7 @@ class AgentTest(test_utils.TestCase):
         sample_time_steps.reward, sample_time_steps.discount)
     # Check that training compeltes one iteration.
     grl_agent.train(sample_experience)
+
 
 if __name__ == '__main__':
   test_utils.main()

@@ -98,7 +98,7 @@ def main(_):
   cache.add_static_feature(static_features)
 
   with strategy.scope():
-    grl_actor_net, grl_value_net = model.create_grl_models(
+    actor_net, value_net = model.create_grl_models(
         observation_tensor_spec,
         action_tensor_spec,
         cache.get_all_static_features(),
@@ -112,10 +112,9 @@ def main(_):
       variable_container_server_address=_VARIABLE_CONTAINER_SERVER_ADDR.value,
       action_tensor_spec=action_tensor_spec,
       time_step_tensor_spec=time_step_tensor_spec,
-      rl_architecture='generalization',
       sequence_length=_SEQUENCE_LENGTH.value,
-      actor_net=grl_actor_net,
-      value_net=grl_value_net)
+      actor_net=actor_net,
+      value_net=value_net)
 
 
 if __name__ == '__main__':

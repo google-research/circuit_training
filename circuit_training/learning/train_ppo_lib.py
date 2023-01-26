@@ -53,10 +53,14 @@ def get_shuffle_buffer_size(
   return sequence_length * shuffle_buffer_episode_len
 
 
-def compute_init_iteration(init_train_step: int, sequence_length: int,
-                           num_episodes_per_iteration: int, num_epochs: int,
-                           per_replica_batch_size: int,
-                           num_replicas_in_sync: int) -> int:
+def compute_init_iteration(
+    init_train_step: int,
+    sequence_length: int,
+    num_episodes_per_iteration: int,
+    num_epochs: int,
+    per_replica_batch_size: int,
+    num_replicas_in_sync: int,
+) -> int:
   """Computes the initial iterations number.
 
   In case of restarting, the init_train_step might not be zero. We need to
@@ -80,14 +84,24 @@ def compute_init_iteration(init_train_step: int, sequence_length: int,
   Returns:
     The initial iteration number.
   """
-  return int(init_train_step * per_replica_batch_size * num_replicas_in_sync /
-             sequence_length / num_episodes_per_iteration / num_epochs)
+  return int(
+      init_train_step
+      * per_replica_batch_size
+      * num_replicas_in_sync
+      / sequence_length
+      / num_episodes_per_iteration
+      / num_epochs
+  )
 
 
-def compute_total_training_step(sequence_length, num_iterations,
-                                num_episodes_per_iteration, num_epochs,
-                                per_replica_batch_size,
-                                num_replicas_in_sync) -> int:
+def compute_total_training_step(
+    sequence_length,
+    num_iterations,
+    num_episodes_per_iteration,
+    num_epochs,
+    per_replica_batch_size,
+    num_replicas_in_sync,
+) -> int:
   """Computes the total training step.
 
   Args:
@@ -108,14 +122,25 @@ def compute_total_training_step(sequence_length, num_iterations,
   Returns:
     The total training step.
   """
-  return int(sequence_length * num_iterations * num_episodes_per_iteration *
-             num_epochs / per_replica_batch_size / num_replicas_in_sync)
+  return int(
+      sequence_length
+      * num_iterations
+      * num_episodes_per_iteration
+      * num_epochs
+      / per_replica_batch_size
+      / num_replicas_in_sync
+  )
 
 
-@gin.configurable(allowlist=[
-    'per_replica_batch_size', 'num_epochs', 'num_iterations',
-    'num_episodes_per_iteration', 'init_learning_rate'
-])
+@gin.configurable(
+    allowlist=[
+        'per_replica_batch_size',
+        'num_epochs',
+        'num_iterations',
+        'num_episodes_per_iteration',
+        'init_learning_rate',
+    ]
+)
 def train(
     root_dir: str,
     strategy: tf.distribute.Strategy,
@@ -128,7 +153,6 @@ def train(
     value_net: network.Network,
     # Training params
     init_train_step: int = 0,
-    rl_architecture: str = 'generalization',
     # This is the per replica batch size. The global batch size can be computed
     # by this number multiplied by the number of replicas (8 in the case of 2x2
     # TPUs).
@@ -142,7 +166,10 @@ def train(
     # global_step (number of gradient updates) * per_replica_batch_size *
     # num_replicas.
     num_episodes_per_iteration: int = 1024,
-    init_learning_rate: float = 0.004) -> None:
+    init_learning_rate: float = 0.004,
+    num_netlists: int = 1,
+    debug_summaries: bool = False,
+) -> None:
   """Trains a PPO agent.
 
   Args:
@@ -159,7 +186,6 @@ def train(
     actor_net: TF-Agents actor network.
     value_net: TF-Agents value network.
     init_train_step: Initial train step.
-    rl_architecture: RL observation and model architecture.
     per_replica_batch_size: The minibatch size for learner. The dataset used for
       training is shaped `[minibatch_size, 1, ...]`. If None, full sequences
       will be fed into the agent. Please set this parameter to None for RNN
@@ -171,17 +197,30 @@ def train(
     num_episodes_per_iteration: This is the number of episodes we train in each
       epoch.
     init_learning_rate: Initial learning rate.
+    num_netlists: Number of netlits to train used for normalizing advantage. If
+      larger than 1, the advantage will be normalize first across the netlists
+      then on the entire batch.
+    debug_summaries: If enable summray extra information.
   """
 
-  init_iteration = compute_init_iteration(init_train_step, sequence_length,
-                                          num_episodes_per_iteration,
-                                          num_epochs, per_replica_batch_size,
-                                          strategy.num_replicas_in_sync)
+  init_iteration = compute_init_iteration(
+      init_train_step,
+      sequence_length,
+      num_episodes_per_iteration,
+      num_epochs,
+      per_replica_batch_size,
+      strategy.num_replicas_in_sync,
+  )
   logging.info('Initialize iteration at: init_iteration %s.', init_iteration)
 
   total_training_step = compute_total_training_step(
-      sequence_length, num_iterations, num_episodes_per_iteration, num_epochs,
-      per_replica_batch_size, strategy.num_replicas_in_sync)
+      sequence_length,
+      num_iterations,
+      num_episodes_per_iteration,
+      num_epochs,
+      per_replica_batch_size,
+      strategy.num_replicas_in_sync,
+  )
 
   # Create the agent.
   with strategy.scope():
@@ -192,25 +231,25 @@ def train(
     # The model_id should equal to the iteration number.
     model_id.assign(init_iteration)
 
-    if rl_architecture == 'generalization':
-      logging.info('Using GRL agent networks.')
-      creat_agent_fn = agent.create_circuit_ppo_grl_agent
-    else:
-      logging.info('Using RL fully connected agent networks.')
-      creat_agent_fn = agent.create_circuit_ppo_agent
-
     lr = tf.keras.optimizers.schedules.CosineDecay(
         initial_learning_rate=init_learning_rate,
         decay_steps=total_training_step,
-        alpha=0.1)
+        alpha=0.1,
+    )
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr, epsilon=1e-5)
     # Assigns the train step to optimizer iterations to ensure that the step is
     # correct when resuming training.
     optimizer.iterations = train_step
 
-    tf_agent = creat_agent_fn(train_step, action_tensor_spec,
-                              time_step_tensor_spec, actor_net, value_net,
-                              strategy, optimizer)
+    tf_agent = agent.create_circuit_ppo_agent(
+        train_step=train_step,
+        action_tensor_spec=action_tensor_spec,
+        time_step_tensor_spec=time_step_tensor_spec,
+        actor_net=actor_net,
+        value_net=value_net,
+        strategy=strategy,
+        optimizer=optimizer,
+    )
     tf_agent.initialize()
 
   # Create the policy saver which saves the initial model now, then it
@@ -221,7 +260,8 @@ def train(
       tf_agent,
       train_step,
       start=-num_episodes_per_iteration,
-      interval=num_episodes_per_iteration)
+      interval=num_episodes_per_iteration,
+  )
 
   # Create the variable container.
   variables = {
@@ -231,37 +271,28 @@ def train(
   }
   variable_container = reverb_variable_container.ReverbVariableContainer(
       variable_container_server_address,
-      table_names=[reverb_variable_container.DEFAULT_TABLE])
+      table_names=[reverb_variable_container.DEFAULT_TABLE],
+  )
   variable_container.push(variables)
 
   # Create the replay buffer.
-  reverb_replay_train = reverb_replay_buffer.ReverbReplayBuffer(
-      tf_agent.collect_data_spec,
-      sequence_length=None,
-      table_name='training_table',
-      server_address=replay_buffer_server_address)
+  reverb_replay_trains = []
+  for index in range(num_netlists):
+    reverb_replay_trains += [
+        reverb_replay_buffer.ReverbReplayBuffer(
+            tf_agent.collect_data_spec,
+            sequence_length=None,
+            table_name=f'training_table_{index}',
+            server_address=replay_buffer_server_address,
+        )
+    ]
 
   # Initialize the dataset.
-  def experience_dataset_fn():
+  def experiences_dataset_fn():
     get_dtype = lambda x: x.dtype
     get_shape = lambda x: (None,) + x.shape
     shapes = tf.nest.map_structure(get_shape, tf_agent.collect_data_spec)
     dtypes = tf.nest.map_structure(get_dtype, tf_agent.collect_data_spec)
-
-    dataset = reverb.TrajectoryDataset(
-        server_address=replay_buffer_server_address,
-        table='training_table',
-        dtypes=dtypes,
-        shapes=shapes,
-        # Menger uses learner_iterations_per_call (256). Using 8 here instead
-        # because we do not need that much data in the buffer (they have to be
-        # filtered out for the next iteration anyways). The rule of thumb is
-        # 2-3x batch_size.
-        max_in_flight_samples_per_worker=8,
-        num_workers_per_iterator=-1,
-        max_samples_per_stream=-1,
-        rate_limiter_timeout_ms=-1,
-    )
 
     def broadcast_info(info_traj):
       # Assumes that the first element of traj is shaped
@@ -272,8 +303,27 @@ def train(
       info = tf.nest.map_structure(lambda t: tf.repeat(t, [length]), info)
       return reverb.ReplaySample(info, traj)
 
-    dataset = dataset.map(broadcast_info)
-    return dataset
+    datasets = []
+    for index in range(num_netlists):
+      dataset = reverb.TrajectoryDataset(
+          server_address=replay_buffer_server_address,
+          table=f'training_table_{index}',
+          dtypes=dtypes,
+          shapes=shapes,
+          # Menger uses learner_iterations_per_call (256). Using 8 here instead
+          # because we do not need that much data in the buffer (they have to be
+          # filtered out for the next iteration anyways). The rule of thumb is
+          # 2-3x batch_size.
+          max_in_flight_samples_per_worker=8,
+          num_workers_per_iterator=-1,
+          max_samples_per_stream=-1,
+          rate_limiter_timeout_ms=-1,
+      )
+      logging.info('Created dataset for training_table_%s', index)
+
+      datasets += [dataset.map(broadcast_info)]
+
+    return datasets
 
   # Create the learner.
   learning_triggers = [
@@ -292,7 +342,7 @@ def train(
       train_step,
       model_id,
       tf_agent,
-      experience_dataset_fn,
+      experiences_dataset_fn,
       sequence_length,
       num_episodes_per_iteration=num_episodes_per_iteration,
       minibatch_size=per_replica_batch_size,
@@ -300,32 +350,39 @@ def train(
       triggers=learning_triggers,
       strategy=strategy,
       num_epochs=num_epochs,
-      per_sequence_fn=per_sequence_fn)
+      per_sequence_fn=per_sequence_fn,
+  )
 
   # Run the training loop.
   for i in range(init_iteration, num_iterations):
     step_val = train_step.numpy()
     logging.info('Training. Iteration: %d', i)
     start_time = time.time()
-    # `wait_for_data` is not necessary and is added only to measure the data
-    # latency. It takes one batch of data from dataset and print it. So, it
-    # waits until the data is ready to consume.
-    learner.wait_for_data()
-    data_wait_time = time.time() - start_time
-    logging.info('Data wait time sec: %s', data_wait_time)
+    if debug_summaries:
+      # `wait_for_data` is not necessary and is added only to measure the data
+      # latency. It takes one batch of data from dataset and print it. So, it
+      # waits until the data is ready to consume.
+      learner.wait_for_data()
+      data_wait_time = time.time() - start_time
+      logging.info('Data wait time sec: %s', data_wait_time)
     learner.run()
-    num_steps = train_step.numpy() - step_val
     run_time = time.time() - start_time
+    num_steps = train_step.numpy() - step_val
     logging.info('Steps per sec: %s', num_steps / run_time)
     logging.info('Pushing variables at model_id: %d', model_id.numpy())
     variable_container.push(variables)
-    logging.info('clearing replay buffer')
-    reverb_replay_train.clear()
-    with learner.train_summary_writer.as_default(), \
-         common.soft_device_placement(), \
-         tf.summary.record_if(lambda: True):
+    logging.info('clearing replay buffers')
+    for reverb_replay_train in reverb_replay_trains:
+      reverb_replay_train.clear()
+    with (
+        learner.train_summary_writer.as_default(),
+        common.soft_device_placement(),
+        tf.summary.record_if(lambda: True),
+    ):
       with tf.name_scope('RunTime/'):
         tf.summary.scalar(
-            name='data_wait_time_sec', data=data_wait_time, step=train_step)
-        tf.summary.scalar(
-            name='step_per_sec', data=num_steps / run_time, step=train_step)
+            name='step_per_sec', data=num_steps / run_time, step=train_step
+        )
+        if debug_summaries:
+          tf.summary.scalar(
+              name='data_wait_time_sec', data=data_wait_time, step=train_step)

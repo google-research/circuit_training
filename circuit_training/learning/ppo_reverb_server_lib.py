@@ -28,7 +28,10 @@ from tf_agents.train.utils import train_utils
 from tf_agents.utils import common
 
 
-def start_reverb_server(root_dir, replay_buffer_capacity, port):
+def start_reverb_server(root_dir: str,
+                        replay_buffer_capacity: int,
+                        port: int,
+                        num_netlists: int = 1):
   """todo."""
   collect_policy_saved_model_path = os.path.join(
       root_dir, learner.POLICY_SAVED_MODEL_DIR,
@@ -67,25 +70,30 @@ def start_reverb_server(root_dir, replay_buffer_capacity, port):
   replay_buffer_signature = tensor_spec.add_outer_dim(replay_buffer_signature)
   logging.info('Signature of experience: \n%s', replay_buffer_signature)
 
+  # The remover does not matter because we clear the table at the end
+  # of each global step. We assume that the table is large enough to
+  # contain the data collected from one step (otherwise some data will
+  # be dropped).
+  training_tables = []
+  for index in range(num_netlists):
+    training_tables += [
+        reverb.Table(  # Replay buffer storing experience for training.
+            name=f'training_table_{index}',
+            sampler=reverb.selectors.MaxHeap(),
+            remover=reverb.selectors.MinHeap(),
+            # Menger sets this to 8, but empirically 1 learns better
+            # consistently.
+            rate_limiter=reverb.rate_limiters.MinSize(1),
+            max_size=replay_buffer_capacity,
+            max_times_sampled=1,
+            signature=replay_buffer_signature,
+        )
+    ]
+
   # Crete and start the replay buffer and variable container server.
   # TODO(b/159130813): Optionally turn the reverb server pieces into a library.
   server = reverb.Server(
-      tables=[
-          # The remover does not matter because we clear the table at the end
-          # of each global step. We assume that the table is large enough to
-          # contain the data collected from one step (otherwise some data will
-          # be dropped).
-          reverb.Table(  # Replay buffer storing experience for training.
-              name='training_table',
-              sampler=reverb.selectors.MaxHeap(),
-              remover=reverb.selectors.MinHeap(),
-              # Menger sets this to 8, but empirically 1 learns better
-              # consistently.
-              rate_limiter=reverb.rate_limiters.MinSize(1),
-              max_size=replay_buffer_capacity,
-              max_times_sampled=1,
-              signature=replay_buffer_signature,
-          ),
+      tables=training_tables + [
           reverb.Table(  # Variable container storing policy parameters.
               name=reverb_variable_container.DEFAULT_TABLE,
               sampler=reverb.selectors.Fifo(),

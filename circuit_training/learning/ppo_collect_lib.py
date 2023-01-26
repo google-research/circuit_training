@@ -43,7 +43,8 @@ def collect(task: int,
             max_sequence_length: int,
             rl_architecture: str = 'generalization',
             summary_subdir: str = '',
-            write_summaries_task_threshold: int = 1):
+            write_summaries_task_threshold: int = 1,
+            netlist_index: int = 0):
   """Collects experience using a policy updated after every episode."""
   # Create the environment.
   train_step = train_utils.create_train_step()
@@ -60,15 +61,13 @@ def collect(task: int,
         action_tensor_spec,
         cache.get_all_static_features(),
         use_model_tpu=False)
-    creat_agent_fn = agent.create_circuit_ppo_grl_agent
   else:
     actor_net = fully_connected_model_lib.create_actor_net(
         observation_tensor_spec, action_tensor_spec)
     value_net = fully_connected_model_lib.create_value_net(
         observation_tensor_spec)
-    creat_agent_fn = agent.create_circuit_ppo_agent
 
-  tf_agent = creat_agent_fn(
+  tf_agent = agent.create_circuit_ppo_agent(
       train_step,
       action_tensor_spec,
       time_step_tensor_spec,
@@ -96,7 +95,7 @@ def collect(task: int,
   observers = [
       reverb_utils.ReverbAddEpisodeObserver(
           reverb.Client(replay_buffer_server_address),
-          table_name=['training_table'],
+          table_name=[f'training_table_{netlist_index}'],
           max_sequence_length=max_sequence_length,
           priority=model_id)
   ]

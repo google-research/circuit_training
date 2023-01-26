@@ -17,7 +17,6 @@
 from typing import Optional, Text, Tuple
 
 from absl import logging
-from circuit_training.model import model
 import gin
 import tensorflow as tf
 from tf_agents.agents.ppo import ppo_agent
@@ -223,7 +222,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     advantages = self.compute_advantages(rewards, returns, discounts,
                                          value_preds)
 
-    # TODO(b/171573175): remove the condition once historgrams are
+    # TODO(b/171573175): remove the condition once histograms are
     # supported on TPUs.
     if self._debug_summaries and not self._use_tpu:
       tf.compat.v2.summary.histogram(
@@ -445,34 +444,6 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     return loss_info
 
 
-def create_circuit_ppo_grl_agent(train_step: tf.Variable,
-                                 action_tensor_spec: types.NestedTensorSpec,
-                                 time_step_tensor_spec: types.TimeStep,
-                                 grl_actor_net: model.GrlPolicyModel,
-                                 grl_value_net: model.GrlValueModel,
-                                 strategy: tf.distribute.Strategy,
-                                 optimizer: Optional[types.Optimizer] = None,
-                                 **kwargs) -> CircuitPPOAgent:
-  """Creates a PPO agent using the GRL networks."""
-
-  aggregate_losses_across_replicas = True
-  if aggregate_losses_across_replicas:
-    report_loss_scaling_factor = strategy.num_replicas_in_sync
-  else:
-    report_loss_scaling_factor = 1.0
-
-  return CircuitPPOAgent(
-      time_step_tensor_spec,
-      action_tensor_spec,
-      optimizer=optimizer,
-      actor_net=grl_actor_net,
-      value_net=grl_value_net,
-      train_step_counter=train_step,
-      aggregate_losses_across_replicas=aggregate_losses_across_replicas,
-      report_loss_scaling_factor=report_loss_scaling_factor,
-      **kwargs)
-
-
 def create_circuit_ppo_agent(train_step: tf.Variable,
                              action_tensor_spec: types.NestedTensorSpec,
                              time_step_tensor_spec: types.TimeStep,
@@ -481,7 +452,7 @@ def create_circuit_ppo_agent(train_step: tf.Variable,
                              strategy: tf.distribute.Strategy,
                              optimizer: Optional[types.Optimizer] = None,
                              **kwargs) -> CircuitPPOAgent:
-  """Creates a PPO agent using the simpler fully connected RL networks."""
+  """Creates a PPO agent."""
 
   aggregate_losses_across_replicas = True
   if aggregate_losses_across_replicas:

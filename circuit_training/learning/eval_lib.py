@@ -191,7 +191,6 @@ def evaluate(
         cache.get_all_static_features(),
         use_model_tpu=False,
     )
-    creat_agent_fn = agent.create_circuit_ppo_grl_agent
     image_metrics = [
         PlacementImage(
             env.observation_config.max_grid_size,
@@ -210,13 +209,12 @@ def evaluate(
     value_net = fully_connected_model_lib.create_value_net(
         observation_tensor_spec
     )
-    creat_agent_fn = agent.create_circuit_ppo_agent
     image_metrics = [
         PlacementImage(env.grid_rows, env.grid_cols),
         FirstPolicyImage(env.grid_rows, env.grid_cols, actor_net),
     ]
 
-  tf_agent = creat_agent_fn(
+  tf_agent = agent.create_circuit_ppo_agent(
       train_step,
       action_tensor_spec,
       time_step_tensor_spec,
