@@ -374,7 +374,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
            is_eval: bool = False) -> Tuple[Dict[Text, tf.Tensor], tf.Tensor]:
     # Netlist metadata.
     netlist_metadata_inputs = [
-        self._get_static_input(key, inputs)
+        self._get_static_input(key, inputs)  # pytype: disable=wrong-arg-types  # always-use-return-annotations
         for key in observation_config_lib.NETLIST_METADATA
     ]
 
