@@ -33,7 +33,7 @@ class PlacementCost(object):
   """PlacementCost object wrapper."""
 
   BUFFER_LEN = 1024 * 1024
-  MAX_RETRY = 10
+  MAX_RETRY = 256
 
   def __init__(self,
                netlist_file: Text,
