@@ -14,7 +14,7 @@
 # limitations under the License.
 """New circuittraining Model for generalization."""
 import sys
-from typing import Dict, Optional, Text, Union, Callable, Tuple
+from typing import Dict, Optional, Union, Callable, Tuple
 
 from circuit_training.environment import observation_config as observation_config_lib
 import gin
@@ -28,7 +28,7 @@ import tensorflow_probability as tfp
 def smart_cond(pred: Union[bool, tf.Tensor],
                true_fn: Callable[[], tf.Tensor],
                false_fn: Callable[[], tf.Tensor],
-               name: Optional[Text] = None) -> tf.Tensor:
+               name: Optional[str] = None) -> tf.Tensor:
   """Return either `true_fn()` if predicate `pred` is true else `false_fn()`.
 
   If `pred` is a bool or has a constant value, we return either `true_fn()`
@@ -333,8 +333,8 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
 
     return noised_logit
 
-  def _get_static_input(self, static_feature_key: Text,
-                        inputs: Dict[Text, tf.Tensor]) -> tf.Tensor:
+  def _get_static_input(self, static_feature_key: str,
+                        inputs: Dict[str, tf.Tensor]) -> tf.Tensor:
     """Returns the tensor for a particular static feature.
 
     Args:
@@ -369,9 +369,9 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
                      netlist_index)
 
   def call(self,
-           inputs: tf.Tensor,
+           inputs: Dict[str, tf.Tensor],
            training: bool = False,
-           is_eval: bool = False) -> Tuple[Dict[Text, tf.Tensor], tf.Tensor]:
+           is_eval: bool = False) -> Tuple[Dict[str, tf.Tensor], tf.Tensor]:
     # Netlist metadata.
     netlist_metadata_inputs = [
         self._get_static_input(key, inputs)  # pytype: disable=wrong-arg-types  # always-use-return-annotations
@@ -566,9 +566,9 @@ class CircuitTrainingTPUModel(CircuitTrainingModel):
     return tf.where(mask, h_edges, tf.zeros_like(h_edges))
 
   def call(self,
-           inputs: tf.Tensor,
+           inputs: Dict[str, tf.Tensor],
            training: bool = False,
-           is_eval: bool = False) -> Tuple[Dict[Text, tf.Tensor], tf.Tensor]:
+           is_eval: bool = False) -> Tuple[Dict[str, tf.Tensor], tf.Tensor]:
     # Netlist metadata.
     netlist_metadata_inputs = [
         self._get_static_input(key, inputs)
