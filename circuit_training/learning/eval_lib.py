@@ -261,13 +261,15 @@ def evaluate(
 
   # Run the experience evaluation loop.
   while True:
-    eval_actor.run()
-    variable_container.update(variables)
     logging.info(
         'Evaluating using greedy policy at step: %d', train_step.numpy()
     )
+    eval_actor.run()
+    logging.info('Updating the variables.')
+    variable_container.update(variables)
     # Write out summaries at the end of each evaluation iteration. This way,
     # we can look at the wirelength, density and congestion metrics more
     # frequently.
+    logging.info('Updating the summaries.')
     eval_actor.write_metric_summaries()
     time.sleep(20)
