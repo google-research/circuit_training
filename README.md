@@ -3,7 +3,7 @@
   owner: 'tobyboyd'
   owner: 'sguada'
   owner: 'morpheus-core'
-  reviewed: '2022-12-15'
+  reviewed: '2023-01-14'
   review_interval: '12 months'
 } *-->
 
@@ -74,11 +74,14 @@ scaling to 100s of actors.
 
 ## Installation
 
-Circuit Training requires:
+> :warning: Circuit Training only supports Linux based OSes.
 
-*   Installing TF-Agents which includes Reverb and TensorFlow.
-*   Downloading the placement cost binary into your system path.
-*   Downloading the circuit-training code.
+Circuit Training installation steps:
+
+*   Install TF-Agents which includes Reverb and TensorFlow.
+*   Download the placement cost binary into your system path.
+*   Download the Circuit Training code.
+*   Install DREAMPlace ([limbo018/DREAMPlace](https://github.com/limbo018/DREAMPlace)).
 
 Using the code at `HEAD` with the nightly release of TF-Agents is recommended.
 
@@ -93,6 +96,61 @@ $  sudo chmod 555 /usr/local/bin/plc_wrapper_main
 $  git clone https://github.com/google-research/circuit-training.git
 ```
 
+**Installing DREAMPlace**
+
+DREAMPlace is not provided as a PyPi package and requires compiled code. The
+best option is to use the
+[docker image](https://github.com/google-research/circuit_training/blob/main/tools/docker/ubuntu_circuit_training).
+We provide precompiled versions of DREAMPlace for a range of Python releases
+built for our docker image (Ubuntu 20.4). We also use them for presubmit
+testing. If our binaries are not compatible with your OS tool chain, you will
+need to compile your own version. We use this
+[script](https://github.com/google-research/circuit_training/blob/main/tools/bootstrap_dreamplace_build.sh)
+to create our DREAMPlace binary.
+
+```shell
+# Installs DREAMPlace into `/dreamplace`. Anywhere is fine as long as PYTHONPATH
+# is set correctly.
+$  mkdir -p /dreamplace
+# Pick the binary that matches your version of Python.
+# Python 3.7
+$  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.7.tar.gz -o /dreamplace/dreamplace.tar.gz
+# Python 3.8
+$  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.8.tar.gz -o /dreamplace/dreamplace.tar.gz
+# Python 3.9
+$  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.9.tar.gz -o /dreamplace/dreamplace.tar.gz
+# Python 3.10
+$  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.10.tar.gz -o /dreamplace/dreamplace.tar.gz
+
+# Unpacks the package.
+$  tar xzf /dreamplace/dreamplace.tar.gz -C /dreamplace/
+
+# Sets the python path so we can find Placer with `import dreamplace.Placer`
+# This also needs to put all of DREAMPlace at the root because DREAMPlace python
+# is not setup like a package with imports like `dreamplace.Param`.
+$  export PYTHONPATH="${PYTHONPATH}:/dreamplace:/dreamplace/dreamplace"
+
+# DREAMPlace requires some additional system and python libraries
+# System packages
+$  apt-get install -y \
+      flex \
+      libcairo2-dev \
+      libboost-all-devß
+
+# Python packages
+$  python3 -mpip install pyunpack>=0.1.2 \
+      patool>=1.12 \
+      matplotlib>=2.2.2 \
+      cairocffi>=0.9.0 \
+      pkgconfig>=1.4.0 \
+      setuptools>=39.1.0 \
+      scipy>=1.1.0 \
+      numpy>=1.15.4 \
+      torch>=1.6.0 \
+      shapely>=1.7.0
+
+```
+
 <a id='QuickStart'></a>
 
 ## Quick start
@@ -102,7 +160,7 @@ reinforcement policy from scratch. The `per_replica_batch_size` and
 `num_episodes_per_iteration` used below were picked to work on a single machine
 training on CPU. The purpose is to illustrate a running system, not optimize the
 result. The result of a few thousand steps is shown in this
-[tensorboard](https://tensorboard.dev/experiment/r1Xn1pD3SGKTGyo64saeaw). The
+[TensorBoard](https://tensorboard.dev/experiment/r1Xn1pD3SGKTGyo64saeaw). The
 full scale Ariane RISC-V experiment matching the paper is detailed in
 [Circuit training for Ariane RISC-V](./docs/ARIANE.md).
 
@@ -171,7 +229,7 @@ $  python3 -m circuit_training.learning.eval \
   --netlist_file=${NETLIST_FILE} \
   --init_placement=${INIT_PLACEMENT}
 
-# Start Tensorboard.
+# Start TensorBoard.
 # Change to the tmux session `tb_job`.
 # `ctrl + b` followed by `s`
 $  tensorboard dev upload --logdir ./logs

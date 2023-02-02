@@ -2,7 +2,7 @@
 #
 # docker build --tag circuit_training:core -f tools/docker/ubuntu_circuit_training tools/docker/
 #
-# The docker can also be built with tf-agents-nighly, which can be useful if
+# The docker can also be built with tf-agents-nightly, which can be useful if
 # Circuit Training head is using APIs not yet in tf-agents stable.
 #
 # docker build --build-arg tf_agents_version=tf-agents-nightly[reverb] \
@@ -24,7 +24,9 @@ LABEL maintainer="tobyboyd@google.com"
 # Supports setting up a single version of python.
 ARG python_version="python3"
 ARG tf_agents_version="tf-agents[reverb]"
+ARG dreamplace_version="dreamplace_python3.8.tar.gz"
 ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
+
 
 # Stops tzdata from asking about timezones and blocking install on user input.
 ARG DEBIAN_FRONTEND=noninteractive
@@ -35,12 +37,13 @@ RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
         software-properties-common \
         curl \
         tmux \
+        vim \
         less
 
 # Adds repository to pull versions of python from.
 RUN add-apt-repository ppa:deadsnakes/ppa
 
-# Installs various versions of python and then cleans up apt.
+# Installs desired python version if not aready installed and then cleans up apt.
 RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
         $python_version-dev \
         $python_version-distutils \
@@ -57,7 +60,38 @@ RUN chmod 555 /usr/local/bin/plc_wrapper_main
 RUN curl -O https://bootstrap.pypa.io/get-pip.py
 
 RUN $python_version get-pip.py
-RUN $python_version -mpip --no-cache-dir install $tf_agents_version sortedcontainers
 
+# Installs TF-Agents and Tensorflow along with tox and pytest to help verify the
+# container via unit tests.
+RUN $python_version -mpip --no-cache-dir install $tf_agents_version sortedcontainers tox pytest
+
+# Installs system dependencies needed by DREAMPlace.
+RUN apt-get update \
+        && apt-get install -y \
+            wget \
+            flex \
+            libcairo2-dev \
+            libboost-all-dev
+
+# Installs specific versions of packages requested by DREAMPlace requirements.txt
+RUN $python_version -mpip install pyunpack>=0.1.2 \
+        patool>=1.12 \
+        matplotlib>=2.2.2 \
+        cairocffi>=0.9.0 \
+        pkgconfig>=1.4.0 \
+        setuptools>=39.1.0 \
+        scipy>=1.1.0 \
+        numpy>=1.15.4 \
+        torch>=1.6.0 \
+        shapely>=1.7.0
+
+RUN mkdir -p /dreamplace
+RUN curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/$dreamplace_version -o /dreamplace/dreamplace.tar.gz
+RUN tar xzf /dreamplace/dreamplace.tar.gz -C /dreamplace/
+
+# Sets the python path so we can find Placer with `import dreamplace.Placer`
+# This also needs to put all of DREAMPlace at the root because DREAMPlace python
+# is not setup like a package with imports like `dreamplace.Param`.
+ENV PYTHONPATH "${PYTHONPATH}:/dreamplace:/dreamplace/dreamplace"
 
 CMD ["/bin/bash"]

@@ -6,11 +6,12 @@
 # docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:ci bash
 # python3.9 -m circuit_training.environment.environment_test
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 LABEL maintainer="tobyboyd@google.com"
 
-ARG python_version="python 3.7 python3.8 python3.9"
+ARG python_version="python3.7 python3.8 python3.9 python3.10"
+ARG dreamplace_version="dreamplace.tar.gz"
 ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
 
 # Installs basics including add-apt.
@@ -22,14 +23,24 @@ RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
 # Adds repository to pull versions of python from.
 RUN add-apt-repository ppa:deadsnakes/ppa
 
+# Stops tzdata from asking about timezones and blocking install on user input.
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Los_Angeles
+
 # Installs various versions of python and then cleans up apt.
 RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
+        flex \
+        libcairo2-dev \
+        libboost-all-dev \
         python3.7-dev \
         python3.8-dev \
         python3.9-dev \
-        # python >= 3.8 needs distutils for packaging.
+        python3.10-dev \
+        # python >= 3.7 needs distutils for packaging.
+        python3.7-distutils \
         python3.8-distutils \
         python3.9-distutils \
+        python3.10-distutils \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -52,6 +63,14 @@ RUN for python in ${python_version}; do \
     $python get-pip.py && \
     $python -mpip --no-cache-dir install $pip_dependencies; \
   done
+RUN rm get-pip.py
 
+
+# Install DREAMPlace foreach version of python.
+RUN for python in ${python_version}; do \
+    mkdir -p /dreamplace_${python} && \
+    curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_{$python}.tar.gz -o /dreamplace_${python}/dreamplace.tar.gz && \
+    tar xzf /dreamplace_${python}/dreamplace.tar.gz -C /dreamplace_${python}/; \
+  done
 
 CMD ["/bin/bash"]

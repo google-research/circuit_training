@@ -1,0 +1,50 @@
+# Utilized by `/tools/bootstrap_dreamplace_build.sh` to build DREAMPlace.
+FROM circuit_training:ci as morpheus
+
+ARG python_version="python3.7 python3.8 python3.9 python3.10"
+ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
+
+
+# Installs system dependencies needed to build dreamplace.
+RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y \
+        build-essential \
+        aria2 \
+        libpng-dev \
+        lsof \
+        pkg-config \
+        wget \
+        git \
+        libfreetype6-dev \
+        libhdf5-serial-dev \
+        libzmq3-dev
+
+# Installs bison after flex and the above. If this is not done here, then
+# the error `FLEX_INCLUDE_DIR` set to NOTFOUND is thrown when running cmake.
+# `apt-get remove flex` and then `apt-get install flex` seems to work in interactive mode.
+RUN apt-get install -y bison
+
+# Installs cmake.
+RUN wget https://cmake.org/files/v3.21/cmake-3.21.0-linux-x86_64.sh
+RUN mkdir -p /opt/cmake \
+        && sh cmake-3.21.0-linux-x86_64.sh --prefix=/opt/cmake --skip-license \
+        && ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake \
+        && cmake --version
+
+ARG pip_dependencies=' \
+        pyunpack>=0.1.2 \
+        patool>=1.12 \
+        matplotlib>=2.2.2 \
+        cairocffi>=0.9.0 \
+        pkgconfig>=1.4.0 \
+        setuptools>=39.1.0 \
+        scipy>=1.1.0 \
+        numpy>=1.15.4 \
+        torch>=1.6.0 \
+        shapely>=1.7.0'
+
+RUN for python in ${python_version}; do \
+    $python get-pip.py && \
+    $python -mpip --no-cache-dir install $pip_dependencies; \
+  done
+
+RUN rm get-pip.py
