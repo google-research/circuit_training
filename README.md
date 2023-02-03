@@ -60,6 +60,8 @@ scaling to 100s of actors.
 *   Supports alignment of blocks to the grid, to model clock strap or macro
     blockage.
 *   Supports macro-to-macro, macro-to-boundary spacing constraints.
+*   Supports fixed macros.
+*   Supports [DREAMPlace](https://github.com/limbo018/DREAMPlace) as the stdcell placer.
 *   Allows users to specify their own technology parameters, e.g. and routing
     resources (in routes per micron) and macro routing allocation.
 *   Generates
@@ -94,6 +96,8 @@ $  sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/pla
 $  sudo chmod 555 /usr/local/bin/plc_wrapper_main
 # Clones the circuit-training repo.
 $  git clone https://github.com/google-research/circuit-training.git
+# Clones the DREAMPlace repo to support Dreamplace stdcell placer.
+$  git clone https://github.com/limbo018/DREAMPlace.git
 ```
 
 **Installing DREAMPlace**

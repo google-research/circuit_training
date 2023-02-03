@@ -20,11 +20,13 @@ import os
 from typing import Any, Callable, Dict, Text, Tuple, Optional
 
 from absl import logging
+from circuit_training.dreamplace import dreamplace_core
 from circuit_training.environment import coordinate_descent_placer as cd_placer
 from circuit_training.environment import observation_config
 from circuit_training.environment import observation_extractor
 from circuit_training.environment import placement_util
 from circuit_training.environment import plc_client
+from dreamplace import Params
 import gin
 import gym
 import numpy as np
@@ -115,11 +117,12 @@ class CircuitEnv(object):
       netlist_file: Text = '',
       init_placement: Text = '',
       create_placement_cost_fn: Callable[
-          ..., plc_client.PlacementCost] = placement_util.create_placement_cost,
+          ..., plc_client.PlacementCost
+      ] = placement_util.create_placement_cost,
       std_cell_placer_mode: Text = 'fd',
-      cost_info_fn: Callable[[plc_client.PlacementCost, bool],
-                             Tuple[float, Dict[Text,
-                                               float]]] = cost_info_function,
+      cost_info_fn: Callable[
+          [plc_client.PlacementCost, bool], Tuple[float, Dict[Text, float]]
+      ] = cost_info_function,
       global_seed: int = 0,
       netlist_index: int = 0,
       is_eval: bool = False,
@@ -132,13 +135,18 @@ class CircuitEnv(object):
       unplace_all_nodes_in_init: bool = True,
       output_all_features: bool = False,
       node_order: Text = 'descending_size_macro_first',
-      ):
+      dp_num_bins_x: Optional[int] = None,
+      dp_num_bins_y: Optional[int] = None,
+      dp_iteration: int = 1000,
+      dp_target_density: float = 1.0,
+      dp_learning_rate: float = 0.01,
+  ):
     """Creates a CircuitEnv.
 
     Args:
       netlist_file: Path to the input netlist file.
-      init_placement: Path to the input inital placement file, used to read grid
-        and canas size.
+      init_placement: Path to the input initial placement file, used to read
+        grid and canas size.
       create_placement_cost_fn: A function that given the netlist and initial
         placement file create the placement_cost object.
       std_cell_placer_mode: Options for fast std cells placement: `fd` (uses the
@@ -164,6 +172,11 @@ class CircuitEnv(object):
       output_all_features: If true, it outputs all the observation features.
         Otherwise, it only outputs the dynamic observations.
       node_order: The sequence order of nodes placed by RL.
+      dp_num_bins_x: Dreamplace bin size width.
+      dp_num_bins_y: Dreamplace bin size height.
+      dp_iteration: Dreamplace iteration.
+      dp_target_density: Dreamplace target density.
+      dp_learning_rate: Dreamplace learning rate.
     """
     self._global_seed = global_seed
     if not netlist_file:
@@ -187,7 +200,7 @@ class CircuitEnv(object):
         netlist_file=netlist_file, init_placement=init_placement)
 
     # We call ObservationExtractor before unplace_all_nodes, so we use the
-    # inital placement in the static features (location_x and location_y).
+    # initial placement in the static features (location_x and location_y).
     # This results in better placements.
     self._observation_config = observation_config.ObservationConfig()
     self._observation_extractor = observation_extractor.ObservationExtractor(
@@ -236,6 +249,46 @@ class CircuitEnv(object):
     self._done = False
     self._current_mask = self._get_mask()
     self._infeasible_state = False
+
+    if self._std_cell_placer_mode == 'dreamplace':
+      canvas_width, canvas_height = self._plc.get_canvas_width_height()
+      dreamplace_params = Params.get_dreamplace_params(
+          dp_iteration,
+          dp_target_density,
+          dp_learning_rate,
+          canvas_width,
+          canvas_height,
+          dp_num_bins_x,
+          dp_num_bins_y,
+      )
+      # Dreamplace requires that movable nodes appear first
+      # and then fixed nodes.
+      # Since the first node to be placed (becoming fixed) is the first node in
+      # _sorted_node_indices, we reverse the order and send it to dreamplace.
+      hard_macro_order = self._sorted_node_indices[: self._num_hard_macros]
+      hard_macro_order = hard_macro_order[::-1]
+      self._dreamplace = dreamplace_core.SoftMacroPlacer(
+          self._plc, dreamplace_params, hard_macro_order
+      )
+      # Making all macros movable for a mixed-size.
+      self._dreamplace.placedb_plc.update_num_non_movable_macros(
+          plc=self._plc, num_non_movable_macros=0
+      )
+      converged = self._dreamplace.place()
+      self._dreamplace.placedb_plc.write_movable_locations_to_plc(self._plc)
+      if not converged:
+        logging.warning("Initial DREAMPlace mixed-size didn't converge.")
+
+      self._dp_mixed_macro_locations = {
+          m: self._plc.get_node_location(m) for m in hard_macro_order
+      }
+      # Recreate the ObservationExtractor, so we use the DREAMPlace mixed-size,
+      # placement as the default location in the observation.
+      self._observation_extractor = observation_extractor.ObservationExtractor(
+          plc=self._plc,
+          observation_config=self._observation_config,
+          netlist_index=self._netlist_index,
+      )
 
     if unplace_all_nodes_in_init:
       # TODO(b/223026568) Remove unplace_all_nodes from init
@@ -436,7 +489,20 @@ class CircuitEnv(object):
     self._plc.place_node(node_index, self.translate_to_original_canvas(action))
 
   def analytical_placer(self) -> None:
-    if self._std_cell_placer_mode == 'fd':
+    """Calls analytical placer to place stdcells or mix-size nodes."""
+    if self._std_cell_placer_mode == 'dreamplace':
+      self._dreamplace.placedb_plc.read_hard_macros_from_plc(self._plc)
+      # We always update the placedb with number of placed macros, if the
+      # previous number of fixed macros are the same as the current, the
+      # expensive placedb conversion won't be called.
+      self._dreamplace.placedb_plc.update_num_non_movable_macros(
+          plc=self._plc, num_non_movable_macros=self._current_node
+      )
+      converged = self._dreamplace.place()
+      if not converged:
+        logging.warning("DREAMPlace didn't converge.")
+      self._dreamplace.placedb_plc.write_movable_locations_to_plc(self._plc)
+    elif self._std_cell_placer_mode == 'fd':
       placement_util.fd_placement_schedule(self._plc)
     else:
       raise ValueError('%s is not a supported std_cell_placer_mode.' %
