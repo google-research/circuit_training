@@ -28,7 +28,7 @@ from tf_agents.system import system_multiprocessing as multiprocessing
 
 _GIN_FILE = flags.DEFINE_multi_string('gin_file', None,
                                       'Paths to the gin-config files.')
-_GIN_BINDINGS = flags.DEFINE_multi_string('gin_bindings', None,
+_GIN_BINDINGS = flags.DEFINE_multi_string('gin_bindings', [],
                                           'Gin binding parameters.')
 flags.DEFINE_string('netlist_file', '', 'File path to the netlist file.')
 flags.DEFINE_string('init_placement', '',

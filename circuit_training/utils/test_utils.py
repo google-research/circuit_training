@@ -19,7 +19,7 @@ from absl import flags
 import gin
 import tensorflow as tf
 
-flags.DEFINE_multi_string('test_gin_bindings', None, 'Gin bindings.')
+flags.DEFINE_multi_string('test_gin_bindings', [], 'Gin bindings.')
 
 FLAGS = flags.FLAGS
 

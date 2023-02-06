@@ -34,7 +34,7 @@ from tf_agents.train.utils import strategy_utils
 
 _GIN_FILE = flags.DEFINE_multi_string('gin_file', None,
                                       'Paths to the gin-config files.')
-_GIN_BINDINGS = flags.DEFINE_multi_string('gin_bindings', None,
+_GIN_BINDINGS = flags.DEFINE_multi_string('gin_bindings', [],
                                           'Gin binding parameters.')
 _NETLIST_FILE = flags.DEFINE_string('netlist_file', '',
                                     'File path to the netlist file.')
