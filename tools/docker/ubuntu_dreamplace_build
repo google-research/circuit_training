@@ -1,7 +1,7 @@
 # Utilized by `/tools/bootstrap_dreamplace_build.sh` to build DREAMPlace.
 FROM circuit_training:ci as morpheus
 
-ARG python_version="python3.7 python3.8 python3.9 python3.10"
+ARG python_version="python3.8 python3.9 python3.10 python3.11"
 ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
 
 
@@ -21,7 +21,8 @@ RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y \
 # Installs bison after flex and the above. If this is not done here, then
 # the error `FLEX_INCLUDE_DIR` set to NOTFOUND is thrown when running cmake.
 # `apt-get remove flex` and then `apt-get install flex` seems to work in interactive mode.
-RUN apt-get install -y bison
+RUN ${APT_COMMAND} remove flex && ${APT_COMMAND} install flex
+RUN ${APT_COMMAND} install bison
 
 # Installs cmake.
 RUN wget https://cmake.org/files/v3.21/cmake-3.21.0-linux-x86_64.sh
@@ -43,8 +44,5 @@ ARG pip_dependencies=' \
         shapely>=1.7.0'
 
 RUN for python in ${python_version}; do \
-    $python get-pip.py && \
     $python -mpip --no-cache-dir install $pip_dependencies; \
   done
-
-RUN rm get-pip.py

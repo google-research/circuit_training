@@ -10,8 +10,8 @@ FROM ubuntu:20.04
 
 LABEL maintainer="tobyboyd@google.com"
 
-ARG python_version="python3.7 python3.8 python3.9 python3.10"
-ARG dreamplace_version="dreamplace.tar.gz"
+ARG python_version="python3.8 python3.9 python3.10 python3.11"
+ARG dreamplace_version="dreamplace"
 ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
 
 # Installs basics including add-apt.
@@ -32,15 +32,14 @@ RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
         flex \
         libcairo2-dev \
         libboost-all-dev \
-        python3.7-dev \
         python3.8-dev \
         python3.9-dev \
         python3.10-dev \
-        # python >= 3.7 needs distutils for packaging.
-        python3.7-distutils \
+        python3.11-dev \
         python3.8-distutils \
         python3.9-distutils \
         python3.10-distutils \
+        python3.11-distutils \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -65,12 +64,12 @@ RUN for python in ${python_version}; do \
   done
 RUN rm get-pip.py
 
-
-# Install DREAMPlace foreach version of python.
+# Installs pre-compiled DREAMPlace for each version of python.
 RUN for python in ${python_version}; do \
     mkdir -p /dreamplace_${python} && \
-    curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_{$python}.tar.gz -o /dreamplace_${python}/dreamplace.tar.gz && \
+    curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/{$dreamplace_version}_{$python}.tar.gz -o /dreamplace_${python}/dreamplace.tar.gz && \
     tar xzf /dreamplace_${python}/dreamplace.tar.gz -C /dreamplace_${python}/; \
   done
+
 
 CMD ["/bin/bash"]

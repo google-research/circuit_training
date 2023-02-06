@@ -16,9 +16,10 @@
 # Builds DREAMPlace and expects to be called from bootstrap_dreamplace_build.sh
 # and executed within a docker container with all DREAMPlace required libs.
 #
-# Example: bash build_dreamplace.sh python3.8
+# Example: bash build_dreamplace.sh python3.9
 #
 set -x;
+set -e;
 
 # Builds DREAMPlace.
 mkdir -p /dreamplace/build

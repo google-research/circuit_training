@@ -15,17 +15,25 @@
 #!/bin/bash
 # Creates the docker containers needed to build DREAMPlace and then builds
 # DREAMPlace for multiple versions of Python.
+set -x;
+set -e;
 
 # Builds circuit training core and then the dreamplace build container.
 docker build --no-cache --tag circuit_training:ci -f docker/ubuntu_ci .
 docker build --no-cache --tag circuit_training:dreamplace_build -f docker/ubuntu_dreamplace_build .
 
 # Clones DREAMPlace from head.
-git -C ../../  clone --recursive https://github.com/limbo018/DREAMPlace.git
+if [ ! -d ../../DREAMPlace ] ; then
+    git -C ../../  clone --recursive https://github.com/limbo018/DREAMPlace.git
+    git -C ../../DREAMPlace/thirdparty/pybind11 pull https://github.com/pybind/pybind11.git
+fi
+
+# Force DreamPlace to use pybind11 2.10.3 which supports python 3.11.
+git -C ../../DREAMPlace/thirdparty/pybind11 checkout v2.10.3
 
 # Starts the container used for the build mounting DREAMPlace git,
 # circuit_training /tools and then starting the build.
-for python_version in python3.7 python3.8 python3.9 python3.10
+for python_version in python3.8 python3.9 python3.10 python3.11
 do
   docker run -it -v `cd ../../; pwd`/DREAMPlace:/dreamplace \
     -v $(pwd):/workspace circuit_training:dreamplace_build \
