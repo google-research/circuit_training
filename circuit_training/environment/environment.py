@@ -140,6 +140,7 @@ class CircuitEnv(object):
       dp_iteration: int = 1000,
       dp_target_density: float = 1.0,
       dp_learning_rate: float = 0.01,
+      save_snapshot: bool = True,
   ):
     """Creates a CircuitEnv.
 
@@ -198,6 +199,7 @@ class CircuitEnv(object):
     self._node_order = node_order
     self._plc = create_placement_cost_fn(
         netlist_file=netlist_file, init_placement=init_placement)
+    self._save_snapshot = save_snapshot
 
     # We call ObservationExtractor before unplace_all_nodes, so we use the
     # initial placement in the static features (location_x and location_y).
@@ -417,11 +419,17 @@ class CircuitEnv(object):
       placement_util.save_placement(self._plc, self._output_plc_file,
                                     user_comments)
       ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-      ppo_snapshot_file = os.path.join(
-          self._output_plc_dir,
-          f'snapshot_ppo_opt_placement_timestamp_{ts}_cost_{cost:.4f}.plc')
-      placement_util.save_placement(self._plc, ppo_snapshot_file, user_comments)
+
       self._saved_cost = cost
+
+      if self._save_snapshot:
+        ppo_snapshot_file = os.path.join(
+            self._output_plc_dir,
+            f'snapshot_ppo_opt_placement_timestamp_{ts}_cost_{cost:.4f}.plc',
+        )
+        placement_util.save_placement(
+            self._plc, ppo_snapshot_file, user_comments
+        )
 
       # Only runs CD if this is the best RL placement seen so far.
       if self._cd_finetune:
