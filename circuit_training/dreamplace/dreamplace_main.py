@@ -20,7 +20,6 @@ from absl import app
 from absl import flags
 from circuit_training.dreamplace import dreamplace_core
 from circuit_training.dreamplace import dreamplace_util
-from dreamplace import Params
 import numpy as np
 import torch
 
@@ -85,7 +84,7 @@ def main(argv):
       output_dir=_OUTPUT_DIR.value,
       init_placement=_INIT_PLACEMENT.value)
   canvas_width, canvas_height = plc.get_canvas_width_height()
-  dp_params = Params.get_dreamplace_params(
+  dp_params = dreamplace_util.get_dreamplace_params(
       _DP_ITERATION.value, _DP_TARGET_DENSITY.value, _DP_LEARNING_RATE.value,
       canvas_width, canvas_height, _DP_NUM_BINS_X.value, _DP_NUM_BINS_Y.value,
       _DP_GPU.value, _OUTPUT_DIR.value, _DP_LEGALIZATION.value,

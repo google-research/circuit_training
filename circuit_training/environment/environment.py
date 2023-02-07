@@ -21,12 +21,12 @@ from typing import Any, Callable, Dict, Text, Tuple, Optional
 
 from absl import logging
 from circuit_training.dreamplace import dreamplace_core
+from circuit_training.dreamplace import dreamplace_util
 from circuit_training.environment import coordinate_descent_placer as cd_placer
 from circuit_training.environment import observation_config
 from circuit_training.environment import observation_extractor
 from circuit_training.environment import placement_util
 from circuit_training.environment import plc_client
-from dreamplace import Params
 import gin
 import gym
 import numpy as np
@@ -252,7 +252,7 @@ class CircuitEnv(object):
 
     if self._std_cell_placer_mode == 'dreamplace':
       canvas_width, canvas_height = self._plc.get_canvas_width_height()
-      dreamplace_params = Params.get_dreamplace_params(
+      dreamplace_params = dreamplace_util.get_dreamplace_params(
           dp_iteration,
           dp_target_density,
           dp_learning_rate,
