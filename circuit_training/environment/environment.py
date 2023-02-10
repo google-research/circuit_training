@@ -54,8 +54,11 @@ class InfeasibleActionError(ValueError):
     self.mask = mask
 
   def __str__(self):
-    return 'Infeasible action (%s) when the mask is (%s)' % (self.action,
-                                                             self.mask)
+    return 'Infeasible action (%s) when the mask is (%s)' % (
+        self.action,
+        self.mask,
+    )
+
 
 COST_COMPONENTS = ['wirelength', 'congestion', 'density']
 
@@ -66,7 +69,8 @@ def cost_info_function(
     done: bool,
     wirelength_weight: float = 1.0,
     density_weight: float = 1.0,
-    congestion_weight: float = 0.5) -> Tuple[float, Dict[Text, float]]:
+    congestion_weight: float = 0.5,
+) -> Tuple[float, Dict[Text, float]]:
   """Returns the RL cost and info.
 
   Args:
@@ -135,11 +139,6 @@ class CircuitEnv(object):
       unplace_all_nodes_in_init: bool = True,
       output_all_features: bool = False,
       node_order: Text = 'descending_size_macro_first',
-      dp_num_bins_x: Optional[int] = None,
-      dp_num_bins_y: Optional[int] = None,
-      dp_iteration: int = 1000,
-      dp_target_density: float = 1.0,
-      dp_learning_rate: float = 0.01,
       save_snapshot: bool = True,
   ):
     """Creates a CircuitEnv.
@@ -173,11 +172,6 @@ class CircuitEnv(object):
       output_all_features: If true, it outputs all the observation features.
         Otherwise, it only outputs the dynamic observations.
       node_order: The sequence order of nodes placed by RL.
-      dp_num_bins_x: Dreamplace bin size width.
-      dp_num_bins_y: Dreamplace bin size height.
-      dp_iteration: Dreamplace iteration.
-      dp_target_density: Dreamplace target density.
-      dp_learning_rate: Dreamplace learning rate.
     """
     self._global_seed = global_seed
     if not netlist_file:
@@ -198,7 +192,8 @@ class CircuitEnv(object):
     self._output_all_features = output_all_features
     self._node_order = node_order
     self._plc = create_placement_cost_fn(
-        netlist_file=netlist_file, init_placement=init_placement)
+        netlist_file=netlist_file, init_placement=init_placement
+    )
     self._save_snapshot = save_snapshot
 
     # We call ObservationExtractor before unplace_all_nodes, so we use the
@@ -208,7 +203,8 @@ class CircuitEnv(object):
     self._observation_extractor = observation_extractor.ObservationExtractor(
         plc=self._plc,
         observation_config=self._observation_config,
-        netlist_index=self._netlist_index)
+        netlist_index=self._netlist_index,
+    )
 
     if self._make_soft_macros_square:
       # It is better to make the shape of soft macros square before using
@@ -216,19 +212,24 @@ class CircuitEnv(object):
       self._plc.make_soft_macros_square()
 
     self._grid_cols, self._grid_rows = self._plc.get_grid_num_columns_rows()
-    self._canvas_width, self._canvas_height = self._plc.get_canvas_width_height(
+    self._canvas_width, self._canvas_height = (
+        self._plc.get_canvas_width_height()
     )
 
     self._hard_macro_indices = [
-        m for m in self._plc.get_macro_indices()
+        m
+        for m in self._plc.get_macro_indices()
         if not self._plc.is_node_soft_macro(m)
     ]
     self._num_hard_macros = len(self._hard_macro_indices)
 
     self._sorted_node_indices = placement_util.get_ordered_node_indices(
-        mode=self._node_order, plc=self._plc, seed=self._global_seed)
+        mode=self._node_order, plc=self._plc, seed=self._global_seed
+    )
 
-    self._sorted_soft_macros = self._sorted_node_indices[self._num_hard_macros:]
+    self._sorted_soft_macros = self._sorted_node_indices[
+        self._num_hard_macros :
+    ]
 
     # Generate a map from actual macro_index to its position in
     # self.macro_indices. Needed because node adjacency matrix is in the same
@@ -255,13 +256,8 @@ class CircuitEnv(object):
     if self._std_cell_placer_mode == 'dreamplace':
       canvas_width, canvas_height = self._plc.get_canvas_width_height()
       dreamplace_params = dreamplace_util.get_dreamplace_params(
-          dp_iteration,
-          dp_target_density,
-          dp_learning_rate,
-          canvas_width,
-          canvas_height,
-          dp_num_bins_x,
-          dp_num_bins_y,
+          canvas_width=canvas_width,
+          canvas_height=canvas_height,
       )
       # Dreamplace requires that movable nodes appear first
       # and then fixed nodes.
@@ -320,7 +316,7 @@ class CircuitEnv(object):
 
   @property
   def grid_cols(self) -> int:
-    return  self._grid_cols
+    return self._grid_cols
 
   @property
   def grid_rows(self) -> int:
@@ -338,8 +334,9 @@ class CircuitEnv(object):
     """
     return self._observation_extractor.get_static_features()
 
-  def get_cost_info(self,
-                    done: bool = False) -> Tuple[float, Dict[Text, float]]:
+  def get_cost_info(
+      self, done: bool = False
+  ) -> Tuple[float, Dict[Text, float]]:
     return self._cost_info_fn(plc=self._plc, done=done)  # pytype: disable=wrong-keyword-args  # trace-all-classes
 
   def _get_mask(self) -> np.ndarray:
@@ -349,7 +346,9 @@ class CircuitEnv(object):
       List of 0s and 1s indicating if action is feasible or not.
     """
     if self._done:
-      mask = np.zeros(self._observation_config.max_grid_size**2, dtype=np.int32)
+      mask = np.zeros(
+          self._observation_config.max_grid_size**2, dtype=np.int32
+      )
     else:
       node_index = self._sorted_node_indices[self._current_node]
       mask = np.asarray(self._plc.get_node_mask(node_index), dtype=np.int32)
@@ -357,7 +356,8 @@ class CircuitEnv(object):
       pad = ((self._up_pad, self._low_pad), (self._right_pad, self._left_pad))
       mask = np.pad(mask, pad, mode='constant', constant_values=0)
     return np.reshape(
-        mask, (self._observation_config.max_grid_size**2,)).astype(np.int32)
+        mask, (self._observation_config.max_grid_size**2,)
+    ).astype(np.int32)
 
   def _get_obs(self) -> ObsType:
     """Returns the observation."""
@@ -377,12 +377,14 @@ class CircuitEnv(object):
       return self._observation_extractor.get_all_features(
           previous_node_index=previous_node_index,
           current_node_index=current_node_index,
-          mask=self._current_mask)
+          mask=self._current_mask,
+      )
     else:
       return self._observation_extractor.get_dynamic_features(
           previous_node_index=previous_node_index,
           current_node_index=current_node_index,
-          mask=self._current_mask)
+          mask=self._current_mask,
+      )
 
   def _run_cd(self):
     """Runs coordinate descent to finetune the current placement."""
@@ -393,11 +395,7 @@ class CircuitEnv(object):
     def cost_fn(plc):
       return self._cost_info_fn(plc=plc, done=True)  # pytype: disable=wrong-keyword-args  # trace-all-classes
 
-    cd = cd_placer.CoordinateDescentPlacer(
-        plc=self._plc,
-        cost_fn=cost_fn,
-        use_stdcell_placer=True,
-        optimize_only_orientation=True)
+    cd = cd_placer.CoordinateDescentPlacer(plc=self._plc, cost_fn=cost_fn)
     cd.place()
 
   def _save_placement(self, cost: float) -> None:
@@ -409,15 +407,17 @@ class CircuitEnv(object):
     Raises:
       IOError: If we cannot write the placement to file.
     """
-    if not self._save_best_cost or (cost < self._saved_cost and
-                                    (math.fabs(cost - self._saved_cost) /
-                                     (cost) > 5e-3)):
+    if not self._save_best_cost or (
+        cost < self._saved_cost
+        and (math.fabs(cost - self._saved_cost) / (cost) > 5e-3)
+    ):
       user_comments = ''
       if self._train_step:
         user_comments = f'Train step : {self._train_step.numpy()}'
 
-      placement_util.save_placement(self._plc, self._output_plc_file,
-                                    user_comments)
+      placement_util.save_placement(
+          self._plc, self._output_plc_file, user_comments
+      )
       ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
       self._saved_cost = cost
@@ -439,9 +439,11 @@ class CircuitEnv(object):
         placement_util.save_placement(self._plc, cd_plc_file, user_comments)
         cd_snapshot_file = os.path.join(
             self._output_plc_dir,
-            f'snapshot_ppo_cd_placement_timestamp_{ts}_cost_{cost:.4f}.plc')
-        placement_util.save_placement(self._plc, cd_snapshot_file,
-                                      user_comments)
+            f'snapshot_ppo_cd_placement_timestamp_{ts}_cost_{cost:.4f}.plc',
+        )
+        placement_util.save_placement(
+            self._plc, cd_snapshot_file, user_comments
+        )
 
   def call_analytical_placer_and_get_cost(self) -> Tuple[float, InfoType]:
     """Calls analytical placer.
@@ -513,8 +515,10 @@ class CircuitEnv(object):
     elif self._std_cell_placer_mode == 'fd':
       placement_util.fd_placement_schedule(self._plc)
     else:
-      raise ValueError('%s is not a supported std_cell_placer_mode.' %
-                       (self._std_cell_placer_mode))
+      raise ValueError(
+          '%s is not a supported std_cell_placer_mode.'
+          % (self._std_cell_placer_mode)
+      )
 
   def step(self, action: int) -> Tuple[ObsType, float, bool, Any]:
     """Steps the environment.
@@ -542,15 +546,16 @@ class CircuitEnv(object):
     self.place_node(node_index, action)
 
     self._current_node += 1
-    self._done = (self._current_node == self._num_hard_macros)
+    self._done = self._current_node == self._num_hard_macros
     self._current_mask = self._get_mask()
 
     if not self._done and not np.any(self._current_mask):
       # Please note that _infeasible_state is not reset in reset function so,
       # the caller of step() is responsible for resetting it.
       self._infeasible_state = True
-      logging.info('Actions took before becoming infeasible: %s',
-                   self._current_actions)
+      logging.info(
+          'Actions took before becoming infeasible: %s', self._current_actions
+      )
       info = {
           'wirelength': -1.0,
           'congestion': -1.0,

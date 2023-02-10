@@ -14,11 +14,12 @@
 # limitations under the License.
 """Coordinate descent placer library."""
 
-import os
 import time
-from typing import Callable, Dict, Optional, List, Text, Tuple
+from typing import Callable, Optional
 
 from absl import logging
+from circuit_training.dreamplace import dreamplace_core
+from circuit_training.dreamplace import dreamplace_util
 from circuit_training.environment import placement_util
 from circuit_training.environment import plc_client
 import numpy as np
@@ -30,20 +31,25 @@ EW_ORIENTATIONS = ['E', 'FE', 'W', 'FW']
 class CoordinateDescentPlacer(object):
   """Coordinate descent algorithm to place nodes."""
 
-  def __init__(self,
-               plc: plc_client.PlacementCost,
-               cost_fn: Callable[[plc_client.PlacementCost],
-                                 Tuple[float, Dict[Text, float]]],
-               epochs: int = 10,
-               use_stdcell_placer: bool = False,
-               stdcell_placer: Text = 'fd',
-               node_order: Text = 'random',
-               accept_bad_stdcell_moves: bool = False,
-               stdcell_place_every_n_macros: int = 10,
-               optimize_only_orientation: bool = False,
-               cell_search_prob: float = 1.0,
-               k_distance_bounded_search: bool = True,
-               k_distance_bound: Optional[int] = None) -> None:
+  def __init__(
+      self,
+      plc: plc_client.PlacementCost,
+      cost_fn: Callable[
+          [plc_client.PlacementCost], tuple[float, dict[str, float]]
+      ],
+      epochs: int = 2,
+      use_stdcell_placer: bool = True,
+      stdcell_placer: str = 'dreamplace',
+      node_order: str = 'random',
+      accept_bad_stdcell_moves: bool = False,
+      stdcell_place_every_n_macros: int = 32,
+      optimize_only_orientation: bool = False,
+      cell_search_prob: float = 1.0,
+      k_distance_bounded_search: bool = True,
+      # TODO(b/166313185): Consider experimenting with
+      # k_distance_bound.
+      k_distance_bound: int = 5,
+  ) -> None:
     """Creates a CoordinateDescentPlacer.
 
     Args:
@@ -51,7 +57,7 @@ class CoordinateDescentPlacer(object):
       cost_fn: The cost function that gets the plc and returns cost and info.
       epochs: Number of epochs (iterations) in coordinate descend algorithm.
       use_stdcell_placer: If True, places stdcells using stdcell placer.
-      stdcell_placer: Standad cell placer.
+      stdcell_placer: Standard cell placer.
       node_order: Order of nodes to place using coordinate descent. Choose
         random, descending_size_macro_first, random_macro_first.
       accept_bad_stdcell_moves: If True, accept stdcell moves even if it leads
@@ -66,8 +72,7 @@ class CoordinateDescentPlacer(object):
         grid distance from current placed location. Does not apply to FD stdcell
         placer.
       k_distance_bound: If k_distance_bounded_search is True, only search within
-        a neighborhood of at most k_distance_bound grid distance. If not
-        spesified, it is set to max(cols, rows) // 3.
+        a neighborhood of at most k_distance_bound grid distance.
     """
     self.plc = plc
     self.cost_fn = cost_fn
@@ -76,8 +81,7 @@ class CoordinateDescentPlacer(object):
     self._stdcell_place_every_n_macros = stdcell_place_every_n_macros
     self._cell_search_prob = cell_search_prob
     self._cols, self._rows = self.plc.get_grid_num_columns_rows()
-    self._k_distance_bound = k_distance_bound or max(self._cols,
-                                                     self._rows) // 3
+    self._k_distance_bound = k_distance_bound
     self._use_stdcell_placer = use_stdcell_placer
     self._stdcell_placer = stdcell_placer
     self._accept_bad_stdcell_moves = accept_bad_stdcell_moves
@@ -107,7 +111,7 @@ class CoordinateDescentPlacer(object):
           raise ValueError(f'Unexpected orientation {cur_ori} for node {node}.')
 
     if self._use_stdcell_placer:
-      plc.allow_hard_macros_over_std_cells(True)
+      plc.allow_hard_macros_over_stdcells(True)
 
     # If node order is random, will shuffle node orders for each iteration.
     self._ordered_node_indices = placement_util.get_ordered_node_indices(
@@ -128,13 +132,25 @@ class CoordinateDescentPlacer(object):
           i for i in self._ordered_node_indices
           if not self.plc.is_node_soft_macro(i)
       ]
+
+    if self._use_stdcell_placer and self._stdcell_placer == 'dreamplace':
+      canvas_width, canvas_height = self.plc.get_canvas_width_height()
+      dreamplace_params = dreamplace_util.get_dreamplace_params(
+          canvas_width=canvas_width,
+          canvas_height=canvas_height,
+      )
+      self._dreamplace = dreamplace_core.SoftMacroPlacer(
+          self.plc, dreamplace_params
+      )
+
     logging.info('Total number of ordered nodes: %d',
                  len(self._ordered_node_indices))
     logging.info('ordered_node_indices: %s', self._ordered_node_indices)
     logging.info('Cost of initial placement: %s', self.report_cost())
 
-  def find_best_location(self, node: int, mask: List[int],
-                         locations: List[int]) -> Optional[int]:
+  def find_best_location(
+      self, node: int, mask: list[int], locations: list[int]
+  ) -> Optional[int]:
     """Given a soft macro, search the best location."""
     best_loc = None
     best_cost = float('inf')
@@ -150,8 +166,8 @@ class CoordinateDescentPlacer(object):
     return best_loc
 
   def find_best_location_orientation(
-      self, node: int, locations: List[int],
-      orientations: List[Text]) -> Tuple[Optional[int], Optional[Text]]:
+      self, node: int, locations: list[int], orientations: list[str]
+  ) -> tuple[Optional[int], Optional[str]]:
     """Given a hard macro, search the best location and orientation."""
     assert orientations
     best_loc = None
@@ -171,8 +187,9 @@ class CoordinateDescentPlacer(object):
 
     return best_loc, best_ori
 
-  def find_best_orientation(self, node: int,
-                            orientations: List[Text]) -> Optional[Text]:
+  def find_best_orientation(
+      self, node: int, orientations: list[str]
+  ) -> Optional[str]:
     """Given a hard macro, search the best orientation."""
     assert orientations
     best_ori = None
@@ -187,14 +204,15 @@ class CoordinateDescentPlacer(object):
 
     return best_ori
 
-  def _get_row_col_from_cell(self, cell: int) -> Tuple[int, int]:
+  def _get_row_col_from_cell(self, cell: int) -> tuple[int, int]:
     return cell // self._cols, cell % self._cols
 
   def _get_cell_from_row_col(self, row: int, col: int) -> int:
     return int(row * self._cols + col)
 
-  def _k_distance_bounded_locations(self, curr: int, k: int,
-                                    locations: List[int]) -> List[int]:
+  def _k_distance_bounded_locations(
+      self, curr: int, k: int, locations: list[int]
+  ) -> list[int]:
     """Find k grid distance bounded locations from current cell."""
     curr_row, curr_col = self._get_row_col_from_cell(curr)
     bounded = []
@@ -228,14 +246,16 @@ class CoordinateDescentPlacer(object):
 
     mask = self.plc.get_node_mask(node)
     locations = [i for i, m in enumerate(mask) if m > 0]
-    if not locations:
-      # FD or DP are run between macro moves (_stdcell_place_every_n_macros).
-      # They may place stdcells in a way that invalidates prior macro locations.
-      # Stay with previous macro locations in this case.
-      locations = [curr_cell]
-      logging.info(
-          'Cannot find feasible locations for node %d. '
-          'Use its current location %d.', node, curr_cell)
+    if curr_cell not in locations:
+      logging.warning('Node %d current cell %d is illegal!', node, curr_cell)
+      # FD or DP places stdcells between macro moves for every
+      # _stdcell_place_every_n_macros.
+      # FD or DP may place stdcells differently wrt density enforcement
+      # from how mask is calculated by PlacementCost. As a result,
+      # previous macro locations may become invalid (mask=0).
+      # In this case, stay with FD or DP's density enforcement, and always
+      # include current location in the candidates.
+      locations.append(curr_cell)
 
     if self._k_distance_bounded_search:
       k = self._k_distance_bound
@@ -271,6 +291,10 @@ class CoordinateDescentPlacer(object):
       # Use current stdcell location to incrementally change stdcell locations
       # between iterations.
       placement_util.fd_placement_schedule(self.plc, use_current_loc=True)
+    elif self._stdcell_placer == 'dreamplace':
+      self._dreamplace.placedb_plc.read_hard_macros_from_plc(self.plc)
+      self._dreamplace.place()
+      self._dreamplace.placedb_plc.write_movable_locations_to_plc(self.plc)
     else:
       raise ValueError(
           f'stdcell placer {self._stdcell_placer} is not supported')
@@ -307,14 +331,10 @@ class CoordinateDescentPlacer(object):
     logging.info('One iteration of coordinate descent takes %f seconds.',
                  (time.time() - start_time))
 
-  def report_cost(self) -> Text:
+  def report_cost(self) -> str:
     proxy_cost, info = self.cost_fn(self.plc)
-    wirelength = info['wirelength']
-    congestion = info['congestion']
-    density = info['density']
-    return ('(Objective cost, wirelength, congestion, density): ' +
-            '({:.4f}, {:.4f}, {:.4f}, {:.4f}'.format(proxy_cost, wirelength,
-                                                     congestion, density))
+    info_str = ', '.join([f'{c}: {info[c]:.4f}' for c in info])
+    return f'(Objective cost: {proxy_cost:.4f}, {info_str})'
 
   def place(self) -> None:
     """Place all nodes using coordinate descent algorithm for some iterations."""
@@ -331,16 +351,3 @@ class CoordinateDescentPlacer(object):
       if (prev_cost - curr_cost) / prev_cost < 1e-3:
         break
       prev_cost = curr_cost
-
-  def save_placement(self, output_dir: Text, plc_filename: Text) -> None:
-    """Saves a placement with current plc."""
-    proxy_cost, info = self.cost_fn(self.plc)
-    wirelength = info['wirelength']
-    congestion = info['congestion']
-    density = info['density']
-    plc_filename_with_cost = 'cost_{:.4f}_w_{:.4f}_c_{:.4f}_d_{:.4f}_{}'.format(
-        proxy_cost, wirelength, congestion, density, plc_filename)
-    output_plc_file = os.path.join(output_dir, plc_filename_with_cost)
-    placement_util.save_placement(self.plc, output_plc_file)
-    # TODO(wenjiej): Enable saving plc view.
-    # placement_util.save_as_svg(self.plc, f'{output_plc_file}.svg')

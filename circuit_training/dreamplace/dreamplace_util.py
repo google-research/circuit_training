@@ -22,6 +22,7 @@ from typing import Optional
 from absl import logging
 import circuit_training.environment.placement_util as util
 from dreamplace import Params
+import gin
 
 
 def print_and_save_result(
@@ -73,10 +74,11 @@ def get_bin_size(
   return num_bins_x, num_bins_y
 
 
+@gin.configurable
 def get_dreamplace_params(
-    iteration: int,
-    target_density: float,
-    learning_rate: float,
+    iteration: int = 1000,
+    target_density: float = 1.0,
+    learning_rate: float = 0.01,
     canvas_width: Optional[float] = None,
     canvas_height: Optional[float] = None,
     num_bins_x: Optional[int] = None,

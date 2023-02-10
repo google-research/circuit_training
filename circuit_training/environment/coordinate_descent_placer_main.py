@@ -17,14 +17,6 @@ r"""A placer that implements coordinate descent algorithm.
 The placer can start from a scratch (i.e., empty grid), or from an existing node
 locations specified by --init_placement.
 
-The algorithm runs for a given number of epochs (iterations).
-For each iteartion, for each node by a given --cd_node_order, place the node
-greedily on the best grid location.
-If --cd_use_stdcell_placer is True, place hard macros greedily first,
-then followed by stdcell placer to place all stdcells.
-
-When --cd_epochs=1, this algorithm is equivalent to greedy algorithm.
-
 Example usage:
 
 python circuit_training/environment/coordinate_descent_placer_main.py
@@ -32,7 +24,7 @@ python circuit_training/environment/coordinate_descent_placer_main.py
 --init_placement "/path/to/initial_placement.plc"
 """
 
-import functools
+import os
 
 from absl import app
 from absl import flags
@@ -41,35 +33,39 @@ from circuit_training.environment import environment
 from circuit_training.environment import placement_util
 import numpy as np
 
-flags.DEFINE_string('netlist_file', None, 'Path to netlist file.')
-flags.DEFINE_string('init_placement', None, 'Path to initial placement file.')
-flags.DEFINE_string('cd_output_dir', '/tmp/cd', 'CD output dir.')
-flags.DEFINE_string('cd_placement_filename', 'cd', 'CD placement filename.')
-
-FLAGS = flags.FLAGS
+_SEED = flags.DEFINE_integer('seed', 0, 'Random seed.')
+_NETLIST_FILE = flags.DEFINE_string(
+    'netlist_file', None, 'Path to netlist file.'
+)
+_INIT_PLACEMENT = flags.DEFINE_string(
+    'init_placement', None, 'Path to initial placement file.'
+)
+_CD_OUTPUT_DIR = flags.DEFINE_string(
+    'cd_output_dir', '/tmp/cd', 'CD output dir.'
+)
+_CD_PLACEMENT_FILENAME = flags.DEFINE_string(
+    'cd_placement_filename', 'cd_placement.plc', 'CD placement filename.'
+)
 
 
 def main(_):
-  np.random.seed(FLAGS.seed)
+  np.random.seed(_SEED.value)
 
-  plc = placement_util.create_placement_cost(FLAGS.netlist_file,
-                                             FLAGS.init_placement)
-
-  if not FLAGS.cd_use_init_location:
-    plc.unplace_all_nodes()
+  plc = placement_util.create_placement_cost(
+      _NETLIST_FILE.value, _INIT_PLACEMENT.value
+  )
 
   def cost_fn(plc):
     return environment.cost_info_function(plc=plc, done=True)
 
-  cost_fn = functools.partial(
-      cost_fn, wirelength_weight=1.0, density_weight=0.1, congestion_weight=0.1)
-
   placer = coordinate_descent_placer.CoordinateDescentPlacer(plc, cost_fn)
 
   placer.place()
-  placer.save_placement(FLAGS.cd_output_dir,
-                        f'{FLAGS.cd_placement_filename}.plc')
-  print(f'Final CD placement can be found at {FLAGS.cd_output_dir}')
+  output_plc_file = os.path.join(
+      _CD_OUTPUT_DIR.value, _CD_PLACEMENT_FILENAME.value
+  )
+  placement_util.save_placement(plc, output_plc_file)
+  print(f'Final CD placement can be found at {output_plc_file}')
 
 
 if __name__ == '__main__':
