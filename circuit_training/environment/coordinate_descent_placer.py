@@ -336,6 +336,10 @@ class CoordinateDescentPlacer(object):
     info_str = ', '.join([f'{c}: {info[c]:.4f}' for c in info])
     return f'(Objective cost: {proxy_cost:.4f}, {info_str})'
 
+  def cost(self) -> tuple[float, dict[str, float]]:
+    """Returns cost of the placer."""
+    return self.cost_fn(self.plc)
+
   def place(self) -> None:
     """Place all nodes using coordinate descent algorithm for some iterations."""
     # Run stdcell placement at the beginning of the optimization loop if needed.
