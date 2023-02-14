@@ -208,7 +208,7 @@ $  python3 -m circuit_training.learning.train_ppo \
   --root_dir=${ROOT_DIR} \
   --replay_buffer_server_address=${REVERB_SERVER} \
   --variable_container_server_address=${REVERB_SERVER} \
-  --num_episodes_per_iteration=16 \
+  --gin_bindings='train.num_episodes_per_iteration=16' \
   --gin_bindings='train.per_replica_batch_size=64' \
   --netlist_file=${NETLIST_FILE} \
   --init_placement=${INIT_PLACEMENT}
