@@ -227,10 +227,6 @@ class CircuitEnv(object):
         mode=self._node_order, plc=self._plc, seed=self._global_seed
     )
 
-    self._sorted_soft_macros = self._sorted_node_indices[
-        self._num_hard_macros :
-    ]
-
     # Generate a map from actual macro_index to its position in
     # self.macro_indices. Needed because node adjacency matrix is in the same
     # node order of plc.get_macro_indices.
@@ -321,6 +317,10 @@ class CircuitEnv(object):
   @property
   def grid_rows(self) -> int:
     return self._grid_rows
+
+  @property
+  def macro_ids(self) -> list[int]:
+    return self._sorted_node_indices[: self._num_hard_macros]
 
   def get_static_obs(self):
     """Get the static observation for the environment.
@@ -483,7 +483,7 @@ class CircuitEnv(object):
     return self._get_obs()
 
   def translate_to_original_canvas(self, action: int) -> int:
-    """Translates a raw location to real one in the original canvas."""
+    """Translates a padded location to real one in the original canvas."""
     up_pad = (self._observation_config.max_grid_size - self._grid_rows) // 2
     right_pad = (self._observation_config.max_grid_size - self._grid_cols) // 2
 
@@ -494,6 +494,21 @@ class CircuitEnv(object):
     else:
       raise InfeasibleActionError(action, self._current_mask)
     return action
+
+  def translate_to_padded_canvas(self, action: int) -> int:
+    """Translates a real location to the padded one in the padded canvas."""
+    up_pad = (self._observation_config.max_grid_size - self._grid_rows) // 2
+    right_pad = (self._observation_config.max_grid_size - self._grid_cols) // 2
+
+    if up_pad < 0 or right_pad < 0:
+      raise ValueError(f'grid_rows {self._grid_rows} or grid_cols '
+                       f'{self._grid_cols} is larger than max_grid_size '
+                       f'{self._observation_config.max_grid_size}"')
+
+    a_i = action // self._grid_cols + up_pad
+    a_j = action % self._grid_cols + right_pad
+
+    return a_i * self._observation_config.max_grid_size + a_j
 
   def place_node(self, node_index: int, action: int) -> None:
     self._plc.place_node(node_index, self.translate_to_original_canvas(action))
