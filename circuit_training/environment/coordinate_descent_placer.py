@@ -22,12 +22,14 @@ from circuit_training.dreamplace import dreamplace_core
 from circuit_training.dreamplace import dreamplace_util
 from circuit_training.environment import placement_util
 from circuit_training.environment import plc_client
+import gin
 import numpy as np
 
 NS_ORIENTATIONS = ['N', 'FN', 'S', 'FS']
 EW_ORIENTATIONS = ['E', 'FE', 'W', 'FW']
 
 
+@gin.configurable
 class CoordinateDescentPlacer(object):
   """Coordinate descent algorithm to place nodes."""
 
@@ -42,7 +44,7 @@ class CoordinateDescentPlacer(object):
       stdcell_placer: str = 'dreamplace',
       node_order: str = 'random',
       accept_bad_stdcell_moves: bool = False,
-      stdcell_place_every_n_macros: int = 32,
+      stdcell_place_every_n_macros: int = 0,
       optimize_only_orientation: bool = False,
       cell_search_prob: float = 1.0,
       k_distance_bounded_search: bool = True,
@@ -91,9 +93,11 @@ class CoordinateDescentPlacer(object):
     if self._cell_search_prob < 0 or self._cell_search_prob > 1:
       raise ValueError(f'{self._cell_search_prob} should be between 0 and 1.')
 
-    # Turn off incremental cost calculation if placing stdcells.
-    if self._use_stdcell_placer:
-      plc.set_use_incremental_cost(False)
+    # Use incremental cost calculation. We only place stdcells (by default)
+    # at the end of each CD epoch, after all macros are moved once. Between
+    # macro moves, incremental cost calculation helps to reduce congestion
+    # cost calculation.
+    plc.set_use_incremental_cost(True)
 
     # Get legal node orientations.
     self._node_to_ori = {}
@@ -342,11 +346,6 @@ class CoordinateDescentPlacer(object):
 
   def place(self) -> None:
     """Place all nodes using coordinate descent algorithm for some iterations."""
-    # Run stdcell placement at the beginning of the optimization loop if needed.
-    # Use stdcell locations from initial placement.
-    if self._use_stdcell_placer:
-      self.place_stdcells()
-
     prev_cost, _ = self.cost_fn(self.plc)
     for i in range(self._epochs):
       self.optimize(i)
