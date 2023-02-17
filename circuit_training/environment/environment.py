@@ -319,8 +319,9 @@ class CircuitEnv(object):
     return self._grid_rows
 
   @property
-  def macro_ids(self) -> list[int]:
-    return self._sorted_node_indices[: self._num_hard_macros]
+  def macro_names(self) -> list[str]:
+    macro_ids = self._sorted_node_indices[: self._num_hard_macros]
+    return [self._plc.get_node_name(m) for m in macro_ids]
 
   def get_static_obs(self):
     """Get the static observation for the environment.
