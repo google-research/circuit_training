@@ -27,6 +27,10 @@ from circuit_training.utils import test_utils
 
 FLAGS = flags.FLAGS
 
+_CIRCUIT_TRAINING_DIR = 'circuit_training'
+_TESTDATA_DIR = (
+    _CIRCUIT_TRAINING_DIR + '/grouping/testdata/'
+)
 
 class GridSizeSelectionTest(absltest.TestCase):
 
@@ -82,9 +86,7 @@ class GridSizeSelectionTest(absltest.TestCase):
         data(4, 4, 1, 10, 128, 5, 100, 2, 0, False, 4, 4),
         data(4, 4, 1, 10, 128, 5, 100, 2, 0.2, False, 3, 3),
     ]
-    test_netlist_dir = ('circuit_training/'
-                        'grouping/testdata')
-    filename = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    filename = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                             'macro_tiles_3rows_3cols_1pins.pb.txt')
     plc = plc_client.PlacementCost(filename)
     for d in test_vect:

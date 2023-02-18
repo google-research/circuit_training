@@ -33,8 +33,9 @@ def blockage_area(plc):
 
 def np_array_of_array(py_list_of_list, dtype):
   """converts a Python list of list into a Numpy array of array."""
-  return np.array([np.array(l, dtype=dtype) for l in py_list_of_list],
-                  dtype=object)
+  return np.array(
+      [np.array(l, dtype=dtype) for l in py_list_of_list], dtype=object
+  )
 
 
 def convert_canvas(db, plc):
@@ -44,14 +45,12 @@ def convert_canvas(db, plc):
     db: The PlaceDB instance.
     plc: The PlacementCost instance.
   """
-  # NOTE(hqzhu): don't accepet external settings for:
-  # placement bounding box row_height and site width.
   db.xl = 0
   db.yl = 0
   db.xh, db.yh = plc.get_canvas_width_height()
   num_columns, num_rows = plc.get_grid_num_columns_rows()
-  db.row_height = (db.yh / num_rows)
-  db.site_width = (db.xh / num_columns)
+  db.row_height = db.yh / num_rows
+  db.site_width = db.xh / num_columns
   db.rows = []
   for i in range(num_rows):
     db.rows.append([0, i * db.row_height, db.xh, (i + 1) * db.row_height])
@@ -107,7 +106,8 @@ def convert_nodes(db, plc, hard_macro_order):
     if plc.is_node_fixed(node_index):
       assert node_index not in hard_macro_indices, (
           f'hard macro {node_index} is fixed and should '
-          'not be included in `hard_macro_order`.')
+          'not be included in `hard_macro_order`.'
+      )
       non_movable_node_indices.append(node_index)
     elif node_type == 'MACRO':
       if plc.is_node_soft_macro(node_index):
@@ -121,20 +121,26 @@ def convert_nodes(db, plc, hard_macro_order):
     elif node_type == 'PORT':
       non_movable_node_indices.append(node_index)
   # DREAMPlace requires nodes to be arragned movable-first, so do that.
-  physical_node_indices = soft_macro_and_stdcell_indices + hard_macro_indices + non_movable_node_indices
+  physical_node_indices = (
+      soft_macro_and_stdcell_indices
+      + hard_macro_indices
+      + non_movable_node_indices
+  )
 
   for node_id, node_index in enumerate(physical_node_indices):
     name = plc.get_node_name(node_index)
     db.node_names.append(name)
     db.node_name2id_map[name] = node_id
     if not plc.is_node_placed(node_index):
-      logging.log_first_n(0, 'Node %s is not placed. Placed it at (0, 0).', 5,
-                          node_index)
+      logging.log_first_n(
+          0, 'Node %s is not placed. Placed it at (0, 0).', 5, node_index
+      )
       x, y = (0, 0)
     else:
       x, y = plc.get_node_location(node_index)
-      logging.log_first_n(0, 'Node %s is placed at (%f, %f).', 5, node_index, x,
-                          y)
+      logging.log_first_n(
+          0, 'Node %s is placed at (%f, %f).', 5, node_index, x, y
+      )
     if plc.get_node_type(node_index) == 'PORT':
       # Treat a port as a node with 0 dimension and 'N' orientation.
       db.node_orient.append(b'N')
@@ -156,8 +162,9 @@ def convert_nodes(db, plc, hard_macro_order):
     if b[4] == 1:
       dummy_node_name = 'blockage_dummy_node_' + str(num_blockage_dummy_node)
       db.node_names.append(dummy_node_name)
-      db.node_name2id_map[dummy_node_name] = len(
-          physical_node_indices) + num_blockage_dummy_node
+      db.node_name2id_map[dummy_node_name] = (
+          len(physical_node_indices) + num_blockage_dummy_node
+      )
       db.node_x.append(b[0])
       db.node_y.append(b[1])
       db.original_node_size_x.append(b[2] - b[0])
@@ -168,8 +175,10 @@ def convert_nodes(db, plc, hard_macro_order):
   db.num_physical_nodes = len(physical_node_indices) + num_blockage_dummy_node
 
   db.num_terminals = (
-      len(hard_macro_indices) + len(non_movable_node_indices) +
-      num_blockage_dummy_node)
+      len(hard_macro_indices)
+      + len(non_movable_node_indices)
+      + num_blockage_dummy_node
+  )
   db.macro_mask = [False] * len(soft_macro_and_stdcell_indices)
 
   db.node_size_x = db.original_node_size_x
@@ -180,9 +189,14 @@ def convert_nodes(db, plc, hard_macro_order):
       n: i for i, n in enumerate(physical_node_indices)
   }
 
-  return (physical_node_indices, node_index_to_node_id_map,
-          soft_macro_and_stdcell_indices, hard_macro_indices,
-          non_movable_node_indices, num_blockage_dummy_node)
+  return (
+      physical_node_indices,
+      node_index_to_node_id_map,
+      soft_macro_and_stdcell_indices,
+      hard_macro_indices,
+      non_movable_node_indices,
+      num_blockage_dummy_node,
+  )
 
 
 def get_parent_node_index(plc, pin_index):
@@ -212,8 +226,14 @@ def get_pin_offset(plc, node_index, pin_index):
   return pin_x - (node_x - w / 2), pin_y - (node_y - h / 2)
 
 
-def convert_a_net(db, plc, driver_pin_index, node_index_to_node_id_map,
-                  pin_id_to_pin_index, counters):
+def convert_a_net(
+    db,
+    plc,
+    driver_pin_index,
+    node_index_to_node_id_map,
+    pin_id_to_pin_index,
+    counters,
+):
   """Convert a single net in plc into PlaceDB.
 
   The net is driven by the virtual pin whose index is "driver_pin_index".
@@ -234,10 +254,7 @@ def convert_a_net(db, plc, driver_pin_index, node_index_to_node_id_map,
   net_name = plc.get_node_name(driver_pin_index)
   db.net_names.append(net_name)
   db.net_name2id_map[net_name] = net_id
-  # TODO(b/255357659): support get_node_weight.
-  # NOTE(hqzhu): set net weight to deault 1.
-  db.net_weights.append(1.0)
-  # db.net_weights.append(plc.get_node_weight(driver_pin_index))
+  db.net_weights.append(plc.get_node_weight(driver_pin_index))
   # Add the driver pin to the list of pins.
   db.pin2net_map.append(net_id)
   db.pin_direct.append('OUTPUT')
@@ -274,8 +291,9 @@ def convert_a_net(db, plc, driver_pin_index, node_index_to_node_id_map,
   counters['pin_id'] = pin_id
 
 
-def convert_pins_and_nets(db, plc, physical_node_indices,
-                          node_index_to_node_id_map):
+def convert_pins_and_nets(
+    db, plc, physical_node_indices, node_index_to_node_id_map
+):
   """Convert pins and nets to PlaceDB.
 
   Here we work with the concerpt of a "virtual pin". Virtual pin is introduced
@@ -339,14 +357,26 @@ def convert_pins_and_nets(db, plc, physical_node_indices,
         # net from it.
         driver_pin_indices.append(node_index)
         driver_pin_index = node_index
-        convert_a_net(db, plc, driver_pin_index, node_index_to_node_id_map,
-                      pin_id_to_pin_index, counters)
+        convert_a_net(
+            db,
+            plc,
+            driver_pin_index,
+            node_index_to_node_id_map,
+            pin_id_to_pin_index,
+            counters,
+        )
     elif node_type == 'MACRO':
       # Output pins of both hard and soft macros drive pins.
       for driver_pin_index in plc.get_fan_outs_of_node(node_index):
         driver_pin_indices.append(driver_pin_index)
-        convert_a_net(db, plc, driver_pin_index, node_index_to_node_id_map,
-                      pin_id_to_pin_index, counters)
+        convert_a_net(
+            db,
+            plc,
+            driver_pin_index,
+            node_index_to_node_id_map,
+            pin_id_to_pin_index,
+            counters,
+        )
 
   return driver_pin_indices, pin_id_to_pin_index
 
@@ -372,9 +402,11 @@ def convert_to_ndarray(db):
   db.net_weights = np.array(db.net_weights, dtype=db.dtype)
   db.net2pin_map = np_array_of_array(db.net2pin_map, dtype=np.int32)
   db.flat_node2pin_map, db.flat_node2pin_start_map = db.flatten_nested_map(
-      db.pin2node_map, db.node2pin_map)
+      db.pin2node_map, db.node2pin_map
+  )
   db.flat_net2pin_map, db.flat_net2pin_start_map = db.flatten_nested_map(
-      db.pin2net_map, db.net2pin_map)
+      db.pin2net_map, db.net2pin_map
+  )
   db.macro_mask = np.array(db.macro_mask, dtype=np.uint8)
 
 
@@ -468,20 +500,27 @@ class PlcConverter(object):
 
     if not hard_macro_order:
       hard_macro_order = [
-          m for m in plc.get_macro_indices()
+          m
+          for m in plc.get_macro_indices()
           if not (plc.is_node_soft_macro(m) or plc.is_node_fixed(m))
       ]
 
     convert_canvas(db, plc)
-    (physical_node_indices, self._node_index_to_node_id_map,
-     self._soft_macro_and_stdcell_indices, self._hard_macro_indices,
-     self._non_movable_node_indices,
-     self._num_blockage_dummy_node) = convert_nodes(db, plc, hard_macro_order)
+    (
+        physical_node_indices,
+        self._node_index_to_node_id_map,
+        self._soft_macro_and_stdcell_indices,
+        self._hard_macro_indices,
+        self._non_movable_node_indices,
+        self._num_blockage_dummy_node,
+    ) = convert_nodes(db, plc, hard_macro_order)
     self._driver_pin_indices, self._pin_id_to_pin_index = convert_pins_and_nets(
-        db, plc, physical_node_indices, self._node_index_to_node_id_map)
+        db, plc, physical_node_indices, self._node_index_to_node_id_map
+    )
 
-    db.total_space_area = db.xh * db.yh - blockage_area(
-        plc) - self.non_movable_macro_area(plc)
+    db.total_space_area = (
+        db.xh * db.yh - blockage_area(plc) - self.non_movable_macro_area(plc)
+    )
     convert_to_ndarray(db)
     initialize_placedb_region_attributes(db)
     return db
@@ -528,14 +567,20 @@ class PlcConverter(object):
 
   def update_num_non_movable_macros(self, db, plc, num_non_movable_macros):
     """Updates PlaceDB parameters give the new num_non_movable_macros."""
-    db.num_terminals = num_non_movable_macros + len(
-        self._non_movable_node_indices) + self._num_blockage_dummy_node
-    macro_mask = [False] * len(
-        self._soft_macro_and_stdcell_indices) + [True] * (
-            len(self._hard_macro_indices) - num_non_movable_macros)
+    db.num_terminals = (
+        num_non_movable_macros
+        + len(self._non_movable_node_indices)
+        + self._num_blockage_dummy_node
+    )
+    macro_mask = [False] * len(self._soft_macro_and_stdcell_indices) + [
+        True
+    ] * (len(self._hard_macro_indices) - num_non_movable_macros)
     db.macro_mask = np.array(macro_mask, dtype=np.uint8)
-    db.total_space_area = db.xh * db.yh - blockage_area(
-        plc) - self.non_movable_macro_area(plc, num_non_movable_macros)
+    db.total_space_area = (
+        db.xh * db.yh
+        - blockage_area(plc)
+        - self.non_movable_macro_area(plc, num_non_movable_macros)
+    )
     # These parameters are changed after calling to PlaceDB.__call__,
     # resetting them to their original values.
     db.node_size_x = db.original_node_size_x

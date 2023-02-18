@@ -28,6 +28,11 @@ import numpy as np
 
 FLAGS = flags.FLAGS
 
+_CIRCUIT_TRAINING_DIR = 'circuit_training'
+_TESTDATA_DIR = (
+    _CIRCUIT_TRAINING_DIR + '/environment/test_data/'
+)
+
 
 class CoordinateDescentPlacerTest(parameterized.TestCase, test_utils.TestCase):
 
@@ -37,9 +42,7 @@ class CoordinateDescentPlacerTest(parameterized.TestCase, test_utils.TestCase):
     np.random.seed(666)
 
   def _create_plc(self, block_name):
-    test_netlist_dir = ('circuit_training/'
-                        'environment/test_data')
-    test_netlist_dir = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    test_netlist_dir = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                     block_name)
     netlist_file = os.path.join(test_netlist_dir, 'netlist.pb.txt')
     init_placement = os.path.join(test_netlist_dir, 'initial.plc')

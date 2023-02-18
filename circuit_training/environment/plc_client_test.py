@@ -425,6 +425,11 @@ MACRO_ADJACENCY = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0
 ]
 
+_CIRCUIT_TRAINING_DIR = 'circuit_training'
+_TESTDATA_DIR = (
+    _CIRCUIT_TRAINING_DIR + '/environment/test_data/macro_tiles_10x10'
+)
+
 
 class PlcClientTest(test_utils.TestCase):
   """Tests for the PlcClient.
@@ -433,9 +438,7 @@ class PlcClientTest(test_utils.TestCase):
   """
 
   def test_plc_client(self):
-    test_netlist_dir = ('circuit_training/'
-                        'environment/test_data/macro_tiles_10x10')
-    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                 'netlist.pb.txt')
     plc = plc_client.PlacementCost(netlist_file)
 
@@ -526,7 +529,7 @@ class PlcClientTest(test_utils.TestCase):
     self.assertTrue(plc.place_node(13, 180))
     self.assertTrue(plc.place_node('M_R0_C1', 230))
 
-    initial_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    initial_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                      'initial.plc')
     self.assertTrue(plc.restore_placement(initial_placement))
 

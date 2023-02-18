@@ -27,6 +27,12 @@ import numpy as np
 FLAGS = flags.FLAGS
 
 
+_CIRCUIT_TRAINING_DIR = 'circuit_training'
+_TESTDATA_DIR = (
+    _CIRCUIT_TRAINING_DIR + '/environment/test_data/sample_clustered/'
+)
+
+
 class ObservationExtractorTest(test_utils.TestCase):
   """Tests for the ObservationExtractor.
 
@@ -42,9 +48,7 @@ class ObservationExtractorTest(test_utils.TestCase):
     # Macros name                      : M0, M1, Grp_2
     # Order in plc.get_macro_indices():  0,  1,  2
     # Edges: (0, 1), (0, 2)
-    test_netlist_dir = ('circuit_training/'
-                        'environment/test_data/sample_clustered')
-    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                 'netlist.pb.txt')
     plc = placement_util.create_placement_cost(
         netlist_file=netlist_file, init_placement='')

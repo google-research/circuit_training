@@ -37,6 +37,11 @@ TEST_FILE_BODY = r"""# Placement file for Circuit Training
 
 """
 
+_CIRCUIT_TRAINING_DIR = 'circuit_training'
+_TESTDATA_DIR = (
+    _CIRCUIT_TRAINING_DIR + '/environment/test_data/macro_tiles_10x10'
+)
+
 
 class MockPlacementCost(object):
   """A Mock class of PlacementCost for testing."""
@@ -150,11 +155,9 @@ class MockPlacementCost(object):
 class PlacementUtilTest(test_utils.TestCase):
 
   def setUp(self):
-    test_netlist_dir = ('circuit_training/'
-                        'environment/test_data/macro_tiles_10x10')
-    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                 'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                   'initial.plc')
     self.plc = placement_util.create_placement_cost(
         netlist_file=netlist_file, init_placement=init_placement)
@@ -274,12 +277,9 @@ class PlacementUtilTest(test_utils.TestCase):
 
     # Internal circuit training docs link.
     """
-
-    test_netlist_dir = ('circuit_training/'
-                        'environment/test_data/macro_tiles_10x10')
-    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                 'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                   'initial.plc')
     plc = placement_util.create_placement_cost(
         netlist_file=netlist_file, init_placement=init_placement)

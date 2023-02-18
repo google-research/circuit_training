@@ -43,8 +43,10 @@ flags.DEFINE_integer('dataset_repeat', 16,
 
 FLAGS = flags.FLAGS
 
-_TESTDATA_DIR = ('circuit_training/'
-                 'environment/test_data')
+_CIRCUIT_TRAINING_DIR = 'circuit_training'
+_TESTDATA_DIR = (
+    _CIRCUIT_TRAINING_DIR + '/environment/test_data'
+)
 
 
 class ActorModelTest(test_utils.TestCase, parameterized.TestCase):

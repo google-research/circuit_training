@@ -28,8 +28,10 @@ from google.protobuf import text_format
 
 FLAGS = flags.FLAGS
 
-_TESTDATA_DIR = ('circuit_training/grouping/testdata')
-
+_CIRCUIT_TRAINING_DIR = 'circuit_training'
+_TESTDATA_DIR = (
+    _CIRCUIT_TRAINING_DIR + '/grouping/testdata'
+)
 
 class GroupingTest(tf.test.TestCase):
 

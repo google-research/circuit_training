@@ -34,16 +34,21 @@ from tf_agents.trajectories import trajectory
 
 FLAGS = flags.FLAGS
 
-_TESTDATA_DIR = ('circuit_training/'
-                 'environment/test_data/sample_clustered')
+_CIRCUIT_TRAINING_DIR = 'circuit_training'
+_TESTDATA_DIR = (
+    _CIRCUIT_TRAINING_DIR + '/environment/test_data/sample_clustered'
+)
 
 
 def create_test_circuit_env():
   env = environment.create_circuit_environment(
-      netlist_file=os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                'netlist.pb.txt'),
-      init_placement=os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                  'initial.plc'))
+      netlist_file=os.path.join(
+          FLAGS.test_srcdir, _TESTDATA_DIR, 'netlist.pb.txt'
+      ),
+      init_placement=os.path.join(
+          FLAGS.test_srcdir, _TESTDATA_DIR, 'initial.plc'
+      ),
+  )
   return env
 
 
@@ -53,7 +58,8 @@ class AgentTest(test_utils.TestCase):
     """GRL value network outputs the expected shape."""
     env = create_test_circuit_env()
     observation_tensor_spec, action_tensor_spec, _ = (
-        spec_utils.get_tensor_specs(env))
+        spec_utils.get_tensor_specs(env)
+    )
     logging.info('action_tensor_spec: %s', action_tensor_spec)
     time_step_tensor_spec = ts.time_step_spec(observation_tensor_spec)
 
@@ -64,36 +70,47 @@ class AgentTest(test_utils.TestCase):
     cache.add_static_feature(static_features)
 
     observation_tensor_spec, action_tensor_spec, _ = (
-        spec_utils.get_tensor_specs(env))
+        spec_utils.get_tensor_specs(env)
+    )
     with strategy.scope():
       actor_net, value_net = model.create_grl_models(
           observation_tensor_spec,
           action_tensor_spec,
           cache.get_all_static_features(),
-          use_model_tpu=False)
+          use_model_tpu=False,
+      )
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=4e-4, epsilon=1e-5)
 
-    grl_agent = agent.create_circuit_ppo_agent(train_step, action_tensor_spec,
-                                               time_step_tensor_spec, actor_net,
-                                               value_net, strategy, optimizer)
+    grl_agent = agent.create_circuit_ppo_agent(
+        train_step,
+        action_tensor_spec,
+        time_step_tensor_spec,
+        actor_net,
+        value_net,
+        strategy,
+        optimizer,
+    )
 
     batch_size = 4
     # Check that value prediction outputs the correct shape (B, ).
     sample_time_steps = tensor_spec.sample_spec_nest(
-        time_step_tensor_spec, outer_dims=(batch_size,))
+        time_step_tensor_spec, outer_dims=(batch_size,)
+    )
     value_outputs, _ = grl_agent.collect_policy.apply_value_network(
         sample_time_steps.observation,
         sample_time_steps.step_type,
         value_state=(),
-        training=False)
+        training=False,
+    )
     self.assertEqual(value_outputs.shape, (batch_size,))
 
   def test_train_grl(self):
     """GRL training does not fail on arbitrary data."""
     env = create_test_circuit_env()
     observation_tensor_spec, action_tensor_spec, _ = (
-        spec_utils.get_tensor_specs(env))
+        spec_utils.get_tensor_specs(env)
+    )
     logging.info('action_tensor_spec: %s', action_tensor_spec)
     time_step_tensor_spec = ts.time_step_spec(observation_tensor_spec)
 
@@ -108,34 +125,47 @@ class AgentTest(test_utils.TestCase):
           observation_tensor_spec,
           action_tensor_spec,
           cache.get_all_static_features(),
-          use_model_tpu=False)
+          use_model_tpu=False,
+      )
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=4e-4, epsilon=1e-5)
 
-    grl_agent = agent.create_circuit_ppo_agent(train_step, action_tensor_spec,
-                                               time_step_tensor_spec, actor_net,
-                                               value_net, strategy, optimizer)
+    grl_agent = agent.create_circuit_ppo_agent(
+        train_step,
+        action_tensor_spec,
+        time_step_tensor_spec,
+        actor_net,
+        value_net,
+        strategy,
+        optimizer,
+    )
 
     batch_size = 4
     sample_time_steps = tensor_spec.sample_spec_nest(
-        time_step_tensor_spec, outer_dims=(batch_size, 1))
+        time_step_tensor_spec, outer_dims=(batch_size, 1)
+    )
     sample_actions = tensor_spec.sample_spec_nest(
-        action_tensor_spec, outer_dims=(batch_size, 1))
+        action_tensor_spec, outer_dims=(batch_size, 1)
+    )
     sample_policy_info = {
         'dist_params': {
-            'logits':
-                tf.ones_like(
-                    sample_time_steps.observation['mask'],
-                    dtype=tf.dtypes.float32)
+            'logits': tf.ones_like(
+                sample_time_steps.observation['mask'], dtype=tf.dtypes.float32
+            )
         },
         'value_prediction': tf.constant([[0.2]] * batch_size),
         'return': tf.constant([[0.2]] * batch_size),
         'advantage': tf.constant([[0.2]] * batch_size),
     }
     sample_experience = trajectory.Trajectory(
-        sample_time_steps.step_type, sample_time_steps.observation,
-        sample_actions, sample_policy_info, sample_time_steps.step_type,
-        sample_time_steps.reward, sample_time_steps.discount)
+        sample_time_steps.step_type,
+        sample_time_steps.observation,
+        sample_actions,
+        sample_policy_info,
+        sample_time_steps.step_type,
+        sample_time_steps.reward,
+        sample_time_steps.discount,
+    )
     # Check that training compeltes one iteration.
     grl_agent.train(sample_experience)
 

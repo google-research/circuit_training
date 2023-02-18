@@ -1,0 +1,8 @@
+# Placement file for Circuit Training
+# Source input file(s) : circuit_training/environment/test_data/simple_with_coords/netlist.pb.txt
+# This file : circuit_training/environment/test_data/simple_with_coords/initial.plc
+# Columns : 2  Rows : 2
+# Width : 500.000  Height : 500.000
+# Project : sample
+#
+# node_index x y orientation fixed

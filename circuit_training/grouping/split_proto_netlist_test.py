@@ -24,8 +24,10 @@ from circuit_training.grouping import split_proto_netlist
 
 FLAGS = flags.FLAGS
 
-_TESTDATA_DIR = ('circuit_training/grouping/testdata')
-
+_CIRCUIT_TRAINING_DIR = 'circuit_training'
+_TESTDATA_DIR = (
+    _CIRCUIT_TRAINING_DIR + '/grouping/testdata'
+)
 
 class SplitProtoNetlistTest(absltest.TestCase):
 

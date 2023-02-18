@@ -39,8 +39,10 @@ from tf_agents.utils import test_utils
 
 FLAGS = flags.FLAGS
 
-_TESTDATA_DIR = ('circuit_training/'
-                 'environment/test_data/sample_clustered')
+_CIRCUIT_TRAINING_DIR = 'circuit_training'
+_TESTDATA_DIR = (
+    _CIRCUIT_TRAINING_DIR + '/environment/test_data/sample_clustered'
+)
 
 
 class _ValidateTimeStepObserver(object):

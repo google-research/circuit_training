@@ -35,6 +35,11 @@ from tf_agents.trajectories import time_step as ts
 
 FLAGS = flags.FLAGS
 
+_CIRCUIT_TRAINING_DIR = 'circuit_training'
+_TESTDATA_DIR = (
+    _CIRCUIT_TRAINING_DIR + '/environment/test_data/sample_clustered'
+)
+
 
 def random_action(mask):
   valid_actions, = np.nonzero(mask.flatten())
@@ -94,11 +99,9 @@ class EnvironmentTest(test_utils.TestCase):
   """
 
   def test_create_and_obs_space(self):
-    test_netlist_dir = ('circuit_training/'
-                        'environment/test_data/sample_clustered')
-    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                 'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                   'initial.plc')
     env = environment.CircuitEnv(
         netlist_file=netlist_file, init_placement=init_placement)
@@ -114,11 +117,9 @@ class EnvironmentTest(test_utils.TestCase):
       self.assertIsInstance(done, bool)
 
   def test_save_file_train_step(self):
-    test_netlist_dir = ('circuit_training/'
-                        'environment/test_data/sample_clustered')
-    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                 'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                   'initial.plc')
     output_dir = self.create_tempdir()
     output_plc_file = os.path.join(output_dir, 'ppo_opt_placement.plc')
@@ -154,11 +155,9 @@ class EnvironmentTest(test_utils.TestCase):
       ObservationConfig.max_grid_size = 128
     """
     gin.parse_config(bindings)
-    test_netlist_dir = ('circuit_training/'
-                        'environment/test_data/sample_clustered')
-    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                 'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                   'initial.plc')
     env = environment.CircuitEnv(
         netlist_file=netlist_file, init_placement=init_placement)
@@ -180,11 +179,9 @@ class EnvironmentTest(test_utils.TestCase):
     self.assertTrue(mask[(up_pad + 1) * 128 + (right_pad + 1)])  # (1, 1)
 
   def test_infisible(self):
-    test_netlist_dir = ('circuit_training/'
-                        'environment/test_data/sample_clustered')
-    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                 'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                   'initial.plc')
     env = environment.CircuitEnv(
         netlist_file=netlist_file,
@@ -202,11 +199,9 @@ class EnvironmentTest(test_utils.TestCase):
       ObservationConfig.max_grid_size = 128
     """
     gin.parse_config(bindings)
-    test_netlist_dir = ('circuit_training/'
-                        'environment/test_data/sample_clustered')
-    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                 'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                   'initial.plc')
     env = environment.create_circuit_environment(
         netlist_file=netlist_file,
@@ -222,11 +217,9 @@ class EnvironmentTest(test_utils.TestCase):
     self.assertEqual(spec.name, 'action')
 
   def test_validate_circuite_env(self):
-    test_netlist_dir = ('circuit_training/'
-                        'environment/test_data/sample_clustered')
-    netlist_file = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                 'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, test_netlist_dir,
+    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                   'initial.plc')
     env = environment.create_circuit_environment(
         netlist_file=netlist_file,
