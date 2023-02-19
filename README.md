@@ -77,6 +77,7 @@ scaling to 100s of actors.
 ## Installation
 
 > :warning: Circuit Training only supports Linux based OSes.
+> :warning: Circuit Training requires Python 3.9 or greater.
 
 Circuit Training installation steps:
 
@@ -88,8 +89,8 @@ Circuit Training installation steps:
 Using the code at `HEAD` with the nightly release of TF-Agents is recommended.
 
 ```shell
-# Installs TF-Agents with nightly versions of Reverb and TensorFlow 2.x
-$  pip install tf-agents-nightly[reverb]
+# Installs TF-Agents with stable versions of Reverb and TensorFlow 2.x.
+$  pip install tf-agents[reverb]
 # Copies the placement cost binary to /usr/local/bin and makes it executable.
 $  sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main \
      -o  /usr/local/bin/plc_wrapper_main
@@ -117,14 +118,12 @@ to create our DREAMPlace binary.
 # is set correctly.
 $  mkdir -p /dreamplace
 # Pick the binary that matches your version of Python.
-# Python 3.7
-$  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.7.tar.gz -o /dreamplace/dreamplace.tar.gz
-# Python 3.8
-$  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.8.tar.gz -o /dreamplace/dreamplace.tar.gz
 # Python 3.9
 $  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.9.tar.gz -o /dreamplace/dreamplace.tar.gz
 # Python 3.10
 $  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.10.tar.gz -o /dreamplace/dreamplace.tar.gz
+# Python 3.11
+$  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.11.tar.gz -o /dreamplace/dreamplace.tar.gz
 
 # Unpacks the package.
 $  tar xzf /dreamplace/dreamplace.tar.gz -C /dreamplace/
@@ -139,7 +138,7 @@ $  export PYTHONPATH="${PYTHONPATH}:/dreamplace:/dreamplace/dreamplace"
 $  apt-get install -y \
       flex \
       libcairo2-dev \
-      libboost-all-devß
+      libboost-all-dev
 
 # Python packages
 $  python3 -mpip install pyunpack>=0.1.2 \
