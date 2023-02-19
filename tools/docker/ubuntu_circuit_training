@@ -22,9 +22,9 @@ FROM $base_image
 LABEL maintainer="tobyboyd@google.com"
 
 # Supports setting up a single version of python.
-ARG python_version="python3"
+ARG python_version="python3.9"
 ARG tf_agents_version="tf-agents[reverb]"
-ARG dreamplace_version="dreamplace_python3.8.tar.gz"
+ARG dreamplace_version="dreamplace_python3.9.tar.gz"
 ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
 
 
@@ -84,6 +84,9 @@ RUN $python_version -mpip install pyunpack>=0.1.2 \
         numpy>=1.15.4 \
         torch>=1.6.0 \
         shapely>=1.7.0
+
+# Installs specific versions of packages that need pinned various reasons.
+RUN $python_version -mpip install numpy==1.23.5 # Required by tensorflow until fixed ~TF 2.12+
 
 RUN mkdir -p /dreamplace
 RUN curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/$dreamplace_version -o /dreamplace/dreamplace.tar.gz
