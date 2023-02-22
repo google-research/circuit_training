@@ -20,27 +20,30 @@ from circuit_training.dreamplace import placedb_plc
 from dreamplace import NonLinearPlace
 
 
-class SoftMacroPlacer(object):
+class SoftMacroPlacer():
   """A soft macro placer using Dreamplace."""
 
   def __init__(self, plc, params, hard_macro_order=None):
     self.params = params
     self.placedb_plc = placedb_plc.PlacedbPlc(plc, params, hard_macro_order)
 
-  # NOTE(hqzhu): convergence flag may not be right.
+  # NOTE: Find a way to detect converged or not.
   # We cannot simply check divergence based on #iterations in DP V3.
+  # E.g., open routability, early stop.
   def place(self) -> bool:
     """Place soft macros.
 
     Returns:
       a bool indicating if DP converges or not based on checking #iterations.
     """
-    nonlinear_place = NonLinearPlace.NonLinearPlace(self.params,
-                                                    self.placedb_plc.placedb)
+    nonlinear_place = NonLinearPlace.NonLinearPlace(
+        self.params, self.placedb_plc.placedb
+    )
     metrics = nonlinear_place(self.params, self.placedb_plc.placedb)
     logging.info('Last Dreamplace metric: %s', str(metrics[-1][-1][-1]))
     total_iterations = sum(
-        [stage['iteration'] for stage in self.params.global_place_stages])
+        [stage['iteration'] for stage in self.params.global_place_stages]
+    )
 
     return (metrics[-1][-1][-1].iteration) < total_iterations
 
@@ -75,6 +78,8 @@ def optimize_using_dreamplace(plc,
 
   # The total run time of using Dreamplace to optimize soft macro placement.
   duration = time.time() - start_opt_time
-  filename_prefix = 'dreamplace'
+  filename_prefix = (
+      'dreamplace_mix' if hard_macro_movable else 'dreamplace_cell'
+  )
   dreamplace_util.print_and_save_result(plc, duration, 'Dreamplace',
                                         filename_prefix, output_dir)

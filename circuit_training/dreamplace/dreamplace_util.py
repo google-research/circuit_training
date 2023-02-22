@@ -31,8 +31,6 @@ def print_and_save_result(
   """Prints out proxy costs and run time. Writes out plc and svg."""
   plc_filename = os.path.join(output_dir, f'{filename_prefix}.plc')
   util.save_placement(plc, plc_filename)
-  # NOTE(hqzhu): remove save plc as svg feature.
-  # since placement_util is not supported.
   logging.info('**************************************************')
   logging.info('*** %s took %g seconds.', method_name, duration)
   logging.info('***')
