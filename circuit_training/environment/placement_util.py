@@ -432,6 +432,7 @@ def get_ordered_node_indices(mode: str,
   Returns:
     Node indices sorted according to the mode.
   """
+  rng = np.random.default_rng(seed=seed)
   macro_indices = plc.get_macro_indices()
   hard_macro_indices = [
       m for m in macro_indices if not plc.is_node_soft_macro(m)
@@ -449,12 +450,10 @@ def get_ordered_node_indices(mode: str,
         sorted(hard_macro_indices, key=macro_area)[::-1] +
         sorted(soft_macro_indices, key=macro_area)[::-1])
   elif mode == 'random':
-    np.random.seed(seed)
-    np.random.shuffle(macro_indices)
+    rng.shuffle(macro_indices)
     ordered_indices = macro_indices
   elif mode == 'random_macro_first':
-    np.random.seed(seed)
-    np.random.shuffle(hard_macro_indices)
+    rng.shuffle(hard_macro_indices)
     logging.info('ordered hard macros: %s', hard_macro_indices)
     ordered_indices = hard_macro_indices + soft_macro_indices
   else:

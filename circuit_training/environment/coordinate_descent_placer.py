@@ -51,6 +51,7 @@ class CoordinateDescentPlacer(object):
       # TODO(b/166313185): Consider experimenting with
       # k_distance_bound.
       k_distance_bound: int = 5,
+      seed: int = 123,
   ) -> None:
     """Creates a CoordinateDescentPlacer.
 
@@ -75,6 +76,7 @@ class CoordinateDescentPlacer(object):
         placer.
       k_distance_bound: If k_distance_bounded_search is True, only search within
         a neighborhood of at most k_distance_bound grid distance.
+      seed: RNG seed for random behavior in this class.
     """
     self.plc = plc
     self.cost_fn = cost_fn
@@ -89,6 +91,7 @@ class CoordinateDescentPlacer(object):
     self._accept_bad_stdcell_moves = accept_bad_stdcell_moves
     self._optimize_only_orientation = optimize_only_orientation
     self._k_distance_bounded_search = k_distance_bounded_search
+    self._rng = np.random.default_rng(seed=seed)
 
     if self._cell_search_prob < 0 or self._cell_search_prob > 1:
       raise ValueError(f'{self._cell_search_prob} should be between 0 and 1.')
@@ -228,7 +231,7 @@ class CoordinateDescentPlacer(object):
 
       row, col = self._get_row_col_from_cell(c)
       if abs(row - curr_row) + abs(col - curr_col) <= k:
-        if np.random.random() <= self._cell_search_prob:
+        if self._rng.random() <= self._cell_search_prob:
           bounded.append(c)
     return bounded
 
@@ -318,7 +321,7 @@ class CoordinateDescentPlacer(object):
 
     node_indices = self._ordered_node_indices
     if self._node_order == 'random':
-      np.random.shuffle(node_indices)
+      self._rng.shuffle(node_indices)
 
     for i, node in enumerate(node_indices):
       if i % 25 == 0:
