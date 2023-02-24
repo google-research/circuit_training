@@ -18,8 +18,8 @@ $ mkdir -p ${REPO_ROOT}/logs
 
 # Build docker with tf-agents release defined by `TF_AGENTS_PIP_VERSION`.
 $ docker build --pull --no-cache --tag circuit_training:core \
-$   --build-arg tf_agents_version="${TF_AGENTS_PIP_VERSION}" \
-$   -f "${REPO_ROOT}"/tools/docker/ubuntu_circuit_training ${REPO_ROOT}/tools/docker/
+    --build-arg tf_agents_version="${TF_AGENTS_PIP_VERSION}" \
+    -f "${REPO_ROOT}"/tools/docker/ubuntu_circuit_training ${REPO_ROOT}/tools/docker/
 
 # Executes unit tests by running each environment (python version) in parallel.
 $ docker run --rm -v ${REPO_ROOT}:/workspace --workdir /workspace circuit_training:core \
