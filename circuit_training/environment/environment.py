@@ -264,25 +264,30 @@ class CircuitEnv(object):
       self._dreamplace = dreamplace_core.SoftMacroPlacer(
           self._plc, dreamplace_params, hard_macro_order
       )
-      # Making all macros movable for a mixed-size.
-      self._dreamplace.placedb_plc.update_num_non_movable_macros(
-          plc=self._plc, num_non_movable_macros=0
-      )
-      converged = self._dreamplace.place()
-      self._dreamplace.placedb_plc.write_movable_locations_to_plc(self._plc)
-      if not converged:
-        logging.warning("Initial DREAMPlace mixed-size didn't converge.")
+
+      if 'mix_sized_dreamplace.plc' not in init_placement:
+        # Making all macros movable for a mixed-size.
+        self._dreamplace.placedb_plc.update_num_non_movable_macros(
+            plc=self._plc, num_non_movable_macros=0
+        )
+        converged = self._dreamplace.place()
+        self._dreamplace.placedb_plc.write_movable_locations_to_plc(self._plc)
+        if not converged:
+          logging.warning("Initial DREAMPlace mixed-size didn't converge.")
+
+        # Recreate the ObservationExtractor, so we use the DREAMPlace
+        # mixed-size, placement as the default location in the observation.
+        self._observation_extractor = (
+            observation_extractor.ObservationExtractor(
+                plc=self._plc,
+                observation_config=self._observation_config,
+                netlist_index=self._netlist_index,
+            )
+        )
 
       self._dp_mixed_macro_locations = {
           m: self._plc.get_node_location(m) for m in hard_macro_order
       }
-      # Recreate the ObservationExtractor, so we use the DREAMPlace mixed-size,
-      # placement as the default location in the observation.
-      self._observation_extractor = observation_extractor.ObservationExtractor(
-          plc=self._plc,
-          observation_config=self._observation_config,
-          netlist_index=self._netlist_index,
-      )
 
     if unplace_all_nodes_in_init:
       # TODO(b/223026568) Remove unplace_all_nodes from init
@@ -502,9 +507,11 @@ class CircuitEnv(object):
     right_pad = (self._observation_config.max_grid_size - self._grid_cols) // 2
 
     if up_pad < 0 or right_pad < 0:
-      raise ValueError(f'grid_rows {self._grid_rows} or grid_cols '
-                       f'{self._grid_cols} is larger than max_grid_size '
-                       f'{self._observation_config.max_grid_size}"')
+      raise ValueError(
+          f'grid_rows {self._grid_rows} or grid_cols '
+          f'{self._grid_cols} is larger than max_grid_size '
+          f'{self._observation_config.max_grid_size}"'
+      )
 
     a_i = action // self._grid_cols + up_pad
     a_j = action % self._grid_cols + right_pad

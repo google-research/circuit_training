@@ -79,7 +79,7 @@ def optimize_using_dreamplace(plc,
   # The total run time of using Dreamplace to optimize soft macro placement.
   duration = time.time() - start_opt_time
   filename_prefix = (
-      'dreamplace_mix' if hard_macro_movable else 'dreamplace_cell'
+      'mix_sized_dreamplace' if hard_macro_movable else 'dreamplace_cell'
   )
   dreamplace_util.print_and_save_result(plc, duration, 'Dreamplace',
                                         filename_prefix, output_dir)
