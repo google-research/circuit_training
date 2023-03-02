@@ -73,7 +73,7 @@ def split_proto_netlist(
   ready_to_close = False
   next_close_pos = max_file_size
   next_print_pos = print_pos_interval
-  with gfile.GFile(file_name, 'rt') as infile:
+  with gfile.GFile(file_name, 'r') as infile:
     for line in infile:
       outfile.write(line)
       infile_pos += len(line) + 1

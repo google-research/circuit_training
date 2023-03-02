@@ -538,7 +538,7 @@ class PlcConverter(object):
       The converted PlaceDB instance.
     """
     db = self.convert(plc, hard_macro_order)
-    with gfile.GFile(path_to_placedb, 'wb') as output_file:
+    with gfile.GFile(path_to_placedb, 'w') as output_file:
       pickle.dump(db, output_file)
     return db
 

@@ -138,7 +138,7 @@ class MockPlacementCost(object):
 
   def save_placement(self, filename, info):
     print(info)
-    with gfile.GFile(filename, 'wt') as f:
+    with gfile.GFile(filename, 'w') as f:
       for l in info.split('\n'):
         f.write('# ' + l + '\n')
 
@@ -198,7 +198,7 @@ class PlacementUtilTest(test_utils.TestCase):
 
   def test_sample_file_extract_attribute(self):
     tempfile = self.create_tempfile().full_path
-    with gfile.GFile(tempfile, 'wt') as f:
+    with gfile.GFile(tempfile, 'w') as f:
       f.write(TEST_FILE_BODY)
     self.assertEqual(
         placement_util.extract_attribute_from_comments('Block', [tempfile]),
@@ -212,7 +212,7 @@ class PlacementUtilTest(test_utils.TestCase):
 
   def test_sample_file_extract_parameters(self):
     tempfile = self.create_tempfile().full_path
-    with gfile.GFile(tempfile, 'wt') as f:
+    with gfile.GFile(tempfile, 'w') as f:
       f.write(TEST_FILE_BODY)
 
     sizes = placement_util.extract_sizes_from_comments([tempfile])
@@ -225,7 +225,7 @@ class PlacementUtilTest(test_utils.TestCase):
 
   def test_sample_file_get_blockages(self):
     tempfile = self.create_tempfile().full_path
-    with gfile.GFile(tempfile, 'wt') as f:
+    with gfile.GFile(tempfile, 'w') as f:
       f.write(TEST_FILE_BODY)
     blockages = placement_util.get_blockages_from_comments([tempfile])
 
