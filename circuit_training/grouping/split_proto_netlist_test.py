@@ -19,7 +19,7 @@ import os
 from absl import flags
 from absl.testing import absltest
 from circuit_training.grouping import split_proto_netlist
-# Internal gfile dependencies
+import tensorflow.io.gfile as gfile
 
 
 FLAGS = flags.FLAGS
@@ -32,7 +32,7 @@ _TESTDATA_DIR = (
 class SplitProtoNetlistTest(absltest.TestCase):
 
   def _read_files(self, file_name):
-    with open(file_name, 'r') as f:
+    with gfile.GFile(file_name, 'r') as f:
       file_string = f.read()
     return file_string
 

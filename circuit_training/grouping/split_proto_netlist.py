@@ -19,7 +19,7 @@ from typing import List, Optional
 
 from absl import logging
 
-# Internal gfile dependencies
+import tensorflow.io.gfile as gfile
 
 
 # Cut the file just below 2GB.
@@ -63,7 +63,7 @@ def split_proto_netlist(
   outfile_name = '{}.part{}.pb.txt'.format(file_name_base, outfile_cnt)
   print('Output file: ', outfile_name)
   try:
-    outfile = open(outfile_name, 'w')
+    outfile = gfile.GFile(outfile_name, 'w')
   except IOError:
     logging.error('Cannot open output file %s', outfile_name)
     return None
@@ -73,7 +73,7 @@ def split_proto_netlist(
   ready_to_close = False
   next_close_pos = max_file_size
   next_print_pos = print_pos_interval
-  with open(file_name, 'rt') as infile:
+  with gfile.GFile(file_name, 'rt') as infile:
     for line in infile:
       outfile.write(line)
       infile_pos += len(line) + 1
@@ -94,7 +94,7 @@ def split_proto_netlist(
         print('Output file: {}'.format(outfile_name))
         split_list.append(outfile_name)
         try:
-          outfile = open(outfile_name, 'w')
+          outfile = gfile.GFile(outfile_name, 'w')
         except IOError:
           logging.error('Cannot open output file %s', outfile_name)
           return None

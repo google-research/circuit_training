@@ -31,7 +31,7 @@ from tf_agents.train.utils import train_utils
 from tf_agents.trajectories import policy_step
 from tf_agents.trajectories import time_step as ts
 
-# Internal gfile dependencies
+import tensorflow.io.gfile as gfile
 
 FLAGS = flags.FLAGS
 
@@ -144,10 +144,10 @@ class EnvironmentTest(test_utils.TestCase):
       obs, _, done, _ = env.step(action)
 
     self.assertTrue(os.path.exists(output_plc_file))
-    with open(output_plc_file) as f:
+    with gfile.GFile(output_plc_file) as f:
       self.assertIn('Train step : 1234', f.read())
     self.assertTrue(os.path.exists(output_cd_file))
-    with open(output_cd_file) as f:
+    with gfile.GFile(output_cd_file) as f:
       self.assertIn('Train step : 1234', f.read())
 
   def test_action_space(self):

@@ -22,7 +22,7 @@ import numpy as np
 import tensorflow as tf
 
 from google.protobuf import text_format
-# Internal gfile dependencies
+import tensorflow.io.gfile as gfile
 
 # Default number of columns and rows for canvas.
 _DEFAULT_NUM_COLS_ROWS = 10
@@ -346,7 +346,7 @@ def read_netlist(netlist_filepath: str) -> mnds.MetaNetlist:
   meta_graph = tf.compat.v1.MetaGraphDef()
 
   for single_netlist_filepath in netlist_filepath_list:
-    with open(single_netlist_filepath, "r") as f:
+    with gfile.GFile(single_netlist_filepath, "r") as f:
       tf_graph = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
     meta_graph.graph_def.MergeFrom(tf_graph)
   return convert_tfgraph_to_meta_netlist(meta_graph)

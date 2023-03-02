@@ -30,7 +30,7 @@ from circuit_training.grouping import meta_netlist_convertor
 from circuit_training.grouping import meta_netlist_util
 import sortedcontainers
 
-# Internal gfile dependencies
+import tensorflow.io.gfile as gfile
 
 flags.DEFINE_integer(
     'fixed_logic_levels', 1, 'Number of levels of logic '
@@ -65,7 +65,7 @@ FLAGS = flags.FLAGS
 def setup_fixed_groups(grp: grouping.Grouping, output_dir: str,
                        fixed_logic_levels: int) -> str:
   fix_file = os.path.join(output_dir, 'metis_input.fix')
-  if os.path.exists(fix_file):
+  if gfile.exists(fix_file):
     update_groups_using_metis_output(grp, fix_file)
     return fix_file
 
@@ -79,8 +79,8 @@ def partition_netlist(plc: plc_client.PlacementCost, num_groups: int,
                       breakup: bool, output_dir: str, hmetis_opts: Any,
                       netlist_file: str) -> Optional[Tuple[str, str]]:
   """Partitions standard cells into groups by calling hmetis."""
-  if not os.path.isdir(output_dir):
-    os.makedirs(output_dir)
+  if not gfile.isdir(output_dir):
+    gfile.makedirs(output_dir)
   metis_file = os.path.join(output_dir, 'metis_input')
 
   logging.info('Writing metis compatible file: %s', metis_file)
@@ -102,7 +102,7 @@ def partition_netlist(plc: plc_client.PlacementCost, num_groups: int,
     num_groups += num_fixed_groups
   else:
     fix_file = None
-  if os.path.exists(metis_file):
+  if gfile.exists(metis_file):
     logging.warning('Metis input file exists, skipping generation.')
   else:
     try:
@@ -270,7 +270,7 @@ def update_groups_using_metis_output(grp: grouping.Grouping,
 
 def read_metis_out_file(filename: str) -> Dict[int, int]:
   metis_groups = sortedcontainers.SortedDict()
-  with open(filename, 'r') as infile:
+  with gfile.GFile(filename, 'r') as infile:
     node_index = 0
     for line in infile:
       metis_groups[node_index] = int(line)
@@ -280,7 +280,7 @@ def read_metis_out_file(filename: str) -> Dict[int, int]:
 
 def write_final_groupings(plc: plc_client.PlacementCost, grp: grouping.Grouping,
                           filename: str) -> None:
-  with open(filename, 'w') as outfile:
+  with gfile.GFile(filename, 'w') as outfile:
     for node_index in range(plc.num_nodes()):
       grpindex = grp.get_node_group(node_index)
       outfile.write(str(grpindex) + '\n')

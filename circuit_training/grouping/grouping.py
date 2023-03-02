@@ -23,7 +23,7 @@ import tensorflow as tf
 
 from circuit_training.grouping import meta_netlist_data_structure as mnds
 from google.protobuf import text_format
-# Internal gfile dependencies
+import tensorflow.io.gfile as gfile
 
 # Used as a default value for non exist index.
 _NON_EXIST_INDEX = -1
@@ -291,7 +291,7 @@ class Grouping:
 
     header_line = f"{num_lines} {len(self._meta_netlist.node)}\n"
 
-    with open(file_path, "w") as f:
+    with gfile.GFile(file_path, "w") as f:
       f.write("".join([header_line] + lines))
 
   def write_metis_fix_file(self, file_path: str) -> None:
@@ -301,7 +301,7 @@ class Grouping:
       group_id = self._node_group_map.get(i, _NON_EXIST_INDEX)
       lines.append(f"{group_id}\n")
 
-    with open(file_path, "w") as f:
+    with gfile.GFile(file_path, "w") as f:
       f.write("".join(lines))
 
   def get_node_outputs(self, node_index: int) -> Dict[int, float]:
@@ -517,7 +517,7 @@ class Grouping:
     for group_no in groups_to_print:
       self.write_as_macro(group_no, graph_def)
 
-    with open(file_path, "w") as f:
+    with gfile.GFile(file_path, "w") as f:
       f.write(text_format.MessageToString(graph_def))
 
   def get_node_location(self, node_index: int) -> Tuple[float, float]:

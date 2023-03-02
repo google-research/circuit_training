@@ -24,7 +24,7 @@ from absl import logging
 from dreamplace import PlaceDB
 import numpy as np
 
-# Internal gfile dependencies
+import tensorflow.io.gfile as gfile
 
 
 def blockage_area(plc):
@@ -538,7 +538,7 @@ class PlcConverter(object):
       The converted PlaceDB instance.
     """
     db = self.convert(plc, hard_macro_order)
-    with open(path_to_placedb, 'wb') as output_file:
+    with gfile.GFile(path_to_placedb, 'wb') as output_file:
       pickle.dump(db, output_file)
     return db
 

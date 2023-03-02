@@ -26,7 +26,7 @@ from absl import logging
 from circuit_training.environment import plc_client
 import numpy as np
 
-# Internal gfile dependencies
+import tensorflow.io.gfile as gfile
 
 
 def nodes_of_types(plc: plc_client.PlacementCost,
@@ -89,7 +89,7 @@ def extract_attribute_from_comments(attribute: str,
     if filename:
       f = filename.split(',')[0]
       if f:
-        with open(f, 'rt') as infile:
+        with gfile.GFile(f, 'rt') as infile:
           for line in infile:
             if line.startswith('#'):
               match = re.search(fr'{attribute} : ([-\w]+)', line)
@@ -116,7 +116,7 @@ def get_blockages_from_comments(
     # the rectangular region, the fifth one is the blockage rate. It's usually
     # set to 1.
     try:
-      with open(filename, 'rt') as infile:
+      with gfile.GFile(filename, 'rt') as infile:
         for line in infile:
           if line.startswith('# Blockage : '):
             blockages.append([float(x) for x in line.split()[3:8]])
@@ -143,7 +143,7 @@ def extract_sizes_from_comments(
       continue
     canvas_width, canvas_height = None, None
     grid_cols, grid_rows = None, None
-    with open(filename, 'rt') as infile:
+    with gfile.GFile(filename, 'rt') as infile:
       for line in infile:
         if line.startswith('#'):
           fp_re = re.search(
@@ -480,7 +480,7 @@ def extract_blockages_from_file(
   """
   blockages = []
   try:
-    with open(filename, 'r') as infile:
+    with gfile.GFile(filename, 'r') as infile:
       for line in infile:
         if line.startswith('#'):
           continue

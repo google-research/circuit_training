@@ -24,7 +24,7 @@ from circuit_training.grouping import meta_netlist_data_structure as mnds
 import tensorflow as tf
 
 from google.protobuf import text_format
-# Internal gfile dependencies
+import tensorflow.io.gfile as gfile
 
 FLAGS = flags.FLAGS
 
@@ -54,7 +54,7 @@ class GroupingTest(tf.test.TestCase):
     output_file_path = os.path.join(FLAGS.test_tmpdir, 'metis.inp')
     group.write_metis_file(output_file_path)
 
-    with open(output_file_path, 'r') as f:
+    with gfile.GFile(output_file_path, 'r') as f:
       file_content = f.read()
 
     expected_content = '5 10\n1 7 3\n3 4\n4 9\n8 4\n10 2\n'
@@ -67,7 +67,7 @@ class GroupingTest(tf.test.TestCase):
     self.assertEqual(group.num_groups(), 2)
     group.write_metis_fix_file(output_file_path)
 
-    with open(output_file_path, 'r') as f:
+    with gfile.GFile(output_file_path, 'r') as f:
       file_content = f.read()
 
     expected_content = '-1\n-1\n-1\n-1\n-1\n-1\n0\n0\n1\n1\n'
@@ -195,13 +195,13 @@ class GroupingTest(tf.test.TestCase):
     # Compare two protobufs with proto util.
     expected_graph_def = tf.compat.v1.GraphDef()
 
-    with open(tmpfile, 'r') as f:
+    with gfile.GFile(tmpfile, 'r') as f:
       tmp_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
     expected_grouped_netlist_file_path = os.path.join(
         FLAGS.test_srcdir, _TESTDATA_DIR,
         'simple_grouped_soft_macro_not_bloated.pb.txt')
-    with open(expected_grouped_netlist_file_path, 'r') as f:
+    with gfile.GFile(expected_grouped_netlist_file_path, 'r') as f:
       expected_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
     self.assertProtoEquals(tmp_graph_def, expected_graph_def)
@@ -226,13 +226,13 @@ class GroupingTest(tf.test.TestCase):
     # Compare two protobufs with proto util.
     expected_graph_def = tf.compat.v1.GraphDef()
 
-    with open(tmpfile, 'r') as f:
+    with gfile.GFile(tmpfile, 'r') as f:
       tmp_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
     expected_grouped_netlist_file_path = os.path.join(
         FLAGS.test_srcdir, _TESTDATA_DIR,
         'simple_grouped_soft_macro_not_bloated_s.pb.txt')
-    with open(expected_grouped_netlist_file_path, 'r') as f:
+    with gfile.GFile(expected_grouped_netlist_file_path, 'r') as f:
       expected_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
     self.assertProtoEquals(tmp_graph_def, expected_graph_def)
