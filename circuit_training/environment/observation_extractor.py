@@ -14,6 +14,7 @@
 # limitations under the License.
 """This class extracts features from observations."""
 
+import copy
 from typing import Dict, Optional, Text, Tuple
 
 from absl import logging
@@ -65,7 +66,11 @@ class ObservationExtractor(object):
     ]
 
     # Extract static features.
-    self._features = self._extract_static_features()
+    self._initial_features = self._extract_static_features()
+    self.reset()
+
+  def reset(self) -> None:
+    self._features = copy.deepcopy(self._initial_features)
 
   def _extract_static_features(self) -> Dict[Text, np.ndarray]:
     """Static features that are invariant across training steps."""
@@ -93,7 +98,6 @@ class ObservationExtractor(object):
     self._normalize_macro_size_by_canvas(features)
     self._normalize_grid_size(features)
     self._normalize_locations_by_canvas(features)
-    self._replace_unplace_node_location(features)
     self._pad_macro_dynamic_features(features)
 
   def _extract_num_macros(self, features: Dict[Text, np.ndarray]) -> None:
@@ -120,18 +124,25 @@ class ObservationExtractor(object):
       self, features: Dict[Text, np.ndarray]
   ) -> None:
     """Extracts initial node locations."""
+    # We read the initial locations from the plc, but we set `is_node_placed` to
+    # false for movable items, since they will be unplaced by the env after
+    # initialization.
     locations_x = []
     locations_y = []
     is_node_placed = []
     for macro_idx in self.plc.get_macro_indices():
-      x, y = self.plc.get_node_location(macro_idx)
+      if self.plc.is_node_placed(macro_idx):
+        x, y = self.plc.get_node_location(macro_idx)
+      else:
+        x = self._default_location_x * self.width
+        y = self._default_location_y * self.height
       locations_x.append(x)
       locations_y.append(y)
-      is_node_placed.append(1 if self.plc.is_node_placed(macro_idx) else 0)
+      is_node_placed.append(self.plc.is_node_fixed(macro_idx))
     for x, y in self.clustered_port_locations_vec:
       locations_x.append(x)
       locations_y.append(y)
-      is_node_placed.append(1)
+      is_node_placed.append(True)
     features['locations_x'] = np.asarray(locations_x).astype(np.float32)
     features['locations_y'] = np.asarray(locations_y).astype(np.float32)
     features['is_node_placed'] = np.asarray(is_node_placed).astype(np.int32)
@@ -381,22 +392,6 @@ class ObservationExtractor(object):
         / (features['canvas_height'] + ObservationExtractor.EPSILON)
     ).astype(np.float32)
 
-  def _replace_unplace_node_location(
-      self, features: Dict[Text, np.ndarray]
-  ) -> None:
-    """Replace the location of the unplaced macros with a constant."""
-    is_node_placed = np.equal(features['is_node_placed'], 1)
-    features['locations_x'] = np.where(
-        is_node_placed,
-        features['locations_x'],
-        self._default_location_x * np.ones_like(features['locations_x']),
-    ).astype(np.float32)
-    features['locations_y'] = np.where(
-        is_node_placed,
-        features['locations_y'],
-        self._default_location_y * np.ones_like(features['locations_y']),
-    ).astype(np.float32)
-
   def get_static_features(self) -> Dict[Text, np.ndarray]:
     return {
         key: self._features[key]
@@ -428,7 +423,7 @@ class ObservationExtractor(object):
   ) -> Dict[Text, np.ndarray]:
     self._update_dynamic_features(previous_node_index, current_node_index, mask)
     return {
-        key: self._features[key]
+        key: copy.deepcopy(self._features[key])
         for key in observation_config_lib.DYNAMIC_OBSERVATIONS
         if key in self._features
     }

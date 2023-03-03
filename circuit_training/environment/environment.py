@@ -486,6 +486,7 @@ class CircuitEnv(object):
     self._current_node = 0
     self._done = False
     self._current_mask = self._get_mask()
+    self._observation_extractor.reset()
     return self._get_obs()
 
   def translate_to_original_canvas(self, action: int) -> int:

@@ -145,31 +145,55 @@ class ObservationExtractorTest(test_utils.TestCase):
     obs_space = self._observation_config.observation_space
     self.assertTrue(obs_space.contains(all_obs))
 
+  def test_initial_features_after_reset(self):
+    mask = np.zeros(
+        self._observation_config.max_grid_size *
+        self._observation_config.max_grid_size,
+        dtype=np.float32)
+    initial_obs = self.extractor.get_all_features(
+        previous_node_index=-1, current_node_index=0, mask=mask)
+    self.extractor.plc.update_node_coords('M0', 100, 120)
+    _ = self.extractor.get_all_features(
+        previous_node_index=0, current_node_index=1, mask=mask)
+    self.extractor.reset()
+    initial_obs_after_reset = self.extractor.get_all_features(
+        previous_node_index=-1, current_node_index=0, mask=mask)
+    for k in initial_obs:
+      self.assertAllClose(initial_obs[k], initial_obs_after_reset[k])
+
   def test_all_features_after_step(self):
     self.extractor.plc.update_node_coords('M0', 100, 120)
     mask = np.zeros(
         self._observation_config.max_grid_size *
         self._observation_config.max_grid_size,
         dtype=np.float32)
-    all_obs = self.extractor.get_all_features(
+    all_obs1 = self.extractor.get_all_features(
         previous_node_index=0, current_node_index=1, mask=mask)
-    self.assertAllClose(all_obs['locations_x'],
+    self.assertAllClose(all_obs1['locations_x'],
                         np.asarray([100., 150., 150., 0., 150., 0.0]) / 300.0)
-    self.assertAllClose(all_obs['locations_y'],
+    self.assertAllClose(all_obs1['locations_y'],
                         np.asarray([120., 100., 100., 125., 200., 0.0]) / 200.0)
-    self.assertAllEqual(all_obs['is_node_placed'], [1, 0, 0, 1, 1, 0])
-    self.assertAllClose(all_obs['current_node'], [1])
+    self.assertAllEqual(all_obs1['is_node_placed'], [1, 0, 0, 1, 1, 0])
+    self.assertAllClose(all_obs1['current_node'], [1])
 
     self.extractor.plc.update_node_coords('M1', 200, 150)
-    all_obs = self.extractor.get_all_features(
+    all_obs2 = self.extractor.get_all_features(
         previous_node_index=1, current_node_index=2, mask=mask)
-    self.assertAllClose(all_obs['locations_x'],
+    self.assertAllClose(all_obs2['locations_x'],
                         np.asarray([100., 200., 150., 0., 150., 0.0]) / 300.0)
-    self.assertAllClose(all_obs['locations_y'],
+    self.assertAllClose(all_obs2['locations_y'],
                         np.asarray([120., 150., 100., 125., 200., 0.0]) / 200.0)
-    self.assertAllEqual(all_obs['is_node_placed'], [1, 1, 0, 1, 1, 0])
-    self.assertAllClose(all_obs['current_node'], [2])
-    self.assertEqual(all_obs['netlist_index'][0], 0)
+    self.assertAllEqual(all_obs2['is_node_placed'], [1, 1, 0, 1, 1, 0])
+    self.assertAllClose(all_obs2['current_node'], [2])
+    self.assertEqual(all_obs2['netlist_index'][0], 0)
+
+    # Also, ensure `all_obs1` is not modified.
+    self.assertAllClose(all_obs1['locations_x'],
+                        np.asarray([100., 150., 150., 0., 150., 0.0]) / 300.0)
+    self.assertAllClose(all_obs1['locations_y'],
+                        np.asarray([120., 100., 100., 125., 200., 0.0]) / 200.0)
+    self.assertAllEqual(all_obs1['is_node_placed'], [1, 0, 0, 1, 1, 0])
+    self.assertAllClose(all_obs1['current_node'], [1])
 
 
 if __name__ == '__main__':
