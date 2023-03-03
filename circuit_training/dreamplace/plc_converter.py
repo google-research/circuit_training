@@ -539,7 +539,7 @@ class PlcConverter(object):
     """
     db = self.convert(plc, hard_macro_order)
     with gfile.GFile(path_to_placedb, 'w') as output_file:
-      pickle.dump(db, output_file)
+      pickle.dump(db, output_file)  # pytype: disable=wrong-arg-types  # re-none
     return db
 
   def update_macro(self, db, plc, macro_index):
