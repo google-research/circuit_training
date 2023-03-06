@@ -265,25 +265,24 @@ class CircuitEnv(object):
           self._plc, dreamplace_params, hard_macro_order
       )
 
-      if 'mix_sized_dreamplace.plc' not in init_placement:
-        # Making all macros movable for a mixed-size.
-        self._dreamplace.placedb_plc.update_num_non_movable_macros(
-            plc=self._plc, num_non_movable_macros=0
-        )
-        converged = self._dreamplace.place()
-        self._dreamplace.placedb_plc.write_movable_locations_to_plc(self._plc)
-        if not converged:
-          logging.warning("Initial DREAMPlace mixed-size didn't converge.")
+      # Making all macros movable for a mixed-size.
+      self._dreamplace.placedb_plc.update_num_non_movable_macros(
+          plc=self._plc, num_non_movable_macros=0
+      )
+      converged = self._dreamplace.place()
+      self._dreamplace.placedb_plc.write_movable_locations_to_plc(self._plc)
+      if not converged:
+        logging.warning("Initial DREAMPlace mixed-size didn't converge.")
 
-        # Recreate the ObservationExtractor, so we use the DREAMPlace
-        # mixed-size, placement as the default location in the observation.
-        self._observation_extractor = (
-            observation_extractor.ObservationExtractor(
-                plc=self._plc,
-                observation_config=self._observation_config,
-                netlist_index=self._netlist_index,
-            )
-        )
+      # Recreate the ObservationExtractor, so we use the DREAMPlace
+      # mixed-size, placement as the default location in the observation.
+      self._observation_extractor = (
+          observation_extractor.ObservationExtractor(
+              plc=self._plc,
+              observation_config=self._observation_config,
+              netlist_index=self._netlist_index,
+          )
+      )
 
       self._dp_mixed_macro_locations = {
           m: self._plc.get_node_location(m) for m in hard_macro_order
