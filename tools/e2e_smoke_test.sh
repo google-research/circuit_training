@@ -31,6 +31,7 @@ set -e
 
 # Flags
 ROOT_DIR=./logs/run_00
+SCRIPT_LOGS=$ROOT_DIR
 REVERB_PORT=8008
 REVERB_SERVER_IP=127.0.0.1
 NETLIST_FILE=./circuit_training/environment/test_data/ariane/netlist.pb.txt
@@ -44,11 +45,12 @@ HANDLER_EXIT_CODE=8
 
 if [[ $# -lt 1 ]] ; then
   echo "Usage:"
-  echo "--root_dir            [Where logs and checkpoints will be stored]"
+  echo "--root_dir            [Where event logs and checkpoints will be stored]"
   echo "--reverb_port         [Port to use for reverb]"
   echo "--netlist_file        [Path to the netlist]"
   echo "--init_place          [Path to the initial placement file, e.g. *.plc]"
   echo "--num_collect_jobs    [Number of collect jobs to start]"
+  echo "--script_logs         [Script logs, defaults to --root_dir value]"
   exit 1
 fi
 
@@ -58,7 +60,11 @@ while [[ $# -gt -0 ]]; do
   echo $2
   case $key in
       --root_dir)
-      ROOT_DIR="$2" # Where to store logs and checkpoints.
+      ROOT_DIR="$2" # Where to store event logs and checkpoints.
+      shift
+      ;;
+      --script_logs)
+      SCRIPT_LOGS="$2" # Where to store local logs.
       shift
       ;;
     --reverb_port)
@@ -86,13 +92,13 @@ while [[ $# -gt -0 ]]; do
 done
 
 handler() {
-  echo "Caught interrupt signal (likely reverb). Check logs directory ${ROOT_DIR}."
+  echo "Caught interrupt signal (likely reverb). Check logs directory ${SCRIPT_LOGS}."
   echo "Exiting with code ${HANDLER_EXIT_CODE}."
   exit $HANDLER_EXIT_CODE
 }
 
 usr1_handler() {
-  echo "Collect job failed (SIGUSR1). Check ${ROOT_DIR}/collect_*.log."
+  echo "Collect job failed (SIGUSR1). Check ${SCRIPT_LOGS}/collect_*.log."
   echo "Exiting with code ${HANDLER_EXIT_CODE}."
   exit $HANDLER_EXIT_CODE
 }
@@ -129,8 +135,8 @@ echo "Reverb server set to $REVERB_SERVER"
 
 echo "Starting Reveb Server in the background."
 start_background "$$" python3.9 -m circuit_training.learning.ppo_reverb_server  \
-  --root_dir=${ROOT_DIR}  --port=${REVERB_PORT} &> ${ROOT_DIR}/reverb.log &
-echo "Logging reverb job ${i} to ${ROOT_DIR}/reverb.log."
+  --root_dir=${ROOT_DIR}  --port=${REVERB_PORT} &> ${SCRIPT_LOGS}/reverb.log &
+echo "Logging reverb job ${i} to ${SCRIPT_LOGS}/reverb.log."
 
 echo "Starting $NUM_COLLECT_JOBS collect jobs."
 for i in $(eval echo "{1..$NUM_COLLECT_JOBS}")
@@ -142,8 +148,8 @@ do
   --variable_container_server_address=${REVERB_SERVER} \
   --task_id=0 \
   --netlist_file=${NETLIST_FILE} \
-  --init_placement=${INIT_PLACEMENT} &> ${ROOT_DIR}/collect_${i}.log &
-  echo "Logging collect job ${i} to ${ROOT_DIR}/collect_${i}.log."
+  --init_placement=${INIT_PLACEMENT} &> ${SCRIPT_LOGS}/collect_${i}.log &
+  echo "Logging collect job ${i} to ${SCRIPT_LOGS}/collect_${i}.log."
 done
 
 echo "Start Training job in the background but logging to console."
