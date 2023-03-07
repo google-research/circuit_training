@@ -105,7 +105,7 @@ $ gcloud compute instances create ${INSTANCE_NAME} \
     --image-project=deeplearning-platform-release \
     --boot-disk-size=100GB \
     --boot-disk-type=pd-ssd \
-    --scopes=https://www.googleapis.com/auth/cloud-platform"
+    --scopes="https://www.googleapis.com/auth/cloud-platform"
 
 ```
 
@@ -123,7 +123,7 @@ $ gcloud compute instances create ${INSTANCE_NAME} \
     --image-project=deeplearning-platform-release \
     --boot-disk-size=100GB \
     --boot-disk-type=pd-ssd \
-    --scopes=https://www.googleapis.com/auth/cloud-platform"
+    --scopes="https://www.googleapis.com/auth/cloud-platform"
 
 ```
 
@@ -142,7 +142,7 @@ $ gcloud compute instances create ${INSTANCE_NAME} \
     --image-project=deeplearning-platform-release \
     --boot-disk-size=100GB \
     --boot-disk-type=pd-ssd \
-    --scopes=https://www.googleapis.com/auth/cloud-platform"
+    --scopes="https://www.googleapis.com/auth/cloud-platform"
 ```
 
 #### Copy code and set environment variables.
