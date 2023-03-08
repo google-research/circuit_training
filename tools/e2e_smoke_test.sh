@@ -31,7 +31,7 @@ set -e
 
 # Flags
 ROOT_DIR=./logs/run_00
-SCRIPT_LOGS=$ROOT_DIR
+SCRIPT_LOGS=""
 REVERB_PORT=8008
 REVERB_SERVER_IP=127.0.0.1
 NETLIST_FILE=./circuit_training/environment/test_data/ariane/netlist.pb.txt
@@ -90,6 +90,11 @@ while [[ $# -gt -0 ]]; do
   esac
   shift # past argument or value
 done
+
+if [ -z "$SCRIPT_LOGS" ]; then
+  echo "FYI: Local logs (--script_logs) cannot write to gcs. It is just a pipe."
+  SCRIPT_LOGS=$ROOT_DIR
+fi
 
 handler() {
   echo "Caught interrupt signal (likely reverb). Check logs directory ${SCRIPT_LOGS}."
