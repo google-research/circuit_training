@@ -18,9 +18,10 @@ from absl import logging
 from circuit_training.dreamplace import dreamplace_util
 from circuit_training.dreamplace import placedb_plc
 from dreamplace import NonLinearPlace
+import timeout_decorator
 
 
-class SoftMacroPlacer():
+class SoftMacroPlacer:
   """A soft macro placer using Dreamplace."""
 
   def __init__(self, plc, params, hard_macro_order=None):
@@ -30,6 +31,9 @@ class SoftMacroPlacer():
   # NOTE: Find a way to detect converged or not.
   # We cannot simply check divergence based on #iterations in DP V3.
   # E.g., open routability, early stop.
+  @timeout_decorator.timeout(
+      seconds=5 * 60, exception_message='SoftMacroPlacer place() timed out.'
+  )
   def place(self) -> bool:
     """Place soft macros.
 
@@ -48,38 +52,43 @@ class SoftMacroPlacer():
     return (metrics[-1][-1][-1].iteration) < total_iterations
 
 
-def optimize_using_dreamplace(plc,
-                              params,
-                              output_dir,
-                              hard_macro_movable=False):
+def optimize_using_dreamplace(
+    plc, params, output_dir, hard_macro_movable=False
+):
   """Optimzes using Dreamplace."""
   # Initialization, slow but only happens once.
   start_init_time = time.time()
   placer = SoftMacroPlacer(plc, params)
   if hard_macro_movable:
     placer.placedb_plc.update_num_non_movable_macros(
-        plc, num_non_movable_macros=0)
-  logging.info('Initializing Dreamplace took %g seconds.',
-               time.time() - start_init_time)
+        plc, num_non_movable_macros=0
+    )
+  logging.info(
+      'Initializing Dreamplace took %g seconds.', time.time() - start_init_time
+  )
 
   # Dreamplace optimzation.
   start_opt_time = time.time()
   placer.place()
-  logging.info('Dreamplace optimization took %g seconds.',
-               time.time() - start_opt_time)
+  logging.info(
+      'Dreamplace optimization took %g seconds.', time.time() - start_opt_time
+  )
 
   # Write the optimized stdcell location back to the plc. This step may be
   # omitted if the Dreamplace reported density can be used in our cost function
   # directly.
   start_write_time = time.time()
   placer.placedb_plc.write_movable_locations_to_plc(plc)
-  logging.info('Writing soft macro locations to plc took %g seconds.',
-               time.time() - start_write_time)
+  logging.info(
+      'Writing soft macro locations to plc took %g seconds.',
+      time.time() - start_write_time,
+  )
 
   # The total run time of using Dreamplace to optimize soft macro placement.
   duration = time.time() - start_opt_time
   filename_prefix = (
       'mix_sized_dreamplace' if hard_macro_movable else 'dreamplace_cell'
   )
-  dreamplace_util.print_and_save_result(plc, duration, 'Dreamplace',
-                                        filename_prefix, output_dir)
+  dreamplace_util.print_and_save_result(
+      plc, duration, 'Dreamplace', filename_prefix, output_dir
+  )

@@ -143,6 +143,7 @@ $  apt-get install -y \
 # Python packages
 $  python3 -mpip install pyunpack>=0.1.2 \
       patool>=1.12 \
+      timeout-decorator>=0.5.0 \
       matplotlib>=2.2.2 \
       cairocffi>=0.9.0 \
       pkgconfig>=1.4.0 \
