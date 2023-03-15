@@ -31,9 +31,11 @@ class SoftMacroPlacer:
   # NOTE: Find a way to detect converged or not.
   # We cannot simply check divergence based on #iterations in DP V3.
   # E.g., open routability, early stop.
-  @timeout_decorator.timeout(
-      seconds=5 * 60, exception_message='SoftMacroPlacer place() timed out.'
-  )
+  # TODO(b/273605082) Disable the timeout for now until the bug is fixed. It
+  # doesn't work with beam.
+  # @timeout_decorator.timeout(
+  #     seconds=5 * 60, exception_message='SoftMacroPlacer place() timed out.'
+  # )
   def place(self) -> bool:
     """Place soft macros.
 
