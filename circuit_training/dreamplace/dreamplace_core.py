@@ -14,29 +14,30 @@
 # limitations under the License.
 """A soft macro placer using Dreamplace."""
 import time
+
 from absl import logging
 from circuit_training.dreamplace import dreamplace_util
 from circuit_training.dreamplace import placedb_plc
 from dreamplace import NonLinearPlace
+import gin
 import timeout_decorator
 
 
+@gin.configurable(allowlist=['enable_timeout'])
 class SoftMacroPlacer:
   """A soft macro placer using Dreamplace."""
 
-  def __init__(self, plc, params, hard_macro_order=None):
+  def __init__(
+      self, plc, params, hard_macro_order=None, enable_timeout: bool = True
+  ) -> None:
     self.params = params
     self.placedb_plc = placedb_plc.PlacedbPlc(plc, params, hard_macro_order)
+    self.enable_timeout = enable_timeout
 
   # NOTE: Find a way to detect converged or not.
   # We cannot simply check divergence based on #iterations in DP V3.
   # E.g., open routability, early stop.
-  # TODO(b/273605082) Disable the timeout for now until the bug is fixed. It
-  # doesn't work with beam.
-  # @timeout_decorator.timeout(
-  #     seconds=5 * 60, exception_message='SoftMacroPlacer place() timed out.'
-  # )
-  def place(self) -> bool:
+  def _place(self) -> bool:
     """Place soft macros.
 
     Returns:
@@ -52,6 +53,18 @@ class SoftMacroPlacer:
     )
 
     return (metrics[-1][-1][-1].iteration) < total_iterations
+
+  def place(self) -> bool:
+    @timeout_decorator.timeout(
+        seconds=5 * 60, exception_message='SoftMacroPlacer place() timed out.'
+    )
+    def decorated_place() -> bool:
+      return self._place()
+
+    if self.enable_timeout:
+      return decorated_place()
+    else:
+      return self._place()
 
 
 def optimize_using_dreamplace(
