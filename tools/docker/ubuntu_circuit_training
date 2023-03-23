@@ -83,7 +83,7 @@ RUN $python_version -mpip install pyunpack>=0.1.2 \
         setuptools>=39.1.0 \
         scipy>=1.1.0 \
         numpy>=1.15.4 \
-        torch>=1.6.0 \
+        torch==1.13.1 \
         shapely>=1.7.0
 
 # Installs specific versions of packages that need pinned various reasons.
@@ -97,5 +97,7 @@ RUN tar xzf /dreamplace/dreamplace.tar.gz -C /dreamplace/
 # This also needs to put all of DREAMPlace at the root because DREAMPlace python
 # is not setup like a package with imports like `dreamplace.Param`.
 ENV PYTHONPATH "${PYTHONPATH}:/dreamplace:/dreamplace/dreamplace"
+
+RUN $python_version -m pip freeze
 
 CMD ["/bin/bash"]

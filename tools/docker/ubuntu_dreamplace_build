@@ -40,7 +40,7 @@ ARG pip_dependencies=' \
         setuptools>=39.1.0 \
         scipy>=1.1.0 \
         numpy>=1.15.4 \
-        torch>=1.6.0 \
+        torch==1.13.1 \
         shapely>=1.7.0'
 
 RUN for python in ${python_version}; do \
