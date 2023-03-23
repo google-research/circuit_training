@@ -12,7 +12,7 @@ period of time. The usage is as follows:
 ```shell
 $ git clone https://github.com/google-research/circuit_training.git
 
-$ export REPO_ROOT=$(pwd)/circuit-training
+$ export REPO_ROOT=$(pwd)/circuit_training
 $ export TF_AGENTS_PIP_VERSION=tf-agents[reverb]
 $ mkdir -p ${REPO_ROOT}/logs
 
