@@ -77,6 +77,7 @@ scaling to 100s of actors.
 ## Installation
 
 > :warning: Circuit Training only supports Linux based OSes.
+
 > :warning: Circuit Training requires Python 3.9 or greater.
 
 Circuit Training installation steps:
@@ -86,7 +87,8 @@ Circuit Training installation steps:
 *   Download the Circuit Training code.
 *   Install DREAMPlace ([limbo018/DREAMPlace](https://github.com/limbo018/DREAMPlace)).
 
-Using the code at `HEAD` with the nightly release of TF-Agents is recommended.
+Using the code at `HEAD` with the latest stable release of TF-Agents is
+recommended.
 
 ```shell
 # Installs TF-Agents with stable versions of Reverb and TensorFlow 2.x.
@@ -150,7 +152,7 @@ $  python3 -mpip install pyunpack>=0.1.2 \
       setuptools>=39.1.0 \
       scipy>=1.1.0 \
       numpy>=1.15.4 \
-      torch>=1.6.0 \
+      torch==1.13.1 \
       shapely>=1.7.0
 
 ```
@@ -327,8 +329,8 @@ compatibility with stable releases of the underlying libraries.
 
 Release | Branch / Tag                                                              | TF-Agents
 ------- | ------------------------------------------------------------------------- | ---------
-HEAD    | [main](https://github.com/google-research/circuit-training)               | tf-agents-nightly
-0.0.1   | [v0.0.1](https://github.com/google-research/circuit-training/tree/v0.0.1) | tf-agents==0.11.0
+HEAD    | [main](https://github.com/google-research/circuit-training)               | tf-agents-nightly[reverb]
+0.0.2   | [v0.0.2](https://github.com/google-research/circuit_training/tree/v0.0.2) | tf-agents[reverb]~=0.16.0
 
 Follow this pattern to utilize the tagged releases:
 
