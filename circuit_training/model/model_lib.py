@@ -14,7 +14,7 @@
 # limitations under the License.
 """New circuittraining Model for generalization."""
 import sys
-from typing import Optional, Union, Callable
+from typing import Callable, Optional, Union
 
 from circuit_training.environment import observation_config as observation_config_lib
 import gin
@@ -79,6 +79,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
       gcn_node_dim: int = 8,
       dirichlet_alpha: float = 0.1,
       policy_noise_weight: float = 0.0,
+      is_augmented: bool = False,
       seed: int = 0,
       include_min_max_var: bool = True,
   ):
@@ -92,6 +93,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
       gcn_node_dim: Node embedding dimension.
       dirichlet_alpha: Dirichlet concentration value.
       policy_noise_weight: Weight of the noise added to policy.
+      is_augmented: Whether the model uses augmented inputs.
       seed: Seed for sampling noise.
       include_min_max_var: If set include reduce_ min, max, and variance of all
         edges beside the reduce_mean.
@@ -101,6 +103,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     self._gcn_node_dim = gcn_node_dim
     self._dirichlet_alpha = dirichlet_alpha
     self._policy_noise_weight = policy_noise_weight
+    self._is_augmented = is_augmented
     self._seed = seed
     self._include_min_max_var = include_min_max_var
     self._all_static_features = all_static_features
@@ -178,6 +181,11 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
         ],
         name='value_head',
     )
+
+    if self._is_augmented:
+      self._augmented_embedding_layer = tf.keras.layers.Dense(
+          self._gcn_node_dim, name='augmented_embedding_layer',
+          kernel_initializer=kernel_initializer)
 
     # GAN-like deconv layers to generated the policy image.
     # See figures in http://shortn/_9HCSFwasnu.
@@ -373,9 +381,8 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     alphas = tf.fill(tf.shape(probs), self._dirichlet_alpha)
     dirichlet_distribution = tfp.distributions.Dirichlet(alphas)
     noise = dirichlet_distribution.sample(seed=seed() % sys.maxsize)
-    noised_probs = (1.0 - self._policy_noise_weight) * probs + (
-        self._policy_noise_weight
-    ) * noise
+    noised_probs = ((1.0 - self._policy_noise_weight) * probs +
+                    (self._policy_noise_weight) * noise)
 
     noised_logit = tf.math.log(noised_probs + self.EPSILON)
 
@@ -561,6 +568,10 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     h_current_node = tf.squeeze(h_current_node, axis=1)
     observation_hiddens.append(h_current_node)
 
+    if self._is_augmented:
+      augmented_embedding = self._augmented_embedding_layer(
+          inputs['augmented_features'])
+      observation_hiddens.append(augmented_embedding)
     h = tf.concat(observation_hiddens, axis=1)
 
     location_logits = self._policy_location_head(h, training=training)
@@ -854,6 +865,10 @@ class CircuitTrainingTPUModel(CircuitTrainingModel):
     h_current_node = tf.squeeze(h_current_node, axis=1)
     observation_hiddens.append(h_current_node)
 
+    if self._is_augmented:
+      augmented_embedding = self._augmented_embedding_layer(
+          inputs['augmented_features'])
+      observation_hiddens.append(augmented_embedding)
     h = tf.concat(observation_hiddens, axis=1)
 
     location_logits = self._policy_location_head(h, training=training)

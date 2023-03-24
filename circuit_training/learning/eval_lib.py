@@ -202,6 +202,25 @@ def evaluate(
             actor_net,
         ),
     ]
+  elif rl_architecture == 'augmented_generalization':
+    actor_net, value_net = model.create_grl_models(
+        observation_tensor_spec,
+        action_tensor_spec,
+        cache.get_all_static_features(),
+        use_model_tpu=False,
+        is_augmented=True,
+    )
+    image_metrics = [
+        PlacementImage(
+            env.observation_config.max_grid_size,
+            env.observation_config.max_grid_size,
+        ),
+        FirstPolicyImage(
+            env.observation_config.max_grid_size,
+            env.observation_config.max_grid_size,
+            actor_net,
+        ),
+    ]
   else:
     actor_net = fully_connected_model_lib.create_actor_net(
         observation_tensor_spec, action_tensor_spec

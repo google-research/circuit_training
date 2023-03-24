@@ -40,6 +40,7 @@ class GrlModel(network.Network):
                state_spec: types.NestedTensorSpec = (),
                policy_noise_weight: float = 0.1,
                use_model_tpu: bool = True,
+               is_augmented: bool = False,
                seed: int = 0):
 
     super(GrlModel, self).__init__(
@@ -49,11 +50,13 @@ class GrlModel(network.Network):
       self._model = model_lib.CircuitTrainingTPUModel(
           policy_noise_weight=policy_noise_weight,
           all_static_features=all_static_features,
+          is_augmented=is_augmented,
           seed=seed)
     else:
       self._model = model_lib.CircuitTrainingModel(
           policy_noise_weight=policy_noise_weight,
           all_static_features=all_static_features,
+          is_augmented=is_augmented,
           seed=seed)
 
   def call(self, inputs, network_state=()):
@@ -151,6 +154,7 @@ def create_grl_models(observation_tensor_spec: types.NestedTensorSpec,
                       action_tensor_spec: types.NestedTensorSpec,
                       all_static_features: Dict[str, np.ndarray],
                       use_model_tpu: bool = False,
+                      is_augmented: bool = False,
                       seed: int = 0):
   """Create the GRL actor and value networks from scratch.
 
@@ -162,6 +166,7 @@ def create_grl_models(observation_tensor_spec: types.NestedTensorSpec,
     use_model_tpu: boolean flag indicating the versions of the GRL models to
       create. TPU models leverage map_fn to speed up performance on TPUs. Both
       versions generate the same output given the same inputs.
+    is_augmented: Whether the model uses augmented features.
     seed: Random seed.
 
   Returns:
@@ -173,6 +178,7 @@ def create_grl_models(observation_tensor_spec: types.NestedTensorSpec,
       action_tensor_spec,
       all_static_features=all_static_features,
       use_model_tpu=use_model_tpu,
+      is_augmented=is_augmented,
       seed=seed)
   grl_actor_net = GrlPolicyModel(grl_shared_net, observation_tensor_spec,
                                  action_tensor_spec)
