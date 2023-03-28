@@ -136,7 +136,6 @@ class CircuitEnv(object):
       cd_finetune: bool = False,
       cd_plc_file: Text = 'ppo_cd_placement.plc',
       train_step: Optional[tf.Variable] = None,
-      unplace_all_nodes_in_init: bool = True,
       output_all_features: bool = False,
       node_order: Text = 'descending_size_macro_first',
       save_snapshot: bool = True,
@@ -168,10 +167,10 @@ class CircuitEnv(object):
         the same dir as output_plc_file
       train_step: A tf.Variable indicating the training step, only used for
         saving plc files in the evaluation.
-      unplace_all_nodes_in_init: Unplace all nodes after initialization.
       output_all_features: If true, it outputs all the observation features.
         Otherwise, it only outputs the dynamic observations.
       node_order: The sequence order of nodes placed by RL.
+      save_snapshot: If true, save the snapshot placement.
     """
     self._global_seed = global_seed
     if not netlist_file:
@@ -196,15 +195,7 @@ class CircuitEnv(object):
     )
     self._save_snapshot = save_snapshot
 
-    # We call ObservationExtractor before unplace_all_nodes, so we use the
-    # initial placement in the static features (location_x and location_y).
-    # This results in better placements.
     self._observation_config = observation_config.ObservationConfig()
-    self._observation_extractor = observation_extractor.ObservationExtractor(
-        plc=self._plc,
-        observation_config=self._observation_config,
-        netlist_index=self._netlist_index,
-    )
 
     if self._make_soft_macros_square:
       # It is better to make the shape of soft macros square before using
@@ -222,6 +213,7 @@ class CircuitEnv(object):
         if not self._plc.is_node_soft_macro(m)
     ]
     self._num_hard_macros = len(self._hard_macro_indices)
+    logging.info('***Num node to place***:%s', self._num_hard_macros)
 
     self._sorted_node_indices = placement_util.get_ordered_node_indices(
         mode=self._node_order, plc=self._plc, seed=self._global_seed
@@ -243,10 +235,6 @@ class CircuitEnv(object):
     self._left_pad = cols_pad - self._right_pad
 
     self._saved_cost = np.inf
-    self._current_actions = []
-    self._current_node = 0
-    self._done = False
-    self._current_mask = self._get_mask()
     self._infeasible_state = False
 
     if self._std_cell_placer_mode == 'dreamplace':
@@ -274,25 +262,23 @@ class CircuitEnv(object):
       if not converged:
         logging.warning("Initial DREAMPlace mixed-size didn't converge.")
 
-      # Recreate the ObservationExtractor, so we use the DREAMPlace
-      # mixed-size, placement as the default location in the observation.
-      self._observation_extractor = (
-          observation_extractor.ObservationExtractor(
-              plc=self._plc,
-              observation_config=self._observation_config,
-              netlist_index=self._netlist_index,
-          )
-      )
 
       self._dp_mixed_macro_locations = {
           m: self._plc.get_node_location(m) for m in hard_macro_order
       }
 
-    if unplace_all_nodes_in_init:
-      # TODO(b/223026568) Remove unplace_all_nodes from init
-      self._plc.unplace_all_nodes()
-      logging.warning('* Unplaced all Nodes in init *')
-    logging.info('***Num node to place***:%s', self._num_hard_macros)
+    # We call ObservationExtractor before reset(), so we use the
+    # initial placement in the static features (location_x and location_y).
+    # We call it after initializing with DREAMPlace mix-sized call, so we use
+    # its location in case DREAMPlace is enebaled.
+    self._observation_extractor = (
+        observation_extractor.ObservationExtractor(
+            plc=self._plc,
+            observation_config=self._observation_config,
+            netlist_index=self._netlist_index,
+        )
+    )
+    self.reset()
 
   @property
   def observation_space(self) -> gym.spaces.Space:
