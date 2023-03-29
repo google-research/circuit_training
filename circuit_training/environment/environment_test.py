@@ -98,6 +98,11 @@ class EnvironmentTest(test_utils.TestCase):
   # Internal circuit training docs link.
   """
 
+  def setUp(self):
+    super().setUp()
+    # Disabling timeout in test to avoid flakes.
+    gin.bind_parameter('SoftMacroPlacer.enable_timeout', False)
+
   def test_create_and_obs_space(self):
     netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
                                 'netlist.pb.txt')
