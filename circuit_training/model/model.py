@@ -38,7 +38,7 @@ class GrlModel(network.Network):
                all_static_features: Dict[str, np.ndarray],
                name: Optional[Text] = None,
                state_spec: types.NestedTensorSpec = (),
-               policy_noise_weight: float = 0.1,
+               policy_noise_weight: float = 0.0,
                use_model_tpu: bool = True,
                is_augmented: bool = False,
                seed: int = 0):
