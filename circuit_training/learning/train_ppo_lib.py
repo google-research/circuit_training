@@ -165,7 +165,7 @@ def train(
     # num_episodes_per_iteration * epsisode_length * num_epochs =
     # global_step (number of gradient updates) * per_replica_batch_size *
     # num_replicas.
-    num_episodes_per_iteration: int = 1024,
+    num_episodes_per_iteration: int = 256,
     init_learning_rate: float = 0.004,
     num_netlists: int = 1,
     debug_summaries: bool = False,
