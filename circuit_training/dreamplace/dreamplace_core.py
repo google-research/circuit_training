@@ -73,7 +73,7 @@ def optimize_using_dreamplace(
   """Optimzes using Dreamplace."""
   # Initialization, slow but only happens once.
   start_init_time = time.time()
-  placer = SoftMacroPlacer(plc, params)
+  placer = SoftMacroPlacer(plc, params, enable_timeout=False)
   if hard_macro_movable:
     placer.placedb_plc.update_num_non_movable_macros(
         plc, num_non_movable_macros=0
