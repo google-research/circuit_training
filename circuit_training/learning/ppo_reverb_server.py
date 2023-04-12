@@ -31,6 +31,9 @@ flags.DEFINE_integer('port', None, 'Port to start the server on.')
 flags.DEFINE_integer(
     'global_seed', 111,
     'Used in env and weight initialization, does not impact action sampling.')
+_NUM_NETLISTS = flags.DEFINE_integer(
+    'num_netlists', 1,
+    'Used in env and weight initialization, does not impact action sampling.')
 
 FLAGS = flags.FLAGS
 
@@ -40,7 +43,8 @@ def main(_):
   root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))
   ppo_reverb_server_lib.start_reverb_server(root_dir,
                                             FLAGS.replay_buffer_capacity,
-                                            FLAGS.port)
+                                            FLAGS.port,
+                                            _NUM_NETLISTS.value)
 
 
 if __name__ == '__main__':

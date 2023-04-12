@@ -32,43 +32,63 @@ from tf_agents.system import system_multiprocessing as multiprocessing
 from tf_agents.train.utils import spec_utils
 from tf_agents.train.utils import strategy_utils
 
-_GIN_FILE = flags.DEFINE_multi_string('gin_file', None,
-                                      'Paths to the gin-config files.')
-_GIN_BINDINGS = flags.DEFINE_multi_string('gin_bindings', [],
-                                          'Gin binding parameters.')
-_NETLIST_FILE = flags.DEFINE_string('netlist_file', '',
-                                    'File path to the netlist file.')
-_INIT_PLACEMENT = flags.DEFINE_string('init_placement', '',
-                                      'File path to the init placement file.')
+_GIN_FILE = flags.DEFINE_multi_string(
+    'gin_file', None, 'Paths to the gin-config files.'
+)
+_GIN_BINDINGS = flags.DEFINE_multi_string(
+    'gin_bindings', [], 'Gin binding parameters.'
+)
+_NETLIST_FILE = flags.DEFINE_multi_string(
+    'netlist_file', None, 'File path to the netlist files.'
+)
+_INIT_PLACEMENT = flags.DEFINE_multi_string(
+    'init_placement', None, 'File path to the init placement files.'
+)
 # TODO(b/219085316): Open source dreamplace.
 _STD_CELL_PLACER_MODE = flags.DEFINE_string(
-    'std_cell_placer_mode', 'fd',
-    'Options for fast std cells placement: `fd` (uses the '
-    'force-directed algorithm), `dreamplace` (uses DREAMPlace '
-    'algorithm).')
+    'std_cell_placer_mode',
+    'fd',
+    (
+        'Options for fast std cells placement: `fd` (uses the '
+        'force-directed algorithm), `dreamplace` (uses DREAMPlace '
+        'algorithm).'
+    ),
+)
 _ROOT_DIR = flags.DEFINE_string(
-    'root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-    'Root directory for writing logs/summaries/checkpoints.')
+    'root_dir',
+    os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
+    'Root directory for writing logs/summaries/checkpoints.',
+)
 _REPLAY_BUFFER_SERVER_ADDR = flags.DEFINE_string(
-    'replay_buffer_server_address', None, 'Replay buffer server address.')
+    'replay_buffer_server_address', None, 'Replay buffer server address.'
+)
 _VARIABLE_CONTAINER_SERVER_ADDR = flags.DEFINE_string(
-    'variable_container_server_address', None,
-    'Variable container server address.')
+    'variable_container_server_address',
+    None,
+    'Variable container server address.',
+)
 _SEQUENCE_LENGTH = flags.DEFINE_integer(
-    'sequence_length', 134,
-    'The sequence length to estimate shuffle size. Depends on the environment.'
-    'Max horizon = T translates to sequence_length T+1 because of the '
-    'additional boundary step (last -> first).')
+    'sequence_length',
+    134,
+    (
+        'The sequence length to estimate shuffle size. Depends on the'
+        ' environment.Max horizon = T translates to sequence_length T+1 because'
+        ' of the additional boundary step (last -> first).'
+    ),
+)
 _GLOBAL_SEED = flags.DEFINE_integer(
-    'global_seed', 111,
-    'Used in env and weight initialization, does not impact action sampling.')
+    'global_seed',
+    111,
+    'Used in env and weight initialization, does not impact action sampling.',
+)
 
 FLAGS = flags.FLAGS
 
 
 def main(_):
   gin.parse_config_files_and_bindings(
-      _GIN_FILE.value, _GIN_BINDINGS.value, skip_unknown=True)
+      _GIN_FILE.value, _GIN_BINDINGS.value, skip_unknown=True
+  )
 
   logging.info('global seed=%d', _GLOBAL_SEED.value)
   np.random.seed(_GLOBAL_SEED.value)
@@ -77,25 +97,33 @@ def main(_):
 
   root_dir = os.path.join(_ROOT_DIR.value, str(_GLOBAL_SEED.value))
 
-  strategy = strategy_utils.get_strategy(strategy_utils.TPU.value,
-                                         strategy_utils.USE_GPU.value)
-
-  create_env_fn = functools.partial(
-      environment.create_circuit_environment,
-      netlist_file=_NETLIST_FILE.value,
-      init_placement=_INIT_PLACEMENT.value,
-      global_seed=_GLOBAL_SEED.value,
-      netlist_index=0)
-
+  strategy = strategy_utils.get_strategy(
+      strategy_utils.TPU.value, strategy_utils.USE_GPU.value
+  )
   use_model_tpu = bool(strategy_utils.TPU.value)
 
   cache = static_feature_cache.StaticFeatureCache()
 
-  env = create_env_fn()
-  observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
-      spec_utils.get_tensor_specs(env))
-  static_features = env.wrapped_env().get_static_obs()
-  cache.add_static_feature(static_features)
+  assert len(_NETLIST_FILE.value) == len(
+      _INIT_PLACEMENT.value
+  ), 'Number of netlist and init files should be the same.'
+
+  for netlist_index, (netlist_file, init_placement) in enumerate(
+      zip(_NETLIST_FILE.value, _INIT_PLACEMENT.value)
+  ):
+    create_env_fn = functools.partial(
+        environment.create_circuit_environment,
+        netlist_file=netlist_file,
+        init_placement=init_placement,
+        global_seed=_GLOBAL_SEED.value,
+        netlist_index=netlist_index,
+    )
+    env = create_env_fn()
+    observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
+        spec_utils.get_tensor_specs(env)
+    )
+    static_features = env.wrapped_env().get_static_obs()
+    cache.add_static_feature(static_features)
 
   with strategy.scope():
     actor_net, value_net = model.create_grl_models(
@@ -103,7 +131,8 @@ def main(_):
         action_tensor_spec,
         cache.get_all_static_features(),
         use_model_tpu=use_model_tpu,
-        seed=_GLOBAL_SEED.value)
+        seed=_GLOBAL_SEED.value,
+    )
 
   train_ppo_lib.train(
       root_dir=root_dir,
@@ -114,7 +143,9 @@ def main(_):
       time_step_tensor_spec=time_step_tensor_spec,
       sequence_length=_SEQUENCE_LENGTH.value,
       actor_net=actor_net,
-      value_net=value_net)
+      value_net=value_net,
+      num_netlists=len(_NETLIST_FILE.value),
+  )
 
 
 if __name__ == '__main__':
