@@ -100,7 +100,7 @@ $  sudo chmod 555 /usr/local/bin/plc_wrapper_main
 # Clones the circuit-training repo.
 $  git clone https://github.com/google-research/circuit-training.git
 # Clones the DREAMPlace repo to support Dreamplace stdcell placer.
-$  git clone https://github.com/limbo018/DREAMPlace.git
+$  git clone --branch circuit_training https://github.com/limbo018/DREAMPlace.git
 ```
 
 **Installing DREAMPlace**
