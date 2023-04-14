@@ -34,7 +34,7 @@ class PlcConverterTest(test_utils.TestCase):
     params.legalize_flag = False
     params.random_center_init_flag = False
     params.enable_fillers = False
-    params.use_place_for_morpheus = True
+    params.circuit_training_mode = True
     params.scale_factor = 1.0
     return params
 

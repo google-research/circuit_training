@@ -92,7 +92,7 @@ def get_dreamplace_params(
   """Returns the parameters to config Dreamplace."""
   params = Params.Params()
   # enable dreamplace for Morpheus run.
-  params.use_place_for_morpheus = True
+  params.circuit_training_mode = True
 
   if num_bins_x and num_bins_y:
     params.num_bins_x = num_bins_x
