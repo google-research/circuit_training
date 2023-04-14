@@ -1,7 +1,7 @@
 # Utilized by `/tools/bootstrap_dreamplace_build.sh` to build DREAMPlace.
 FROM circuit_training:ci as morpheus
 
-ARG python_version="python3.8 python3.9 python3.10 python3.11"
+ARG python_version="python3.9 python3.10 python3.11"
 ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
 
 

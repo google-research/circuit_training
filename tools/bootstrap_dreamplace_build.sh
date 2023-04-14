@@ -33,7 +33,7 @@ git -C ../../DREAMPlace/thirdparty/pybind11 checkout v2.10.3
 
 # Starts the container used for the build mounting DREAMPlace git,
 # circuit_training /tools and then starting the build.
-for python_version in python3.8 python3.9 python3.10 python3.11
+for python_version in python3.9 python3.10 python3.11
 do
   docker run -it -v `cd ../../; pwd`/DREAMPlace:/dreamplace \
     -v $(pwd):/workspace circuit_training:dreamplace_build \
