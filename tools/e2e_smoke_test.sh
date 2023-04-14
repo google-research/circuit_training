@@ -149,6 +149,7 @@ do
  echo "Start collect job $i in the background..."
  start_background_collect "$$"  python3.9 -m circuit_training.learning.ppo_collect \
   --root_dir=${ROOT_DIR} \
+  --std_cell_placer_mode=dreamplace \
   --replay_buffer_server_address=${REVERB_SERVER} \
   --variable_container_server_address=${REVERB_SERVER} \
   --task_id=0 \
@@ -162,6 +163,7 @@ start_background_train "$$" python3.9 -m circuit_training.learning.train_ppo \
   --root_dir=${ROOT_DIR} \
   --replay_buffer_server_address=${REVERB_SERVER} \
   --variable_container_server_address=${REVERB_SERVER} \
+  --std_cell_placer_mode=dreamplace \
   --gin_bindings='train.per_replica_batch_size=5' \
   --gin_bindings='train.num_iterations=1' \
   --gin_bindings='train.num_episodes_per_iteration=5' \
