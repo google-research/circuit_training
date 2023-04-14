@@ -44,7 +44,6 @@ _NETLIST_FILE = flags.DEFINE_multi_string(
 _INIT_PLACEMENT = flags.DEFINE_multi_string(
     'init_placement', None, 'File path to the init placement files.'
 )
-# TODO(b/219085316): Open source dreamplace.
 _STD_CELL_PLACER_MODE = flags.DEFINE_string(
     'std_cell_placer_mode',
     'fd',
@@ -116,6 +115,7 @@ def main(_):
         netlist_file=netlist_file,
         init_placement=init_placement,
         global_seed=_GLOBAL_SEED.value,
+        std_cell_placer_mode=_STD_CELL_PLACER_MODE.value,
         netlist_index=netlist_index,
     )
     env = create_env_fn()

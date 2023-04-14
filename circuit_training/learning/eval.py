@@ -33,8 +33,7 @@ _GIN_BINDINGS = flags.DEFINE_multi_string('gin_bindings', [],
 flags.DEFINE_string('netlist_file', '', 'File path to the netlist file.')
 flags.DEFINE_string('init_placement', '',
                     'File path to the init placement file.')
-# TODO(b/219085316): Open source dreamplace.
-flags.DEFINE_string(
+_STD_CELL_PLACER_MODE = flags.DEFINE_string(
     'std_cell_placer_mode', 'fd',
     'Options for fast std cells placement: `fd` (uses the '
     'force-directed algorithm), `dreamplace` (uses DREAMPlace '
@@ -83,6 +82,7 @@ def main(_):
       output_plc_file=output_plc_file,
       global_seed=FLAGS.global_seed,
       cd_finetune=FLAGS.cd_finetune,
+      std_cell_placer_mode=_STD_CELL_PLACER_MODE.value,
       netlist_index=0,
   )
 

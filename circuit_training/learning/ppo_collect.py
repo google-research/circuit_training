@@ -19,11 +19,9 @@ import os
 
 from absl import app
 from absl import flags
-import gin
-
 from circuit_training.environment import environment
 from circuit_training.learning import ppo_collect_lib
-
+import gin
 from tf_agents.system import system_multiprocessing as multiprocessing
 
 _GIN_FILE = flags.DEFINE_multi_string(
@@ -36,8 +34,7 @@ flags.DEFINE_string('netlist_file', '', 'File path to the netlist file.')
 flags.DEFINE_string(
     'init_placement', '', 'File path to the init placement file.'
 )
-# TODO(b/219085316): Open source dreamplace.
-flags.DEFINE_string(
+_STD_CELL_PLACER_MODE = flags.DEFINE_string(
     'std_cell_placer_mode',
     'fd',
     (
@@ -90,6 +87,7 @@ def main(_):
       netlist_file=FLAGS.netlist_file,
       init_placement=FLAGS.init_placement,
       global_seed=FLAGS.global_seed,
+      std_cell_placer_mode=_STD_CELL_PLACER_MODE.value,
       netlist_index=0,
   )
 
