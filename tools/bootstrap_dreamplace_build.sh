@@ -24,7 +24,7 @@ docker build --no-cache --tag circuit_training:dreamplace_build -f docker/ubuntu
 
 # Clones DREAMPlace from head.
 if [ ! -d ../../DREAMPlace ] ; then
-    git -C ../../  clone --recursive --branch circuit_training https://github.com/limbo018/DREAMPlace.git
+    git -C ../../  clone --recursive --branch circuit_training https://github.com/esonghori/DREAMPlace.git
     git -C ../../DREAMPlace/thirdparty/pybind11 pull https://github.com/pybind/pybind11.git
 fi
 

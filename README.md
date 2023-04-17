@@ -85,7 +85,8 @@ Circuit Training installation steps:
 *   Install TF-Agents which includes Reverb and TensorFlow.
 *   Download the placement cost binary into your system path.
 *   Download the Circuit Training code.
-*   Install DREAMPlace ([limbo018/DREAMPlace](https://github.com/limbo018/DREAMPlace)).
+*   Install DREAMPlace binary built from our fork and branch of
+    [DREAMPlace](https://github.com/esonghori/DREAMPlace/tree/circuit_training).
 
 Using the code at `HEAD` with the latest stable release of TF-Agents is
 recommended.
@@ -99,11 +100,9 @@ $  sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/pla
 $  sudo chmod 555 /usr/local/bin/plc_wrapper_main
 # Clones the circuit-training repo.
 $  git clone https://github.com/google-research/circuit-training.git
-# Clones the DREAMPlace repo to support Dreamplace stdcell placer.
-$  git clone --branch circuit_training https://github.com/limbo018/DREAMPlace.git
 ```
 
-**Installing DREAMPlace**
+**Install DREAMPlace**
 
 DREAMPlace is not provided as a PyPi package and requires compiled code. The
 best option is to use the
