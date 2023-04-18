@@ -65,7 +65,7 @@ RUN rm get-pip.py
 # Installs pre-compiled DREAMPlace for each version of python.
 RUN for python in ${python_version}; do \
     mkdir -p /dreamplace_${python} && \
-    curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/{$dreamplace_version}_{$python}.tar.gz -o /dreamplace_${python}/dreamplace.tar.gz && \
+    curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/${dreamplace_version}_${python}.tar.gz -o /dreamplace_${python}/dreamplace.tar.gz && \
     tar xzf /dreamplace_${python}/dreamplace.tar.gz -C /dreamplace_${python}/; \
   done
 
