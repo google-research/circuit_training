@@ -1,0 +1,9 @@
+#
+# Placement file for Circuit Training
+# Source input file(s) : third_party/py/circuit_training/environment/test_data/toy_macro_stdcell/netlist.pb.txt
+# This file : third_party/py/circuit_training/environment/test_data/toy_macro_stdcell/initial.plc
+# Original initial placement : third_party/py/circuit_training/environment/test_data/toy_macro_stdcell/initial.plc
+# Date : 2020-08-05 00:00:00
+# Columns : 20  Rows : 10
+# Width : 200.0  Height : 100.0
+# Project : circuit_training

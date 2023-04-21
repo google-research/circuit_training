@@ -1,0 +1,854 @@
+# A toy netlist with two macros, 9 stdcells, 9 ports (3 on each side).
+# FP bbox: {0.0 0.0} {200.0 100.0}
+node {
+  name: "ML"
+  attr {
+    key: "height"
+    value {
+      f: 40
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 30
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 50
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 50
+    }
+  }
+}
+node {
+  name: "MR"
+  attr {
+    key: "height"
+    value {
+      f: 40
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 30
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 150
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 50
+    }
+  }
+}
+node {
+  name: "ML/Pin"
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "ML"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO_PIN"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: -15
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 0
+    }
+  }
+}
+node {
+  name: "MR/Pin"
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "MR"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO_PIN"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: -15
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 0
+    }
+  }
+}
+node {
+  name: "ML/Pout"
+  input: "CT0"
+  input: "CT1"
+  input: "CT2"
+  input: "CB0"
+  input: "CB1"
+  input: "CB2"
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "ML"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO_PIN"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: 15
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 0
+    }
+  }
+}
+node {
+  name: "MR/Pout"
+  input: "CT0"
+  input: "CT1"
+  input: "CT2"
+  input: "CB0"
+  input: "CB1"
+  input: "CB2"
+  attr {
+    key: "macro_name"
+    value {
+      placeholder: "MR"
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "MACRO_PIN"
+    }
+  }
+  attr {
+    key: "x_offset"
+    value {
+      f: 15
+    }
+  }
+  attr {
+    key: "y_offset"
+    value {
+      f: 0
+    }
+  }
+}
+node {
+  name: "PL0"
+  input: "CL0"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 0.5
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 25
+    }
+  }
+}
+node {
+  name: "CL0"
+  input: "ML/Pin"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 10
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 25
+    }
+  }
+}
+node {
+  name: "PL1"
+  input: "CL1"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 0.5
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 50
+    }
+  }
+}
+node {
+  name: "CL1"
+  input: "ML/Pin"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 10
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 50
+    }
+  }
+}
+node {
+  name: "PL2"
+  input: "CL2"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 0.5
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 75
+    }
+  }
+}
+node {
+  name: "CL2"
+  input: "ML/Pin"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 10
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 75
+    }
+  }
+}
+node {
+  name: "PR0"
+  input: "CR0"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 199.5
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 25
+    }
+  }
+}
+node {
+  name: "CR0"
+  input: "MR/Pin"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 190
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 25
+    }
+  }
+}
+node {
+  name: "PR1"
+  input: "CR1"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 199.5
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 50
+    }
+  }
+}
+node {
+  name: "CR1"
+  input: "MR/Pin"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 190
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 50
+    }
+  }
+}
+node {
+  name: "PR2"
+  input: "CR2"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 199.5
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 75
+    }
+  }
+}
+node {
+  name: "CR2"
+  input: "MR/Pin"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 190
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 75
+    }
+  }
+}
+node {
+  name: "PT0"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 50
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 99.5
+    }
+  }
+}
+node {
+  name: "CT0"
+  input: "PT0"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 50
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 90
+    }
+  }
+}
+node {
+  name: "PT1"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 100
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 99.5
+    }
+  }
+}
+node {
+  name: "CT1"
+  input: "PT1"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 100
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 90
+    }
+  }
+}
+node {
+  name: "PT2"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 150
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 99.5
+    }
+  }
+}
+node {
+  name: "CT2"
+  input: "PT2"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 150
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 90
+    }
+  }
+}
+node {
+  name: "PB0"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 50
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 0.5
+    }
+  }
+}
+node {
+  name: "CB0"
+  input: "PB0"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 50
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 10
+    }
+  }
+}
+node {
+  name: "PB1"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 100
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 0.5
+    }
+  }
+}
+node {
+  name: "CB1"
+  input: "PB1"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 100
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 10
+    }
+  }
+}
+node {
+  name: "PB2"
+  attr {
+    key: "type"
+    value {
+      placeholder: "PORT"
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 150
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 0.5
+    }
+  }
+}
+node {
+  name: "CB2"
+  input: "PB2"
+  attr {
+    key: "height"
+    value {
+      f: 2
+    }
+  }
+  attr {
+    key: "type"
+    value {
+      placeholder: "STDCELL"
+    }
+  }
+  attr {
+    key: "width"
+    value {
+      f: 1
+    }
+  }
+  attr {
+    key: "x"
+    value {
+      f: 150
+    }
+  }
+  attr {
+    key: "y"
+    value {
+      f: 10
+    }
+  }
+}
