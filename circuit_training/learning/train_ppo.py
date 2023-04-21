@@ -24,7 +24,7 @@ from absl import logging
 from circuit_training.environment import environment
 from circuit_training.learning import static_feature_cache
 from circuit_training.learning import train_ppo_lib
-from circuit_training.model import model
+from circuit_training.model import create_models_lib
 import gin
 import numpy as np
 import tensorflow as tf
@@ -126,12 +126,9 @@ def main(_):
     cache.add_static_feature(static_features)
 
   with strategy.scope():
-    actor_net, value_net = model.create_grl_models(
-        observation_tensor_spec,
-        action_tensor_spec,
-        cache.get_all_static_features(),
-        use_model_tpu=use_model_tpu,
-        seed=_GLOBAL_SEED.value,
+    actor_net, value_net = create_models_lib.create_models_fn(
+        'generalization', observation_tensor_spec, action_tensor_spec,
+        cache.get_all_static_features(), seed=_GLOBAL_SEED.value
     )
 
   train_ppo_lib.train(

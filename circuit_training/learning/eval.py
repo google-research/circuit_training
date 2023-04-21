@@ -21,6 +21,7 @@ from absl import app
 from absl import flags
 from circuit_training.environment import environment
 from circuit_training.learning import eval_lib
+from circuit_training.model import create_models_lib
 import gin
 
 from tf_agents.policies import greedy_policy  # pylint: disable=unused-import
@@ -90,6 +91,7 @@ def main(_):
       root_dir=root_dir,
       variable_container_server_address=FLAGS.variable_container_server_address,
       create_env_fn=create_env_fn,
+      create_models_fn=create_models_lib.create_models_fn,
       rl_architecture='generalization',
       info_metric_names=environment.COST_COMPONENTS,
   )

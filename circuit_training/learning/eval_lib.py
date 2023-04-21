@@ -23,8 +23,6 @@ from typing import Any, Callable, List, Optional, Text
 from absl import logging
 from circuit_training.learning import agent
 from circuit_training.learning import static_feature_cache
-from circuit_training.model import fully_connected_model_lib
-from circuit_training.model import model
 import numpy as np
 import tensorflow as tf
 from tf_agents.experimental.distributed import reverb_variable_container
@@ -165,6 +163,7 @@ def evaluate(
     root_dir: str,
     variable_container_server_address: str,
     create_env_fn: Callable[..., Any],
+    create_models_fn: Callable[..., Any],
     rl_architecture: str = 'generalization',
     info_metric_names: Optional[List[str]] = None,
     summary_subdir: str = '',
@@ -184,53 +183,26 @@ def evaluate(
   cache = static_feature_cache.StaticFeatureCache()
   cache.add_static_feature(static_features)
 
-  if rl_architecture == 'generalization':
-    actor_net, value_net = model.create_grl_models(
-        observation_tensor_spec,
-        action_tensor_spec,
-        cache.get_all_static_features(),
-        use_model_tpu=False,
-    )
-    image_metrics = [
-        PlacementImage(
-            env.observation_config.max_grid_size,
-            env.observation_config.max_grid_size,
-        ),
-        FirstPolicyImage(
-            env.observation_config.max_grid_size,
-            env.observation_config.max_grid_size,
-            actor_net,
-        ),
-    ]
-  elif rl_architecture == 'augmented_generalization':
-    actor_net, value_net = model.create_grl_models(
-        observation_tensor_spec,
-        action_tensor_spec,
-        cache.get_all_static_features(),
-        use_model_tpu=False,
-        is_augmented=True,
-    )
-    image_metrics = [
-        PlacementImage(
-            env.observation_config.max_grid_size,
-            env.observation_config.max_grid_size,
-        ),
-        FirstPolicyImage(
-            env.observation_config.max_grid_size,
-            env.observation_config.max_grid_size,
-            actor_net,
-        ),
-    ]
-  else:
-    actor_net = fully_connected_model_lib.create_actor_net(
-        observation_tensor_spec, action_tensor_spec
-    )
-    value_net = fully_connected_model_lib.create_value_net(
-        observation_tensor_spec
-    )
+  actor_net, value_net = create_models_fn(
+      rl_architecture, observation_tensor_spec, action_tensor_spec,
+      cache.get_all_static_features())
+
+  if rl_architecture == 'static_graph_embedding':
     image_metrics = [
         PlacementImage(env.grid_rows, env.grid_cols),
         FirstPolicyImage(env.grid_rows, env.grid_cols, actor_net),
+    ]
+  else:
+    image_metrics = [
+        PlacementImage(
+            env.observation_config.max_grid_size,
+            env.observation_config.max_grid_size,
+        ),
+        FirstPolicyImage(
+            env.observation_config.max_grid_size,
+            env.observation_config.max_grid_size,
+            actor_net,
+        ),
     ]
 
   tf_agent = agent.create_circuit_ppo_agent(

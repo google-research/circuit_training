@@ -20,8 +20,6 @@ import gin
 from absl import logging
 from circuit_training.learning import agent
 from circuit_training.learning import static_feature_cache
-from circuit_training.model import fully_connected_model_lib
-from circuit_training.model import model
 import reverb
 import tensorflow as tf
 from tf_agents.experimental.distributed import reverb_variable_container
@@ -41,6 +39,7 @@ def collect(task: int,
             variable_container_server_address: str,
             create_env_fn: Callable[..., Any],
             max_sequence_length: int,
+            create_models_fn: Callable[..., Any],
             rl_architecture: str = 'generalization',
             summary_subdir: str = '',
             write_summaries_task_threshold: int = 1,
@@ -55,24 +54,11 @@ def collect(task: int,
   cache = static_feature_cache.StaticFeatureCache()
   cache.add_static_feature(static_features)
 
-  if rl_architecture == 'generalization':
-    actor_net, value_net = model.create_grl_models(
-        observation_tensor_spec,
-        action_tensor_spec,
-        cache.get_all_static_features(),
-        use_model_tpu=False)
-  elif rl_architecture == 'augmented_generalization':
-    actor_net, value_net = model.create_grl_models(
-        observation_tensor_spec,
-        action_tensor_spec,
-        cache.get_all_static_features(),
-        use_model_tpu=False,
-        is_augmented=True)
-  else:
-    actor_net = fully_connected_model_lib.create_actor_net(
-        observation_tensor_spec, action_tensor_spec)
-    value_net = fully_connected_model_lib.create_value_net(
-        observation_tensor_spec)
+  actor_net, value_net = create_models_fn(
+      rl_architecture,
+      observation_tensor_spec,
+      action_tensor_spec,
+      cache.get_all_static_features())
 
   tf_agent = agent.create_circuit_ppo_agent(
       train_step,
