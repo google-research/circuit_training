@@ -60,7 +60,7 @@ class CoordinateDescentPlacerTest(parameterized.TestCase, test_utils.TestCase):
     for i, m in enumerate(macros):
       plc.place_node(m, locations[i])
 
-  # TODO(wenjiej): Add a FD test for blocks that have stdcells.
+  # TODO(b/279609624): Add a FD test for blocks that have stdcells.
   @parameterized.parameters(
       ('macro_tiles_10x10', True),
       ('macro_tiles_10x10', False),

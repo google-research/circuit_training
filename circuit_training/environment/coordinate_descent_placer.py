@@ -106,7 +106,7 @@ class CoordinateDescentPlacer(object):
     self._node_to_ori = {}
     for node in self.plc.get_macro_indices():
       if not self.plc.is_node_soft_macro(node):
-        # TODO(wenjiej): Find orientation when a node is not placed initially.
+        # TODO(b/279609621): Find orientation when a node is not placed initially.
         # Needed only when running CD from an empty grid.
         assert self.plc.is_node_placed(node)
         cur_ori = self.plc.get_macro_orientation(node)

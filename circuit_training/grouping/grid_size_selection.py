@@ -38,7 +38,7 @@ flags.DEFINE_integer('max_num', 128, 'Maximum number for cols/rows sweep.')
 flags.DEFINE_float('add_size', 0.0,
                    'Add to segment sizes to leave space between macros.')
 
-# TODO(esonghori): Consider increasing when SA is not needed anymore.
+# TODO(b/279610253): Consider increasing when SA is not needed anymore.
 flags.DEFINE_integer('max_num_grid_cells', 2500, 'max num of grid cells')
 flags.DEFINE_integer('min_num_grid_cells', 500, 'min num of grid cells')
 flags.DEFINE_float('max_aspect_ratio', 1.5,
@@ -139,11 +139,7 @@ def get_waste_ratio(segment_widths, gcell_width):
     is not occupied by a segment is divided by the total spanned width by these
     segments.
   """
-  # TODO(mustafay): This function just returns the waste ratio for the given
-  # order of the segments. It may be a good idea to call this function with
-  # many different orderings, and average the results. Finding the perfect
-  # packed ordering may not be a good metric, since it may not reflect the
-  # actual placement situation.
+  # TODO(b/279610245) Calling get_waste_ratio with different ordering.
   tot_width = sum(segment_widths)
   assert tot_width > 0.0
   index = 0
@@ -328,8 +324,7 @@ def get_grid_choices(plc, min_num, max_num, max_grid_size, min_num_grid_cells,
                                           max_aspect_ratio):
         continue
       plc.set_placement_grid(cols, rows)
-      # TODO(mustafay): placement do not take add_size into account, add a
-      # resize utility to placement_cost interface.
+      # TODO(b/279612771) Add a resize utility to placement_cost interface.
       if not try_placing(plc, hard_macros):
         continue
       # Only calculate hor_waste, ver_waste if needed.
@@ -362,9 +357,7 @@ def select_from_grid_choices(grid_choices, tolerance=0.1, print_best_n=0):
   best_key_metric_tolerance = sorted_list[0][1].key_metric * (1.0 - tolerance)
   # The idea is to choose the minimum number of grid cells for which the
   # metric is not too far off.
-  # TODO(mustafay): visualize and understand the impact of this choice.
-  # Also, must understand the impact of number of grid cells on the RL/SA run
-  # time vs QoR of the PnR tool.
+  # TODO(b/279610667): visualize and understand the impact of this choice.
   qualified = [(k, v)
                for (k, v) in sorted_list
                if v.key_metric >= best_key_metric_tolerance]

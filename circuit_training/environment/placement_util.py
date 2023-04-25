@@ -547,7 +547,7 @@ def grid_locations_near(plc: plc_client.PlacementCost,
   #          13
   cols, rows = plc.get_grid_num_columns_rows()
   start_col, start_row = start_grid_index % cols, int(start_grid_index / cols)
-  # TODO(mustafay): This may be improved, but it's not crucial now.
+  # TODO(b/279610671): This may be improved, but it's not crucial now.
   for distance in range(cols + rows):
     for row_offset in range(-distance, distance + 1):
       for col_offset in range(-distance, distance + 1):
