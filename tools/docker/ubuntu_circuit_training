@@ -25,6 +25,7 @@ LABEL maintainer="tobyboyd@google.com"
 ARG python_version="python3.9"
 ARG tf_agents_version="tf-agents[reverb]"
 ARG dreamplace_version="dreamplace_python3.9.tar.gz"
+ARG placement_cost_binary="plc_wrapper_main"
 ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
 
 
@@ -52,7 +53,7 @@ RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # Downloads the placement cost utility binary nto /usr/local/bin.
-RUN curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main \
+RUN curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/${placement_cost_binary} \
      -o  /usr/local/bin/plc_wrapper_main
 
 RUN chmod 555 /usr/local/bin/plc_wrapper_main
