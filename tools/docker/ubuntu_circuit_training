@@ -13,18 +13,21 @@
 # python3 -m circuit_training.environment.environment_test
 #
 # For GPUs. devel version is needed to support xla.
-# docker build --build-arg base_image=nvidia/cuda:11.4.2-cudnn8-devel-ubuntu20.04 \
+# docker build --build-arg base_image=nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04 \
 #   --tag circuit_training:core -f tools/docker/ubuntu_circuit_training tools/docker/
 ARG base_image="ubuntu:20.04"
-
 FROM $base_image
 
-LABEL maintainer="tobyboyd@google.com"
 
+LABEL maintainer="tobyboyd@google.com"
+# Redeclare `base_image` because args declared before `FROM` cannot be
+# referenced below.
+ARG base_image="ubuntu:20.04"
 # Supports setting up a single version of python.
 ARG python_version="python3.9"
 ARG tf_agents_version="tf-agents[reverb]"
 ARG dreamplace_version="dreamplace_python3.9.tar.gz"
+ARG placement_cost_binary="plc_wrapper_main"
 ARG APT_COMMAND="apt-get -o Acquire::Retries=3 -y"
 
 
@@ -46,13 +49,11 @@ RUN add-apt-repository ppa:deadsnakes/ppa
 # Installs desired python version if not aready installed and then cleans up apt.
 RUN ${APT_COMMAND} update && ${APT_COMMAND} install -y --no-install-recommends \
         $python_version-dev \
-        $python_version-distutils \
-        && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        $python_version-distutils
+
 
 # Downloads the placement cost utility binary nto /usr/local/bin.
-RUN curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main \
+RUN curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/${placement_cost_binary} \
      -o  /usr/local/bin/plc_wrapper_main
 
 RUN chmod 555 /usr/local/bin/plc_wrapper_main
@@ -61,17 +62,16 @@ RUN curl -O https://bootstrap.pypa.io/get-pip.py
 
 RUN $python_version get-pip.py
 
-# Installs TF-Agents and Tensorflow along with tox and pytest to help verify the
-# container via unit tests.
-RUN $python_version -mpip --no-cache-dir install $tf_agents_version sortedcontainers tox pytest
-
 # Installs system dependencies needed by DREAMPlace.
 RUN apt-get update \
         && apt-get install -y \
             wget \
             flex \
             libcairo2-dev \
-            libboost-all-dev
+            libboost-all-dev \
+        && \
+            apt-get clean && \
+            rm -rf /var/lib/apt/lists/*
 
 # Installs specific versions of packages requested by DREAMPlace requirements.txt
 RUN $python_version -mpip install pyunpack>=0.1.2 \
@@ -86,8 +86,16 @@ RUN $python_version -mpip install pyunpack>=0.1.2 \
         torch==1.13.1 \
         shapely>=1.7.0
 
-# Installs specific versions of packages that need pinned various reasons.
-RUN $python_version -mpip install numpy==1.23.5 # Required by tensorflow until fixed ~TF 2.12+
+# Installs TF-Agents and Tensorflow along with tox and pytest to help verify the
+# container via unit tests.
+RUN $python_version -mpip --no-cache-dir install $tf_agents_version sortedcontainers tox pytest
+
+# Installs CuDNN to match what TensorFlow needs, because torch 1.13.1 installs older CuDNN.
+# This does not impact DREAMPlace because it is not compiled for GPU.
+RUN case $base_image in \
+       *"nvidia"*) $python_version -mpip install --force-reinstall nvidia-cudnn-cu11~=8.6.0.0 ;; \
+       *       ) echo "Skip installing CuDNN. This is a CPU only image!!!" ;; \
+    esac 
 
 RUN mkdir -p /dreamplace
 RUN curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/$dreamplace_version -o /dreamplace/dreamplace.tar.gz
