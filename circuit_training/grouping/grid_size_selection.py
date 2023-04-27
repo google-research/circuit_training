@@ -27,8 +27,8 @@ The other important function that chooses one col x row choice from these
 choices is: select_from_grid_choices
 """
 
-import random
 import dataclasses
+import random
 
 from absl import flags
 from circuit_training.environment import placement_util
@@ -38,8 +38,7 @@ flags.DEFINE_integer('max_num', 128, 'Maximum number for cols/rows sweep.')
 flags.DEFINE_float('add_size', 0.0,
                    'Add to segment sizes to leave space between macros.')
 
-# TODO(b/279610253): Consider increasing when SA is not needed anymore.
-flags.DEFINE_integer('max_num_grid_cells', 2500, 'max num of grid cells')
+flags.DEFINE_integer('max_num_grid_cells', 4096, 'max num of grid cells')
 flags.DEFINE_integer('min_num_grid_cells', 500, 'min num of grid cells')
 flags.DEFINE_float('max_aspect_ratio', 1.5,
                    'Maximum aspect ratio of a grid cell (either w/h of h/w)')
