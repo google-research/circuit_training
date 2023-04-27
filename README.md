@@ -39,9 +39,9 @@ scaling to 100s of actors.
 <a href='#Features'>Features</a><br>
 <a href='#Installation'>Installation</a><br>
 <a href='#QuickStart'>Quick start</a><br>
-<a href='#Results'>Results</a><br>
 <a href='#Testing'>Testing</a><br>
 <a href='#Releases'>Releases</a><br>
+<a href='#Results'>Results</a><br>
 <a href='#FAQ'>FAQ</a><br>
 <a href='#Contributing'>How to contribute</a><br>
 <a href='#Principles'>AI Principles</a><br>
@@ -80,51 +80,208 @@ scaling to 100s of actors.
 
 > :warning: Circuit Training requires Python 3.9 or greater.
 
+## Stable
+
+Circuit Training is a reseach project. We are not currently creating PyPi
+builds. Stable in this instance is relative to HEAD and means that the code
+was tested at this point in time and branched. With upstream libraires
+constantly changing; older branches may end up rotting faster than expected.
+
+The steps below install the most recent branch and the archive is in the
+[releases section](#releases). There are two methods for installing; but before
+doing either one you need to run the preliminary setup](#preliminary-setup).
+
+*  [Use the docker](#using-the-docker) (**Highly Recommended**)
+*  [Install locally](#install-locally)
+
+
+### Preliminary Setup
+
+Before following the instructions set the following variables and clone the
+repo:
+
+```shell
+$ export CT_VERSION=0.0.3
+# Currently supports python3.9, python3.10, and python3.11
+# The docker is python3.9 only.
+$ export PYTHON_VERSION=python3.9
+$ export DREAMPLACE_PATTERN=dreamplace_20230414_2835324_${PYTHON_VERSION}.tar.gz
+# If the verson of TF-Agents in the table is not current, change this command to
+# match the version tf-agenst that matches the branch of Circuit Training used. 
+$ export TF_AGENTS_PIP_VERSION=tf-agents[reverb]
+
+# Clone the Repo and checkout the desired branch.
+$  git clone https://github.com/google-research/circuit_training.git
+$  git checkout r${CT_VERSION}
+```
+
+### Using the docker
+
+Do not forget to do the [prelimary setup](#preliminary-setup). The cleanest way
+to use Circuit Training is to use the docker, these commands will create a
+docker with all the dependencies needed:
+
+```shell
+$ export REPO_ROOT=$(pwd)/circuit_training
+
+# Build the docker image.
+$ docker build --pull --no-cache --tag circuit_training:core \
+    --build-arg tf_agents_version="${TF_AGENTS_PIP_VERSION}" \
+    --build-arg dreamplace_version="${DREAMPLACE_PATTERN}" \
+    --build-arg placement_cost_binary="plc_wrapper_main_${CT_VERSION}" \
+    -f "${REPO_ROOT}"/tools/docker/ubuntu_circuit_training ${REPO_ROOT}/tools/docker/
+
+# Run the end2end smoke test using the image. Takes 10-20 minutes.
+$ mkdir -p ${REPO_ROOT}/logs
+$ docker run --rm -v ${REPO_ROOT}:/workspace --workdir /workspace circuit_training:core \
+    bash tools/e2e_smoke_test.sh --root_dir /workspace/logs
+```
+
+### Install locally
+
+Do not forget to do the [prelimary setup](#preliminary-setup).
+
 Circuit Training installation steps:
 
-*   Install TF-Agents which includes Reverb and TensorFlow.
-*   Download the placement cost binary into your system path.
-*   Download the Circuit Training code.
-*   Install DREAMPlace binary built from our fork and branch of
-    [DREAMPlace](https://github.com/esonghori/DREAMPlace/tree/circuit_training).
+*   Install our DREAMPlace binary.
+*   Install TF-Agents and The Placement Cost Binary
+*   Run a test
 
-Using the code at `HEAD` with the latest stable release of TF-Agents is
-recommended.
+
+#### Install DREAMPlace
+
+Follow the [instructions](#install-dreamplace) for DREAMPlace but do not change
+the ENV VARS that you already exported previously.
+
+
+#### Install TF-Agents and the Placement Cost binary
+
+These commands install TF-Agents and the placement cost binary.
 
 ```shell
 # Installs TF-Agents with stable versions of Reverb and TensorFlow 2.x.
-$  pip install tf-agents[reverb]
+$  pip install $TF_AGENTS_PIP_VERSION
+# Copies the placement cost binary to /usr/local/bin and makes it executable.
+$  sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main_${CT_VERSION} \
+     -o  /usr/local/bin/plc_wrapper_main
+$  sudo chmod 555 /usr/local/bin/plc_wrapper_main
+```
+
+#### Run a test.
+
+These commands run a basic unit test; if the current stable tf-agents is not the
+version you installed, then edit the tox.ini file and change `tf-agents[reverb]`
+to `tf-agents[reverb]~=<version you want>`
+
+```shell
+tox -e py39-stable -- circuit_training/grouping/grouping_test.py
+```
+
+
+## HEAD
+
+We recommand using [stable](#stable) branches; but our team does work from the
+`HEAD`. The main issue is `HEAD` breaks when upstream libraries are broken and
+our `HEAD` utilizes other nightly created libraries adding to the variablity.
+
+The steps below install the most recent branch and the archive is in the
+[releases section](#releases). There are two methods for installing; but before
+doing either one you need to run the [preliminary setup](#preliminary-setup-2).
+
+*  [Use the docker](#using-the-docker-2) (**Highly Recommended**)
+*  [Install locally](#install-locally-2)
+
+
+### Preliminary Setup
+
+Before following the instructions set the following variables and clone the
+repo:
+
+```shell
+# Currently supports python3.9, python3.10, and python3.11
+# The docker is python3.9 only.
+$ export PYTHON_VERSION=python3.9
+$ export DREAMPLACE_PATTERN=dreamplace_${PYTHON_VERSION}.tar.gz
+
+# Clone the Repo and checkout the desired branch.
+$  git clone https://github.com/google-research/circuit_training.git
+```
+
+### Using the docker
+
+Do not forget to do the [prelimary setup](#preliminary-setup). The cleanest way
+to use Circuit Training is to use docker, these commands will create an image
+with all the dependencies needed:
+
+```shell
+$ export REPO_ROOT=$(pwd)/circuit_training
+
+# Builds the image with current DREAMPlace and Placement Cost Binary.
+$ docker build --pull --no-cache --tag circuit_training:core \
+    --build-arg tf_agents_version="tf-agents-nightly[reverb]" \
+    -f "${REPO_ROOT}"/tools/docker/ubuntu_circuit_training ${REPO_ROOT}/tools/docker/
+
+# Run the end2end smoke test using the image. Takes 10-20 minutes.
+$ mkdir -p ${REPO_ROOT}/logs
+$ docker run --rm -v ${REPO_ROOT}:/workspace --workdir /workspace circuit_training:core \
+    bash tools/e2e_smoke_test.sh --root_dir /workspace/logs
+```
+
+### Install locally
+
+Circuit Training installation steps:
+
+*   Install our DREAMPlace binary.
+*   Install TF-Agents Nightly and the placement cost binary
+*   Run a test
+
+#### Install DREAMPlace
+
+Follow the [instructions](#install-dreamplace) for DREAMPlace but do not change
+the ENV VARS that you already exported previously.
+
+
+#### Install TF-Agents and the Placement Cost binary
+
+These commands install TF-Agents and the placement cost binary.
+
+```shell
+# Installs TF-Agents with stable versions of Reverb and TensorFlow 2.x.
+$  pip install tf-agents-nightly[reverb]
 # Copies the placement cost binary to /usr/local/bin and makes it executable.
 $  sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main \
      -o  /usr/local/bin/plc_wrapper_main
 $  sudo chmod 555 /usr/local/bin/plc_wrapper_main
-# Clones the circuit-training repo.
-$  git clone https://github.com/google-research/circuit-training.git
 ```
 
-**Install DREAMPlace**
+#### Run a test.
 
-DREAMPlace is not provided as a PyPi package and requires compiled code. The
-best option is to use the
-[docker image](https://github.com/google-research/circuit_training/blob/main/tools/docker/ubuntu_circuit_training).
-We provide precompiled versions of DREAMPlace for a range of Python releases
-built for our docker image (Ubuntu 20.4). We also use them for presubmit
-testing. If our binaries are not compatible with your OS tool chain, you will
-need to compile your own version. We use this
+These commands run a basic unit test.
+
+```shell
+tox -e py39-nightly -- circuit_training/grouping/grouping_test.py
+```
+
+## Install DREAMPlace
+
+DREAMPlace is **not** provided as a PyPi package and needs to be compilede. We 
+provide compiled versions of DREAMPlace taken from our
+[branch](https://github.com/esonghori/DREAMPlace/tree/circuit_training) for a
+range of Python versions built for our docker image (Ubuntu 20.4). We also use
+them for presubmit testing. If our binaries are not compatible with your OS tool
+chain, you will need to compile your own version. We use this
 [script](https://github.com/google-research/circuit_training/blob/main/tools/bootstrap_dreamplace_build.sh)
 to create our DREAMPlace binary.
 
 ```shell
+# These ENV VARS may have been set above, do not export again if already set.
+$ export PYTHON_VERSION=python3.9
+$ export DREAMPLACE_PATTERN=dreamplace_${PYTHON_VERSION}.tar.gz
 # Installs DREAMPlace into `/dreamplace`. Anywhere is fine as long as PYTHONPATH
 # is set correctly.
 $  mkdir -p /dreamplace
-# Pick the binary that matches your version of Python.
-# Python 3.9
+# Picks the binary that matches your version of Python.
 $  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.9.tar.gz -o /dreamplace/dreamplace.tar.gz
-# Python 3.10
-$  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.10.tar.gz -o /dreamplace/dreamplace.tar.gz
-# Python 3.11
-$  curl https://storage.googleapis.com/rl-infra-public/circuit-training/dreamplace/dreamplace_python3.11.tar.gz -o /dreamplace/dreamplace.tar.gz
 
 # Unpacks the package.
 $  tar xzf /dreamplace/dreamplace.tar.gz -C /dreamplace/
@@ -160,107 +317,50 @@ $  python3 -mpip install pyunpack>=0.1.2 \
 
 ## Quick start
 
-This quick start places the Ariane RISC-V CPU macros by training the deep
-reinforcement policy from scratch. The `per_replica_batch_size` and
-`num_episodes_per_iteration` used below were picked to work on a single machine
-training on CPU. The purpose is to illustrate a running system, not optimize the
-result. The result of a few thousand steps is shown in this
-[TensorBoard](https://tensorboard.dev/experiment/r1Xn1pD3SGKTGyo64saeaw). The
-full scale Ariane RISC-V experiment matching the paper is detailed in
+The best quick start is to run the 
+[end2end smoke test](https://github.com/google-research/circuit_training/tree/main/tools#end-to-end-smoke-test)
+and then look at the full distributed example
 [Circuit training for Ariane RISC-V](./docs/ARIANE.md).
 
-The following jobs will be created by the steps below:
+<a id='Testing'></a>
 
-*   1 Replay Buffer (Reverb) job
-*   1-3 Collect jobs
-*   1 Train job
-*   1 Eval job
-
-Each job is started in a `tmux` session. To switch between sessions use `ctrl +
-b` followed by `s` and then select the specified session.
+## Testing
 
 ```shell
-# Sets the environment variables needed by each job. These variables are
-# inherited by the tmux sessions created in the next step.
-$  export ROOT_DIR=./logs/run_00
-$  export REVERB_PORT=8008
-$  export REVERB_SERVER="127.0.0.1:${REVERB_PORT}"
-$  export NETLIST_FILE=./circuit_training/environment/test_data/ariane/netlist.pb.txt
-$  export INIT_PLACEMENT=./circuit_training/environment/test_data/ariane/initial.plc
+# Runs tests with nightly TF-Agents.
+$  tox -e py37,py38,py39
+# Runs with latest stable TF-Agents.
+$  tox -e py37-nightly,py38-nightly,py39-nightly
 
-# Creates all the tmux sessions that will be used.
-$  tmux new-session -d -s reverb_server && \
-   tmux new-session -d -s collect_job_00 && \
-   tmux new-session -d -s collect_job_01 && \
-   tmux new-session -d -s collect_job_02 && \
-   tmux new-session -d -s train_job && \
-   tmux new-session -d -s eval_job && \
-   tmux new-session -d -s tb_job
-
-# Starts the Replay Buffer (Reverb) Job
-$  tmux attach -t reverb_server
-$  python3 -m circuit_training.learning.ppo_reverb_server \
-   --root_dir=${ROOT_DIR}  --port=${REVERB_PORT}
-
-# Starts the Training job
-# Change to the tmux session `train_job`.
-# `ctrl + b` followed by `s`
-$  python3 -m circuit_training.learning.train_ppo \
-  --root_dir=${ROOT_DIR} \
-  --replay_buffer_server_address=${REVERB_SERVER} \
-  --variable_container_server_address=${REVERB_SERVER} \
-  --gin_bindings='train.num_episodes_per_iteration=16' \
-  --gin_bindings='train.per_replica_batch_size=64' \
-  --netlist_file=${NETLIST_FILE} \
-  --init_placement=${INIT_PLACEMENT}
-
-# Starts the Collect job
-# Change to the tmux session `collect_job_00`.
-# `ctrl + b` followed by `s`
-$  python3 -m circuit_training.learning.ppo_collect \
-  --root_dir=${ROOT_DIR} \
-  --replay_buffer_server_address=${REVERB_SERVER} \
-  --variable_container_server_address=${REVERB_SERVER} \
-  --task_id=0 \
-  --netlist_file=${NETLIST_FILE} \
-  --init_placement=${INIT_PLACEMENT}
-
-# Starts the Eval job
-# Change to the tmux session `eval_job`.
-# `ctrl + b` followed by `s`
-$  python3 -m circuit_training.learning.eval \
-  --root_dir=${ROOT_DIR} \
-  --variable_container_server_address=${REVERB_SERVER} \
-  --netlist_file=${NETLIST_FILE} \
-  --init_placement=${INIT_PLACEMENT}
-
-# Start TensorBoard.
-# Change to the tmux session `tb_job`.
-# `ctrl + b` followed by `s`
-$  tensorboard dev upload --logdir ./logs
-
-# <Optional>: Starts 2 more collect jobs to speed up training.
-# Change to the tmux session `collect_job_01`.
-# `ctrl + b` followed by `s`
-$  python3 -m circuit_training.learning.ppo_collect \
-  --root_dir=${ROOT_DIR} \
-  --replay_buffer_server_address=${REVERB_SERVER} \
-  --variable_container_server_address=${REVERB_SERVER} \
-  --task_id=1 \
-  --netlist_file=${NETLIST_FILE} \
-  --init_placement=${INIT_PLACEMENT}
-
-# Change to the tmux session `collect_job_02`.
-# `ctrl + b` followed by `s`
-$  python3 -m circuit_training.learning.ppo_collect \
-  --root_dir=${ROOT_DIR} \
-  --replay_buffer_server_address=${REVERB_SERVER} \
-  --variable_container_server_address=${REVERB_SERVER} \
-  --task_id=2 \
-  --netlist_file=${NETLIST_FILE} \
-  --init_placement=${INIT_PLACEMENT}
+# Using our Docker for CI.
+## Build the docker
+$  docker build --tag circuit_training:ci -f tools/docker/ubuntu_ci tools/docker/
+## Runs tests with nightly TF-Agents.
+$  docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:ci \
+     tox -e py37-nightly,py38-nightly,py39-nightly
+## Runs tests with latest stable TF-Agents.
+$  docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:ci \
+     tox -e py37,py38,py39
 
 ```
+
+<a id='Releases'></a>
+
+## Releases
+
+While running at `HEAD` likely works, working from a branch has advantages of
+being more stable. We have tagged the code base to mark
+compatibility with stable releases of the underlying libraries. For DREAMPlace
+the filename pattern can be used to install DREAMPle for the versions of Python
+supported. For the Placement Cost binary, the ULR is to the version of the PLC
+used at the time the branch was cut.
+
+Release | Branch / Tag                                                              | TF-Agents                 | DREAMPlace                       | PL     
+------- | ------------------------------------------------------------------------- | ------------------------- | -------------------------------- | -------------- |
+HEAD    | [main](https://github.com/google-research/circuit-training)               | tf-agents-nightly[reverb] | 
+0.0.3   | [v0.0.3](https://github.com/google-research/circuit_training/tree/v0.0.3) | tf-agents[reverb]~=0.16.0 | dreamplace_20230414_b31e8af_python3.9.tar.gz | [placement cost binary](https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main_0.0.3)
+0.0.2   | [v0.0.2](https://github.com/google-research/circuit_training/tree/v0.0.2) | tf-agents[reverb]~=0.16.0 |
+
 
 <a id='Results'></a>
 
@@ -296,56 +396,6 @@ a different seed.
 -------- | ---------------- | ---------------- | -------------
 **mean** | 0.1198           | 0.9718           | 0.5729
 **std**  | 0.0019           | 0.0346           | 0.0086
-
-<a id='Testing'></a>
-
-## Testing
-
-```shell
-# Runs tests with nightly TF-Agents.
-$  tox -e py37,py38,py39
-# Runs with latest stable TF-Agents.
-$  tox -e py37-nightly,py38-nightly,py39-nightly
-
-# Using our Docker for CI.
-## Build the docker
-$  docker build --tag circuit_training:ci -f tools/docker/ubuntu_ci tools/docker/
-## Runs tests with nightly TF-Agents.
-$  docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:ci \
-     tox -e py37-nightly,py38-nightly,py39-nightly
-## Runs tests with latest stable TF-Agents.
-$  docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:ci \
-     tox -e py37,py38,py39
-
-```
-
-<a id='Releases'></a>
-
-## Releases
-
-While we recommend running at `HEAD`, we have tagged the code base to mark
-compatibility with stable releases of the underlying libraries.
-
-Release | Branch / Tag                                                              | TF-Agents
-------- | ------------------------------------------------------------------------- | ---------
-HEAD    | [main](https://github.com/google-research/circuit-training)               | tf-agents-nightly[reverb]
-0.0.2   | [v0.0.2](https://github.com/google-research/circuit_training/tree/v0.0.2) | tf-agents[reverb]~=0.16.0
-
-Follow this pattern to utilize the tagged releases:
-
-```shell
-$  git clone https://github.com/google-research/circuit-training.git
-$  cd circuit-training
-# Checks out the tagged version listed in the table in the releases section.
-$  git checkout v0.0.1
-# Installs the corresponding version of TF-Agents along with Reverb and
-# Tensorflow from the table.
-$  pip install tf-agents[reverb]==x.x.x
-# Copies the placement cost binary to /usr/local/bin and makes it executable.
-$  sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main \
-     -o  /usr/local/bin/plc_wrapper_main
-$  sudo chmod 555 /usr/local/bin/plc_wrapper_main
-```
 
 <a id='FAQ'></a>
 
