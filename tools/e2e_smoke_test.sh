@@ -37,6 +37,7 @@ REVERB_SERVER_IP=127.0.0.1
 NETLIST_FILE=./circuit_training/environment/test_data/ariane/netlist.pb.txt
 INIT_PLACEMENT=./circuit_training/environment/test_data/ariane/initial.plc
 NUM_COLLECT_JOBS=4
+USE_GPU=False
 
 # Internal variables.
 TIME_WAITING=0
@@ -51,6 +52,7 @@ if [[ $# -lt 1 ]] ; then
   echo "--init_place          [Path to the initial placement file, e.g. *.plc]"
   echo "--num_collect_jobs    [Number of collect jobs to start]"
   echo "--script_logs         [Script logs, defaults to --root_dir value]"
+  echo "--use_gpu             [Set to `True` to use the GPUs]"
   exit 1
 fi
 
@@ -81,6 +83,10 @@ while [[ $# -gt -0 ]]; do
       ;;
     --num_collect_jobs)
       NUM_COLLECT_JOBS="$2"  # Number of collect jobs to start.
+      shift
+      ;;
+    --use_gpu)
+      USE_GPU="$2"  # Use GPU for training if set to `True`
       shift
       ;;
     *)
@@ -120,13 +126,13 @@ trap usr2_handler USR2
 start_background() {
   local -ir pid="$1"
   shift
-  "$@" || kill -INT -- "$pid"
+  CUDA_VISIBLE_DEVICES=-1 "$@" || kill -INT -- "$pid"
 }
 
 start_background_collect() {
   local -ir pid="$1"
   shift
-  "$@" || kill -SIGUSR1 -- "$pid"
+  CUDA_VISIBLE_DEVICES=-1 "$@" || kill -SIGUSR1 -- "$pid"
 }
 
 start_background_train() {
@@ -147,7 +153,7 @@ echo "Starting $NUM_COLLECT_JOBS collect jobs."
 for i in $(eval echo "{1..$NUM_COLLECT_JOBS}")
 do
  echo "Start collect job $i in the background..."
- start_background_collect "$$"  python3.9 -m circuit_training.learning.ppo_collect \
+ start_background_collect "$$" python3.9 -m circuit_training.learning.ppo_collect \
   --root_dir=${ROOT_DIR} \
   --std_cell_placer_mode=dreamplace \
   --replay_buffer_server_address=${REVERB_SERVER} \
@@ -169,7 +175,8 @@ start_background_train "$$" python3.9 -m circuit_training.learning.train_ppo \
   --gin_bindings='train.num_episodes_per_iteration=5' \
   --gin_bindings='train.num_epochs=4' \
   --netlist_file=${NETLIST_FILE} \
-  --init_placement=${INIT_PLACEMENT} &
+  --init_placement=${INIT_PLACEMENT} \
+  --use_gpu=${USE_GPU} &
 
 TRAIN_PROCESS=$!
 # Wait for an error or until the training job stops.
