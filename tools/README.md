@@ -14,7 +14,7 @@ period of time. The usage is as follows:
 ```shell
 $ export CT_VERSION=0.0.3
 $ git clone https://github.com/google-research/circuit_training.git
-$ git checkout r${CT_VERSION}
+$ git -C $(pwd)/circuit_training checkout r${CT_VERSION}
 
 $ export REPO_ROOT=$(pwd)/circuit_training
 $ export TF_AGENTS_PIP_VERSION=tf-agents[reverb]

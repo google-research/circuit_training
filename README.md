@@ -112,7 +112,7 @@ $ export TF_AGENTS_PIP_VERSION=tf-agents[reverb]
 
 # Clone the Repo and checkout the desired branch.
 $  git clone https://github.com/google-research/circuit_training.git
-$  git checkout r${CT_VERSION}
+$  git -C $(pwd)/circuit_training checkout r${CT_VERSION}
 ```
 
 ### Using the docker
@@ -317,7 +317,7 @@ $  python3 -mpip install pyunpack>=0.1.2 \
 
 ## Quick start
 
-The best quick start is to run the 
+The best quick start is to run the
 [end2end smoke test](https://github.com/google-research/circuit_training/tree/main/tools#end-to-end-smoke-test)
 and then look at the full distributed example
 [Circuit training for Ariane RISC-V](./docs/ARIANE.md).
@@ -328,19 +328,19 @@ and then look at the full distributed example
 
 ```shell
 # Runs tests with nightly TF-Agents.
-$  tox -e py37,py38,py39
+$  tox -e py39-nightly,py310-nightly,py311-nightly
 # Runs with latest stable TF-Agents.
-$  tox -e py37-nightly,py38-nightly,py39-nightly
+$  tox -e py39-stable,py310-stable,py311-stable
 
 # Using our Docker for CI.
 ## Build the docker
 $  docker build --tag circuit_training:ci -f tools/docker/ubuntu_ci tools/docker/
 ## Runs tests with nightly TF-Agents.
 $  docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:ci \
-     tox -e py37-nightly,py38-nightly,py39-nightly
+     tox -e py39-nightly,py310-nightly,py311-nightly
 ## Runs tests with latest stable TF-Agents.
 $  docker run -it --rm -v $(pwd):/workspace --workdir /workspace circuit_training:ci \
-     tox -e py37,py38,py39
+     tox -e py39-stable,py310-stable,py311-stable
 
 ```
 
@@ -355,9 +355,9 @@ the filename pattern can be used to install DREAMPle for the versions of Python
 supported. For the Placement Cost binary, the ULR is to the version of the PLC
 used at the time the branch was cut.
 
-Release | Branch / Tag                                                              | TF-Agents                 | DREAMPlace                       | PL     
+Release | Branch / Tag                                                              | TF-Agents                 | DREAMPlace                       | PL
 ------- | ------------------------------------------------------------------------- | ------------------------- | -------------------------------- | -------------- |
-HEAD    | [main](https://github.com/google-research/circuit-training)               | tf-agents-nightly[reverb] | 
+HEAD    | [main](https://github.com/google-research/circuit-training)               | tf-agents-nightly[reverb] |
 0.0.3   | [v0.0.3](https://github.com/google-research/circuit_training/tree/v0.0.3) | tf-agents[reverb]~=0.16.0 | dreamplace_20230414_b31e8af_python3.9.tar.gz | [placement cost binary](https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main_0.0.3)
 0.0.2   | [v0.0.2](https://github.com/google-research/circuit_training/tree/v0.0.2) | tf-agents[reverb]~=0.16.0 |
 
