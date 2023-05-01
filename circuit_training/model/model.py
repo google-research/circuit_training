@@ -59,8 +59,9 @@ class GrlModel(network.Network):
           is_augmented=is_augmented,
           seed=seed)
 
-  def call(self, inputs, network_state=()):
-    logits, value = self._model(inputs)
+  def call(self, inputs, network_state=(), finetune_value_only=False):
+    logits, value = self._model(inputs,
+                                finetune_value_only=finetune_value_only)
     return {'logits': logits, 'value': value}, network_state
 
 
@@ -136,12 +137,17 @@ class GrlValueModel(network.Network):
 
     self._input_tensors_spec = input_tensors_spec
     self._shared_network = shared_network
+    self._finetune_value_only = False
+
+  def set_finetune_value_only(self, finetune_value_only: bool):
+    self._finetune_value_only = finetune_value_only
 
   def call(self, inputs, step_types=None, network_state=()):
     outer_rank = nest_utils.get_outer_rank(inputs, self._input_tensors_spec)
     if outer_rank == 0:
       inputs = tf.nest.map_structure(lambda x: tf.reshape(x, (1, -1)), inputs)
-    model_out, _ = self._shared_network(inputs)
+    model_out, _ = self._shared_network(
+        inputs, finetune_value_only=self._finetune_value_only)
 
     def squeeze_value_dim(value):
       # Make value_prediction's shape from [B, T, 1] to [B, T].

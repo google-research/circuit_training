@@ -18,6 +18,7 @@
 
 from absl import flags
 from absl import logging
+from absl.testing import parameterized
 from circuit_training.environment import observation_config
 from circuit_training.learning import static_feature_cache
 from circuit_training.model import model_lib
@@ -45,7 +46,7 @@ def make_strategy():
     return strategy_utils.get_strategy(tpu=None, use_gpu=False)
 
 
-class ModelTest(test_utils.TestCase):
+class ModelTest(test_utils.TestCase, parameterized.TestCase):
 
   def test_extract_feature(self):
     config = observation_config.ObservationConfig()
@@ -78,7 +79,11 @@ class ModelTest(test_utils.TestCase):
     self.assertAllEqual(logits['location'].shape, (1, config.max_grid_size**2))
     self.assertAllEqual(value.shape, (1, 1))
 
-  def test_backwards_pass(self):
+  @parameterized.parameters(
+      (True),
+      (False)
+  )
+  def test_backwards_pass(self, finetune_value_only):
     config = observation_config.ObservationConfig()
     static_features = config.observation_space.sample()
     cache = static_feature_cache.StaticFeatureCache()
@@ -101,7 +106,8 @@ class ModelTest(test_utils.TestCase):
 
     @tf.function
     def loss_fn(x, training=False):
-      logits, value = test_model(x, training=training)
+      logits, value = test_model(x, training=training,
+                                 finetune_value_only=finetune_value_only)
       loss = (
           tf.math.reduce_sum(logits['location']) + tf.math.reduce_sum(value))
       return loss
@@ -125,6 +131,7 @@ class ModelTest(test_utils.TestCase):
     # Gather variables and loss before training
     initial_loss = loss_fn_run(obs).numpy()
     initial_weights = [v.numpy() for v in test_model.trainable_variables]
+    initial_variables = list(test_model.trainable_variables)
 
     # Run one train step
     train_step_run(obs)
@@ -134,6 +141,16 @@ class ModelTest(test_utils.TestCase):
     # Verify loss and weights have changed.
     self.assertNotAllClose(initial_weights, current_weights)
     self.assertNotAlmostEqual(initial_loss, current_loss)
+
+    # If finetune_value only, we expect non-value head weights to be unchanged.
+    if finetune_value_only:
+      for initial_v, current_v in zip(initial_variables,
+                                      test_model.trainable_variables):
+        if initial_v.name in ['dense_5', 'dense_6', 'dense_7']:
+          self.assertNotAllClose(initial_v.numpy(), current_v.numpy())
+        else:
+          self.assertAllClose(initial_v.numpy(), current_v.numpy())
+
 
 
 if __name__ == '__main__':

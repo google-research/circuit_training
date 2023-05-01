@@ -19,6 +19,7 @@ from typing import Optional, Text, Tuple
 from absl import logging
 import gin
 import tensorflow as tf
+from tf_agents.agents import tf_agent
 from tf_agents.agents.ppo import ppo_agent
 from tf_agents.agents.ppo import ppo_utils
 from tf_agents.networks import network
@@ -73,6 +74,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
                train_step_counter: Optional[tf.Variable] = None,
                aggregate_losses_across_replicas: bool = True,
                report_loss_scaling_factor: float = 1.,
+               value_warmup_steps: int = 0,
                name: Optional[Text] = 'PPOClipAgent'):
     """Creates a PPO Agent implementing the clipped probability ratios.
 
@@ -108,6 +110,8 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
         is faster but may impact learning results.
       report_loss_scaling_factor: the multiplier for scaling the loss in the
         report.
+      value_warmup_steps: How many learner steps (minibatches) to only backprop
+        the value loss through the value head.
       name: The name of this agent. All variables in this module will fall under
         that name. Defaults to the class name.
 
@@ -144,6 +148,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
         update_normalizers_in_train=False,
         name=name,
     )
+    self._value_warmup_steps = value_warmup_steps
 
   def compute_return_and_advantage(
       self, next_time_steps: ts.TimeStep,
@@ -239,6 +244,83 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
 
     return returns, advantages
 
+  def get_loss(self,
+               time_steps: ts.TimeStep,
+               actions: types.NestedTensorSpec,
+               act_log_probs: types.Tensor,
+               returns: types.Tensor,
+               normalized_advantages: types.Tensor,
+               action_distribution_parameters: types.NestedTensor,
+               weights: types.Tensor,
+               train_step: tf.Variable,
+               debug_summaries: bool,
+               old_value_predictions: Optional[types.Tensor] = None,
+               finetune_value_only: bool = False,
+               training: bool = False) -> tf_agent.LossInfo:
+    """Compute the loss and create optimization op for one training epoch.
+
+    All tensors should have a single batch dimension.
+
+    Makes the following additions to PPOAgent:
+      1. Adds option to only backprop through value head.
+
+    Args:
+      time_steps: A minibatch of TimeStep tuples.
+      actions: A minibatch of actions.
+      act_log_probs: A minibatch of action probabilities (probability under the
+        sampling policy).
+      returns: A minibatch of per-timestep returns.
+      normalized_advantages: A minibatch of normalized per-timestep advantages.
+      action_distribution_parameters: Parameters of data-collecting action
+        distribution. Needed for KL computation.
+      weights: Optional scalar or element-wise (per-batch-entry) importance
+        weights.  Includes a mask for invalid timesteps.
+      train_step: A train_step variable to increment for each train step.
+        Typically the global_step.
+      debug_summaries: True if debug summaries should be created.
+      old_value_predictions: (Optional) The saved value predictions, used for
+        calculating the value estimation loss when value clipping is performed.
+      finetune_value_only: Whether to only make the value head trainable.
+      training: Whether this loss is being used for training.
+
+    Returns:
+      A tf_agent.LossInfo named tuple with the total_loss and all intermediate
+        losses in the extra field contained in a PPOLossInfo named tuple.
+    """
+    ppo_loss = super(CircuitPPOAgent, self).get_loss(
+        time_steps, actions, act_log_probs, returns, normalized_advantages,
+        action_distribution_parameters, weights, train_step, debug_summaries,
+        old_value_predictions, training)
+
+    total_loss = tf.cond(finetune_value_only,
+                         lambda: ppo_loss.extra.value_estimation_loss,
+                         lambda: ppo_loss.loss)
+
+    # Properly report losses.
+    policy_gradient_loss = tf.cond(
+        finetune_value_only,
+        lambda: tf.zeros_like(ppo_loss.extra.policy_gradient_loss),
+        lambda: ppo_loss.extra.policy_gradient_loss)
+    entropy_regularization_loss = tf.cond(
+        finetune_value_only,
+        lambda: tf.zeros_like(ppo_loss.extra.entropy_regularization_loss),
+        lambda: ppo_loss.extra.entropy_regularization_loss)
+    kl_penalty_loss = tf.cond(
+        finetune_value_only,
+        lambda: tf.zeros_like(ppo_loss.extra.kl_penalty_loss),
+        lambda: ppo_loss.extra.kl_penalty_loss)
+
+    return tf_agent.LossInfo(
+        total_loss,
+        ppo_agent.PPOLossInfo(
+            policy_gradient_loss=policy_gradient_loss,
+            value_estimation_loss=ppo_loss.extra.value_estimation_loss,
+            l2_regularization_loss=ppo_loss.extra.l2_regularization_loss,
+            entropy_regularization_loss=entropy_regularization_loss,
+            kl_penalty_loss=kl_penalty_loss,
+            clip_fraction=self._clip_fraction,
+        ))
+
   def _train(self, experience, weights):
     experience = self._as_trajectory(experience)
 
@@ -319,6 +401,12 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     # Sort to ensure tensors on different processes end up in same order.
     variables_to_train = sorted(variables_to_train, key=lambda x: x.name)
 
+    # Set finetune value only state in networks.
+    finetune_value_only = self.train_step_counter < self._value_warmup_steps
+    if self._value_warmup_steps:
+      self._collect_policy._value_network.set_finetune_value_only(  # pylint: disable=protected-access
+          finetune_value_only)
+
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(variables_to_train)
       loss_info = self.get_loss(
@@ -332,6 +420,7 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
           self.train_step_counter,
           self._debug_summaries,
           old_value_predictions=old_value_predictions,
+          finetune_value_only=finetune_value_only,
           training=True)
 
     grads = tape.gradient(loss_info.loss, variables_to_train)
