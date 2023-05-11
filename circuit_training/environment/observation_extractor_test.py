@@ -63,6 +63,12 @@ class ObservationExtractorTest(test_utils.TestCase):
     plc.snap_ports_to_edges()
     self.extractor = observation_extractor.ObservationExtractor(
         plc=plc, observation_config=self._observation_config, netlist_index=0)
+    self.extractor_default_init = observation_extractor.ObservationExtractor(
+        plc=plc,
+        observation_config=self._observation_config,
+        netlist_index=0,
+        use_plc_init_location=False,
+    )
 
   def test_static_features(self):
     static_obs = self.extractor.get_static_features()
@@ -194,6 +200,22 @@ class ObservationExtractorTest(test_utils.TestCase):
                         np.asarray([120., 100., 100., 125., 200., 0.0]) / 200.0)
     self.assertAllEqual(all_obs1['is_node_placed'], [1, 0, 0, 1, 1, 0])
     self.assertAllClose(all_obs1['current_node'], [1])
+
+  def test_disable_init_locations(self):
+    mask = np.zeros(
+        self._observation_config.max_grid_size
+        * self._observation_config.max_grid_size,
+        dtype=np.float32,
+    )
+    all_obs = self.extractor_default_init.get_all_features(
+        previous_node_index=-1, current_node_index=0, mask=mask
+    )
+
+    # Only three macros use the default locations. The rest is clustered_port.
+    self.assertAllEqual(all_obs['locations_x'], [0.5, 0.5, 0.5, 0.0, 0.5, 0.0])
+    self.assertAllEqual(
+        all_obs['locations_y'], [0.5, 0.5, 0.5, 0.625, 1.0, 0.0]
+    )
 
 
 if __name__ == '__main__':

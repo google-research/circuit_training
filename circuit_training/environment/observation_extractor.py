@@ -40,6 +40,7 @@ class ObservationExtractor(object):
       netlist_index: int = 0,
       default_location_x: float = 0.5,
       default_location_y: float = 0.5,
+      use_plc_init_location: bool = True,
   ):
     self.plc = plc
     self._observation_config = (
@@ -48,6 +49,7 @@ class ObservationExtractor(object):
     self._netlist_index = netlist_index
     self._default_location_x = default_location_x
     self._default_location_y = default_location_y
+    self._use_plc_init_location = use_plc_init_location
 
     self.width, self.height = self.plc.get_canvas_width_height()
     self.num_cols, self.num_rows = self.plc.get_grid_num_columns_rows()
@@ -131,7 +133,9 @@ class ObservationExtractor(object):
     locations_y = []
     is_node_placed = []
     for macro_idx in self.plc.get_macro_indices():
-      if self.plc.is_node_placed(macro_idx):
+      if self.plc.is_node_fixed(macro_idx) or (
+          self._use_plc_init_location and self.plc.is_node_placed(macro_idx)
+      ):
         x, y = self.plc.get_node_location(macro_idx)
       else:
         x = self._default_location_x * self.width
