@@ -139,6 +139,7 @@ class CircuitEnv(object):
       output_all_features: bool = False,
       node_order: Text = 'descending_size_macro_first',
       save_snapshot: bool = True,
+      save_partial_placement: bool = False,
   ):
     """Creates a CircuitEnv.
 
@@ -171,6 +172,8 @@ class CircuitEnv(object):
         Otherwise, it only outputs the dynamic observations.
       node_order: The sequence order of nodes placed by RL.
       save_snapshot: If true, save the snapshot placement.
+      save_partial_placement: If true, eval also saves the placement even if RL
+        does not place all nodes when an episode is done.
     """
     self._global_seed = global_seed
     if not netlist_file:
@@ -194,6 +197,7 @@ class CircuitEnv(object):
         netlist_file=netlist_file, init_placement=init_placement
     )
     self._save_snapshot = save_snapshot
+    self._save_partial_placement = save_partial_placement
 
     self._observation_config = observation_config.ObservationConfig()
 
@@ -261,7 +265,6 @@ class CircuitEnv(object):
       self._dreamplace.placedb_plc.write_movable_locations_to_plc(self._plc)
       if not converged:
         logging.warning("Initial DREAMPlace mixed-size didn't converge.")
-
 
       self._dp_mixed_macro_locations = {
           m: self._plc.get_node_location(m) for m in hard_macro_order
@@ -453,10 +456,14 @@ class CircuitEnv(object):
     # propagate the final cost with discount factor set to 1 in replay buffer.
     cost, info = self._cost_info_fn(self._plc, self._done)
 
-    # We only save placement if all nodes by placed RL, because the dreamplace
-    # mix-sized placement may not be legal.
-    if self._current_node == self._num_hard_macros and self._is_eval:
-      self._save_placement(cost)
+    # Only saves placement in eval.
+    # Happens when the episode is done, when RL places all nodes, or we want to
+    # save partial placement regardless RL places all nodes.
+    if self._is_eval:
+      if self._current_node == self._num_hard_macros or (
+          self._done and self._save_partial_placement
+      ):
+        self._save_placement(cost)
 
     return -cost, info
 
