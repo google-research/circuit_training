@@ -340,16 +340,16 @@ def main(_):
         seed=_GLOBAL_SEED.value,
     )
 
-  actor_net.create_variables(training=False)
-  value_net.create_variables(training=False)
+    actor_net.create_variables(training=False)
+    value_net.create_variables(training=False)
 
-  init_train_step = try_load_checkpoint(
-      root_dir,
-      actor_net,
-      value_net,
-      _POLICY_SAVED_MODEL_DIR.value,
-      _POLICY_CHECKPOINT_DIR.value,
-  )
+    init_train_step = try_load_checkpoint(
+        root_dir,
+        actor_net,
+        value_net,
+        _POLICY_SAVED_MODEL_DIR.value,
+        _POLICY_CHECKPOINT_DIR.value,
+    )
 
   train_ppo_lib.train(
       root_dir=root_dir,
