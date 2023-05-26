@@ -31,29 +31,40 @@ import dataclasses
 import random
 
 from absl import flags
+from absl import logging
 from circuit_training.environment import placement_util
 
 flags.DEFINE_integer('min_num', 10, 'Minimum number for cols/rows sweep.')
 flags.DEFINE_integer('max_num', 128, 'Maximum number for cols/rows sweep.')
-flags.DEFINE_float('add_size', 0.0,
-                   'Add to segment sizes to leave space between macros.')
+flags.DEFINE_float(
+    'add_size', 0.0, 'Add to segment sizes to leave space between macros.'
+)
 
 flags.DEFINE_integer('max_num_grid_cells', 4096, 'max num of grid cells')
 flags.DEFINE_integer('min_num_grid_cells', 500, 'min num of grid cells')
-flags.DEFINE_float('max_aspect_ratio', 1.5,
-                   'Maximum aspect ratio of a grid cell (either w/h of h/w)')
+flags.DEFINE_float(
+    'max_aspect_ratio',
+    1.5,
+    'Maximum aspect ratio of a grid cell (either w/h of h/w)',
+)
 flags.register_validator('max_aspect_ratio', lambda x: x > 1.0)
 # Tolerance helps to favor lower number of grid cells if the metric that choice
 # is within this much compared to the best metric.
-flags.DEFINE_float('tolerance', 0.05,
-                   'Tolerance to choose lower number of grids')
-flags.DEFINE_boolean('grid_select_include_fixed_macros', False, 'If set, '
-                     'include fixed macro in grid selection.')
+flags.DEFINE_float(
+    'tolerance', 0.05, 'Tolerance to choose lower number of grids'
+)
+flags.DEFINE_boolean(
+    'grid_select_include_fixed_macros',
+    False,
+    'If set, include fixed macro in grid selection.',
+)
 flags.DEFINE_integer(
-    'max_grid_size', 128,
+    'max_grid_size',
+    128,
     'The maximum grid size of the canvas. The padded canvas '
     'will be max_grid_size by max_grid_size. '
-    'Used only in the generalization model.')
+    'Used only in the generalization model.',
+)
 
 FLAGS = flags.FLAGS
 
@@ -65,18 +76,25 @@ def get_grid_suggestion(plc):
   # not grid cell indices.
   orig_coords = placement_util.get_node_xy_coordinates(plc)
   orig_orientations = placement_util.get_macro_orientations(plc)
-  choices = get_grid_choices(plc, FLAGS.min_num, FLAGS.max_num,
-                             FLAGS.max_grid_size, FLAGS.min_num_grid_cells,
-                             FLAGS.max_num_grid_cells, FLAGS.max_aspect_ratio,
-                             FLAGS.add_size,
-                             FLAGS.grid_select_include_fixed_macros)
+  choices = get_grid_choices(
+      plc,
+      FLAGS.min_num,
+      FLAGS.max_num,
+      FLAGS.max_grid_size,
+      FLAGS.min_num_grid_cells,
+      FLAGS.max_num_grid_cells,
+      FLAGS.max_aspect_ratio,
+      FLAGS.add_size,
+      FLAGS.grid_select_include_fixed_macros,
+  )
 
   placement_util.restore_node_xy_coordinates(plc, orig_coords)
   placement_util.restore_macro_orientations(plc, orig_orientations)
   if not choices:
     return None, None
   cols, rows = select_from_grid_choices(
-      choices, FLAGS.tolerance, print_best_n=20)
+      choices, FLAGS.tolerance, print_best_n=20
+  )
   return cols, rows
 
 
@@ -197,11 +215,14 @@ def is_grid_size_acceptable(rows, cols, max_grid_size):
   return rows <= max_grid_size and cols <= max_grid_size
 
 
-def is_num_grid_cells_acceptable(num_grid_cells, min_num_grid_cells,
-                                 max_num_grid_cells):
+def is_num_grid_cells_acceptable(
+    num_grid_cells, min_num_grid_cells, max_num_grid_cells
+):
   """Checks the number of grid cells."""
-  return (num_grid_cells <= max_num_grid_cells and
-          num_grid_cells >= min_num_grid_cells)
+  return (
+      num_grid_cells <= max_num_grid_cells
+      and num_grid_cells >= min_num_grid_cells
+  )
 
 
 def is_grid_cell_aspect_ratio_ok(gcell_width, gcell_height, max_aspect_ratio):
@@ -251,13 +272,24 @@ def try_placing(plc, hard_macros):
 
 def get_key_metric(data_value):
   """A metric to get an understanding of how good a col/row choice is."""
-  return (data_value.empty_ratio + (1.0 - data_value.hor_waste) +
-          (1.0 - data_value.ver_waste))
+  return (
+      data_value.empty_ratio
+      + (1.0 - data_value.hor_waste)
+      + (1.0 - data_value.ver_waste)
+  )
 
 
-def get_grid_choices(plc, min_num, max_num, max_grid_size, min_num_grid_cells,
-                     max_num_grid_cells, max_aspect_ratio, add_size,
-                     include_fixed_macros):
+def get_grid_choices(
+    plc,
+    min_num,
+    max_num,
+    max_grid_size,
+    min_num_grid_cells,
+    max_num_grid_cells,
+    max_aspect_ratio,
+    add_size,
+    include_fixed_macros,
+):
   """Returns all possible grid number of columns/rows and their metrics.
 
   Args:
@@ -284,6 +316,12 @@ def get_grid_choices(plc, min_num, max_num, max_grid_size, min_num_grid_cells,
   """
   # Select only hard macros for placement, and size selection process.
   hard_macros = get_hard_macros(plc, include_fixed_macros)
+  # Sorting hard macro base on size.
+  hard_macros = placement_util.get_ordered_node_indices(
+      mode='descending_size_macro_first',
+      plc=plc,
+      exclude_fixed_nodes=not include_fixed_macros,
+  )[: len(hard_macros)]
   if not hard_macros:
     print('No hard macros found in the design!')
     return None
@@ -296,8 +334,8 @@ def get_grid_choices(plc, min_num, max_num, max_grid_size, min_num_grid_cells,
   class ValueData:
     key_metric: float
     empty_ratio: float
-    hor_waste: dict
-    ver_waste: dict
+    hor_waste: float
+    ver_waste: float
     num_gcells: int
 
   # hor_waste and ver_waste are metrics for wasted space in either direction
@@ -306,7 +344,8 @@ def get_grid_choices(plc, min_num, max_num, max_grid_size, min_num_grid_cells,
   hor_waste = dict()
   ver_waste = dict()
   macro_widths, macro_heights = get_macro_widths_heights(
-      plc, add_size, include_fixed_macros)
+      plc, add_size, include_fixed_macros
+  )
   canvas_width, canvas_height = plc.get_canvas_width_height()
   # Loop through all combinations of number of cols and rows.
   for rows in range(min_num, max_num):
@@ -316,15 +355,18 @@ def get_grid_choices(plc, min_num, max_num, max_grid_size, min_num_grid_cells,
       num_gcells = cols * rows
       if not is_grid_size_acceptable(rows, cols, max_grid_size):
         continue
-      if not is_num_grid_cells_acceptable(num_gcells, min_num_grid_cells,
-                                          max_num_grid_cells):
+      if not is_num_grid_cells_acceptable(
+          num_gcells, min_num_grid_cells, max_num_grid_cells
+      ):
         continue
-      if not is_grid_cell_aspect_ratio_ok(gcell_width, gcell_height,
-                                          max_aspect_ratio):
+      if not is_grid_cell_aspect_ratio_ok(
+          gcell_width, gcell_height, max_aspect_ratio
+      ):
         continue
       plc.set_placement_grid(cols, rows)
       # TODO(b/279612771) Add a resize utility to placement_cost interface.
       if not try_placing(plc, hard_macros):
+        logging.info('try_placing failed for %sx%s.', cols, rows)
         continue
       # Only calculate hor_waste, ver_waste if needed.
       if cols not in hor_waste:
@@ -336,7 +378,8 @@ def get_grid_choices(plc, min_num, max_num, max_grid_size, min_num_grid_cells,
           empty_ratio=get_empty_cells_ratio(plc),
           hor_waste=hor_waste[cols],
           ver_waste=ver_waste[rows],
-          num_gcells=cols * rows)
+          num_gcells=cols * rows,
+      )
       # Fill in the key_metric based on the rest of the metrics.
       d.key_metric = get_key_metric(d)
       grid_choices[(cols, rows)] = d
@@ -347,7 +390,8 @@ def select_from_grid_choices(grid_choices, tolerance=0.1, print_best_n=0):
   """Chooses the best number of cols and rows based on the key metric."""
   assert grid_choices
   sorted_list = sorted(
-      list(grid_choices.items()), key=lambda x: x[1].key_metric, reverse=True)
+      list(grid_choices.items()), key=lambda x: x[1].key_metric, reverse=True
+  )
 
   # If the key metric is very close to the best (first item in the sorted list)
   # solution, choose the one with the smallest number of grid cells.
@@ -357,9 +401,11 @@ def select_from_grid_choices(grid_choices, tolerance=0.1, print_best_n=0):
   # The idea is to choose the minimum number of grid cells for which the
   # metric is not too far off.
   # TODO(b/279610667): visualize and understand the impact of this choice.
-  qualified = [(k, v)
-               for (k, v) in sorted_list
-               if v.key_metric >= best_key_metric_tolerance]
+  qualified = [
+      (k, v)
+      for (k, v) in sorted_list
+      if v.key_metric >= best_key_metric_tolerance
+  ]
   # best choice is among the qualified results whose key_metric is within
   # a percentage of the highest key_metric. This is trying to reduce the
   # number of grid cells while keeping the packing metrics acceptable.
