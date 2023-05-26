@@ -39,6 +39,8 @@ NETLIST_METADATA = (
     'macro_vertical_routing_allocation',
     'grid_cols',
     'grid_rows',
+    'canvas_width',
+    'canvas_height',
 )
 
 GRAPH_ADJACENCY_MATRIX = ('sparse_adj_i', 'sparse_adj_j', 'sparse_adj_weight',
@@ -104,68 +106,72 @@ class ObservationConfig(object):
   def observation_space(self) -> gym.spaces.Space:
     """Env Observation space."""
     return gym.spaces.Dict({
-        'normalized_num_edges':
-            gym.spaces.Box(low=0, high=1, shape=(1,)),
-        'normalized_num_hard_macros':
-            gym.spaces.Box(low=0, high=1, shape=(1,)),
-        'normalized_num_soft_macros':
-            gym.spaces.Box(low=0, high=1, shape=(1,)),
-        'normalized_num_port_clusters':
-            gym.spaces.Box(low=0, high=1, shape=(1,)),
-        'horizontal_routes_per_micron':
-            gym.spaces.Box(low=0, high=100, shape=(1,)),
-        'vertical_routes_per_micron':
-            gym.spaces.Box(low=0, high=100, shape=(1,)),
-        'macro_horizontal_routing_allocation':
-            gym.spaces.Box(low=0, high=100, shape=(1,)),
-        'macro_vertical_routing_allocation':
-            gym.spaces.Box(low=0, high=100, shape=(1,)),
-        'sparse_adj_weight':
-            gym.spaces.Box(low=0, high=100, shape=(self.max_num_edges,)),
-        'sparse_adj_i':
-            gym.spaces.Box(
-                low=0,
-                high=self.max_num_nodes - 1,
-                shape=(self.max_num_edges,),
-                dtype=np.int32),
-        'sparse_adj_j':
-            gym.spaces.Box(
-                low=0,
-                high=self.max_num_nodes - 1,
-                shape=(self.max_num_edges,),
-                dtype=np.int32),
-        'edge_counts':
-            gym.spaces.Box(
-                low=0,
-                high=self.max_num_edges - 1,
-                shape=(self.max_num_nodes,),
-                dtype=np.int32),
-        'node_types':
-            gym.spaces.Box(
-                low=0, high=3, shape=(self.max_num_nodes,), dtype=np.int32),
-        'is_node_placed':
-            gym.spaces.Box(
-                low=0, high=1, shape=(self.max_num_nodes,), dtype=np.int32),
-        'macros_w':
-            gym.spaces.Box(low=0, high=1, shape=(self.max_num_nodes,)),
-        'macros_h':
-            gym.spaces.Box(low=0, high=1, shape=(self.max_num_nodes,)),
-        'locations_x':
-            gym.spaces.Box(low=0, high=1, shape=(self.max_num_nodes,)),
-        'locations_y':
-            gym.spaces.Box(low=0, high=1, shape=(self.max_num_nodes,)),
-        'grid_cols':
-            gym.spaces.Box(low=0, high=1, shape=(1,)),
-        'grid_rows':
-            gym.spaces.Box(low=0, high=1, shape=(1,)),
-        'current_node':
-            gym.spaces.Box(
-                low=0, high=self.max_num_nodes - 1, shape=(1,), dtype=np.int32),
-        'mask':
-            gym.spaces.Box(
-                low=0, high=1, shape=(self.max_grid_size**2,), dtype=np.int32),
-        'netlist_index':
-            gym.spaces.Box(low=0, high=0, shape=(1,), dtype=np.int32),
+        'normalized_num_edges': gym.spaces.Box(low=0, high=1, shape=(1,)),
+        'normalized_num_hard_macros': gym.spaces.Box(low=0, high=1, shape=(1,)),
+        'normalized_num_soft_macros': gym.spaces.Box(low=0, high=1, shape=(1,)),
+        'normalized_num_port_clusters': gym.spaces.Box(
+            low=0, high=1, shape=(1,)
+        ),
+        'horizontal_routes_per_micron': gym.spaces.Box(
+            low=0, high=100, shape=(1,)
+        ),
+        'vertical_routes_per_micron': gym.spaces.Box(
+            low=0, high=100, shape=(1,)
+        ),
+        'macro_horizontal_routing_allocation': gym.spaces.Box(
+            low=0, high=100, shape=(1,)
+        ),
+        'macro_vertical_routing_allocation': gym.spaces.Box(
+            low=0, high=100, shape=(1,)
+        ),
+        'sparse_adj_weight': gym.spaces.Box(
+            low=0, high=100, shape=(self.max_num_edges,)
+        ),
+        'sparse_adj_i': gym.spaces.Box(
+            low=0,
+            high=self.max_num_nodes - 1,
+            shape=(self.max_num_edges,),
+            dtype=np.int32,
+        ),
+        'sparse_adj_j': gym.spaces.Box(
+            low=0,
+            high=self.max_num_nodes - 1,
+            shape=(self.max_num_edges,),
+            dtype=np.int32,
+        ),
+        'edge_counts': gym.spaces.Box(
+            low=0,
+            high=self.max_num_edges - 1,
+            shape=(self.max_num_nodes,),
+            dtype=np.int32,
+        ),
+        'node_types': gym.spaces.Box(
+            low=0, high=3, shape=(self.max_num_nodes,), dtype=np.int32
+        ),
+        'is_node_placed': gym.spaces.Box(
+            low=0, high=1, shape=(self.max_num_nodes,), dtype=np.int32
+        ),
+        'macros_w': gym.spaces.Box(low=0, high=1, shape=(self.max_num_nodes,)),
+        'macros_h': gym.spaces.Box(low=0, high=1, shape=(self.max_num_nodes,)),
+        'locations_x': gym.spaces.Box(
+            low=0, high=1, shape=(self.max_num_nodes,)
+        ),
+        'locations_y': gym.spaces.Box(
+            low=0, high=1, shape=(self.max_num_nodes,)
+        ),
+        'grid_cols': gym.spaces.Box(low=0, high=1, shape=(1,)),
+        'grid_rows': gym.spaces.Box(low=0, high=1, shape=(1,)),
+        'canvas_width': gym.spaces.Box(low=0, high=1, shape=(1,)),
+        'canvas_height': gym.spaces.Box(low=0, high=1, shape=(1,)),
+        'current_node': gym.spaces.Box(
+            low=0, high=self.max_num_nodes - 1, shape=(1,), dtype=np.int32
+        ),
+        'mask': gym.spaces.Box(
+            low=0, high=1, shape=(self.max_grid_size**2,), dtype=np.int32
+        ),
+        'netlist_index': gym.spaces.Box(
+            low=0, high=0, shape=(1,), dtype=np.int32
+        ),
     })
 
 
@@ -180,8 +186,8 @@ def _to_dict(
   else:
     obs_space = ObservationConfig().observation_space
   splits = [obs_space[k].shape[0] for k in keys]
-  splitted_obs = tf.split(flatten_obs, splits, axis=-1)
-  return {k: o for o, k in zip(splitted_obs, keys)}
+  split_obs = tf.split(flatten_obs, splits, axis=-1)
+  return {k: o for o, k in zip(split_obs, keys)}
 
 
 def _flatten(dict_obs: Dict[Text, TensorType],

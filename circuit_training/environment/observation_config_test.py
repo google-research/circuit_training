@@ -44,16 +44,28 @@ class ObservationConfigTest(test_utils.TestCase):
       self.assertAllEqual(obs[k], np_obs[k])
 
   def test_observation_ordering(self):
-    static_observations = ('normalized_num_edges', 'normalized_num_hard_macros',
-                           'normalized_num_soft_macros',
-                           'normalized_num_port_clusters',
-                           'horizontal_routes_per_micron',
-                           'vertical_routes_per_micron',
-                           'macro_horizontal_routing_allocation',
-                           'macro_vertical_routing_allocation', 'grid_cols',
-                           'grid_rows', 'sparse_adj_i', 'sparse_adj_j',
-                           'sparse_adj_weight', 'edge_counts', 'macros_w',
-                           'macros_h', 'node_types', 'netlist_index')
+    static_observations = (
+        'normalized_num_edges',
+        'normalized_num_hard_macros',
+        'normalized_num_soft_macros',
+        'normalized_num_port_clusters',
+        'horizontal_routes_per_micron',
+        'vertical_routes_per_micron',
+        'macro_horizontal_routing_allocation',
+        'macro_vertical_routing_allocation',
+        'grid_cols',
+        'grid_rows',
+        'canvas_width',
+        'canvas_height',
+        'sparse_adj_i',
+        'sparse_adj_j',
+        'sparse_adj_weight',
+        'edge_counts',
+        'macros_w',
+        'macros_h',
+        'node_types',
+        'netlist_index',
+    )
 
     dynamic_observations = (
         'locations_x',
@@ -71,14 +83,17 @@ class ObservationConfigTest(test_utils.TestCase):
     # because flatten/unflattening to/from a tensor is done by tf.split(). If
     # ordering is different, the state will be not encoded the same way across
     # training experiments/ evaluation runs.
-    for expected, actual in zip(static_observations,
-                                observation_config.STATIC_OBSERVATIONS):
+    for expected, actual in zip(
+        static_observations, observation_config.STATIC_OBSERVATIONS
+    ):
       self.assertEqual(expected, actual)
-    for expected, actual in zip(dynamic_observations,
-                                observation_config.DYNAMIC_OBSERVATIONS):
+    for expected, actual in zip(
+        dynamic_observations, observation_config.DYNAMIC_OBSERVATIONS
+    ):
       self.assertEqual(expected, actual)
-    for expected, actual in zip(all_observations,
-                                observation_config.ALL_OBSERVATIONS):
+    for expected, actual in zip(
+        all_observations, observation_config.ALL_OBSERVATIONS
+    ):
       self.assertEqual(expected, actual)
 
 

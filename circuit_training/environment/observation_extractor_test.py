@@ -43,15 +43,18 @@ class ObservationExtractorTest(test_utils.TestCase):
     super(ObservationExtractorTest, self).setUp()
 
     self._observation_config = observation_config.ObservationConfig(
-        max_num_edges=8, max_num_nodes=6, max_grid_size=10)
+        max_num_edges=8, max_num_nodes=6, max_grid_size=10
+    )
 
     # Macros name                      : M0, M1, Grp_2
     # Order in plc.get_macro_indices():  0,  1,  2
     # Edges: (0, 1), (0, 2)
-    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                'netlist.pb.txt')
+    netlist_file = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'netlist.pb.txt'
+    )
     plc = placement_util.create_placement_cost(
-        netlist_file=netlist_file, init_placement='')
+        netlist_file=netlist_file, init_placement=''
+    )
     plc.set_canvas_size(300, 200)
     plc.set_placement_grid(9, 4)
     plc.unplace_all_nodes()
@@ -62,7 +65,8 @@ class ObservationExtractorTest(test_utils.TestCase):
     plc.update_port_sides()
     plc.snap_ports_to_edges()
     self.extractor = observation_extractor.ObservationExtractor(
-        plc=plc, observation_config=self._observation_config, netlist_index=0)
+        plc=plc, observation_config=self._observation_config, netlist_index=0
+    )
     self.extractor_default_init = observation_extractor.ObservationExtractor(
         plc=plc,
         observation_config=self._observation_config,
@@ -77,10 +81,14 @@ class ObservationExtractorTest(test_utils.TestCase):
     self.assertEqual(static_obs['normalized_num_hard_macros'], 2.0 / 6.0)
     self.assertEqual(static_obs['normalized_num_soft_macros'], 1.0 / 6.0)
     self.assertEqual(static_obs['normalized_num_port_clusters'], 2.0 / 6.0)
-    self.assertAllClose(static_obs['macros_w'],
-                        np.asarray([120., 80., 0., 0., 0., 0.]) / 300.0)
-    self.assertAllClose(static_obs['macros_h'],
-                        np.asarray([120., 40., 0., 0., 0., 0.]) / 200.0)
+    self.assertAllClose(
+        static_obs['macros_w'],
+        np.asarray([120.0, 80.0, 0.0, 0.0, 0.0, 0.0]) / 500.0,
+    )
+    self.assertAllClose(
+        static_obs['macros_h'],
+        np.asarray([120.0, 40.0, 0.0, 0.0, 0.0, 0.0]) / 500.0,
+    )
     self.assertAllEqual(static_obs['node_types'], [1, 1, 2, 3, 3, 0])
     self.assertAllEqual(static_obs['sparse_adj_i'], [0, 0, 1, 1, 2, 0, 0, 0])
     self.assertAllEqual(static_obs['sparse_adj_j'], [2, 3, 2, 4, 3, 0, 0, 0])
@@ -93,58 +101,86 @@ class ObservationExtractorTest(test_utils.TestCase):
     # Node 4: one edge
     # The last zero in the array is due to the value of `max_num_nodes`.
     self.assertAllEqual(static_obs['edge_counts'], [2, 2, 3, 2, 1, 0])
-    self.assertAllClose(static_obs['sparse_adj_weight'],
-                        [1.0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])
+    self.assertAllClose(
+        static_obs['sparse_adj_weight'], [1.0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0]
+    )
 
   def test_initial_dynamic_features(self):
     mask = np.zeros(
-        self._observation_config.max_grid_size *
-        self._observation_config.max_grid_size,
-        dtype=np.float32)
+        self._observation_config.max_grid_size
+        * self._observation_config.max_grid_size,
+        dtype=np.float32,
+    )
     dynamic_obs = self.extractor.get_dynamic_features(
-        previous_node_index=-1, current_node_index=0, mask=mask)
+        previous_node_index=-1, current_node_index=0, mask=mask
+    )
     logging.info('dynamic observation: %s', dynamic_obs)
     # Replaces the unplaced node in the middle of the canvas.
-    self.assertAllClose(dynamic_obs['locations_x'],
-                        np.asarray([150., 150., 150., 0., 150., 0.0]) / 300.0)
-    self.assertAllClose(dynamic_obs['locations_y'],
-                        np.asarray([100., 100., 100., 125., 200., 0.0]) / 200.0)
+    self.assertAllClose(
+        dynamic_obs['locations_x'],
+        np.asarray([150.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
+    )
+    self.assertAllClose(
+        dynamic_obs['locations_y'],
+        np.asarray([100.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
+    )
     self.assertAllEqual(dynamic_obs['is_node_placed'], [0, 0, 0, 1, 1, 0])
-    self.assertAllClose(dynamic_obs['mask'],
-                        [0] * (self._observation_config.max_grid_size *
-                               self._observation_config.max_grid_size))
+    self.assertAllClose(
+        dynamic_obs['mask'],
+        [0]
+        * (
+            self._observation_config.max_grid_size
+            * self._observation_config.max_grid_size
+        ),
+    )
     self.assertAllClose(dynamic_obs['current_node'], [0])
     self.assertEqual(dynamic_obs['netlist_index'][0], 0)
 
   def test_initial_all_features(self):
     mask = np.zeros(
-        self._observation_config.max_grid_size *
-        self._observation_config.max_grid_size,
-        dtype=np.float32)
+        self._observation_config.max_grid_size
+        * self._observation_config.max_grid_size,
+        dtype=np.float32,
+    )
     all_obs = self.extractor.get_all_features(
-        previous_node_index=-1, current_node_index=0, mask=mask)
+        previous_node_index=-1, current_node_index=0, mask=mask
+    )
     logging.info('All observation: %s', all_obs)
     self.assertEqual(all_obs['normalized_num_edges'], 5.0 / 8.0)
     self.assertEqual(all_obs['normalized_num_hard_macros'], 2.0 / 6.0)
     self.assertEqual(all_obs['normalized_num_soft_macros'], 1.0 / 6.0)
     self.assertEqual(all_obs['normalized_num_port_clusters'], 2.0 / 6.0)
-    self.assertAllClose(all_obs['macros_w'],
-                        np.asarray([120., 80., 0., 0., 0., 0.]) / 300.0)
-    self.assertAllClose(all_obs['macros_h'],
-                        np.asarray([120., 40., 0., 0., 0., 0.]) / 200.0)
+    self.assertAllClose(
+        all_obs['macros_w'],
+        np.asarray([120.0, 80.0, 0.0, 0.0, 0.0, 0.0]) / 500.0,
+    )
+    self.assertAllClose(
+        all_obs['macros_h'],
+        np.asarray([120.0, 40.0, 0.0, 0.0, 0.0, 0.0]) / 500.0,
+    )
     self.assertAllEqual(all_obs['node_types'], [1, 1, 2, 3, 3, 0])
     self.assertAllEqual(all_obs['sparse_adj_i'], [0, 0, 1, 1, 2, 0, 0, 0])
     self.assertAllEqual(all_obs['sparse_adj_j'], [2, 3, 2, 4, 3, 0, 0, 0])
-    self.assertAllClose(all_obs['sparse_adj_weight'],
-                        [1.0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])
-    self.assertAllClose(all_obs['locations_x'],
-                        np.asarray([150., 150., 150., 0., 150., 0.0]) / 300.0)
-    self.assertAllClose(all_obs['locations_y'],
-                        np.asarray([100., 100., 100., 125., 200., 0.0]) / 200.0)
+    self.assertAllClose(
+        all_obs['sparse_adj_weight'], [1.0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0]
+    )
+    self.assertAllClose(
+        all_obs['locations_x'],
+        np.asarray([150.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
+    )
+    self.assertAllClose(
+        all_obs['locations_y'],
+        np.asarray([100.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
+    )
     self.assertAllEqual(all_obs['is_node_placed'], [0, 0, 0, 1, 1, 0])
-    self.assertAllClose(all_obs['mask'],
-                        [0] * (self._observation_config.max_grid_size *
-                               self._observation_config.max_grid_size))
+    self.assertAllClose(
+        all_obs['mask'],
+        [0]
+        * (
+            self._observation_config.max_grid_size
+            * self._observation_config.max_grid_size
+        ),
+    )
     self.assertAllClose(all_obs['current_node'], [0])
     self.assertEqual(all_obs['netlist_index'][0], 0)
 
@@ -153,51 +189,70 @@ class ObservationExtractorTest(test_utils.TestCase):
 
   def test_initial_features_after_reset(self):
     mask = np.zeros(
-        self._observation_config.max_grid_size *
-        self._observation_config.max_grid_size,
-        dtype=np.float32)
+        self._observation_config.max_grid_size
+        * self._observation_config.max_grid_size,
+        dtype=np.float32,
+    )
     initial_obs = self.extractor.get_all_features(
-        previous_node_index=-1, current_node_index=0, mask=mask)
+        previous_node_index=-1, current_node_index=0, mask=mask
+    )
     self.extractor.plc.update_node_coords('M0', 100, 120)
     _ = self.extractor.get_all_features(
-        previous_node_index=0, current_node_index=1, mask=mask)
+        previous_node_index=0, current_node_index=1, mask=mask
+    )
     self.extractor.reset()
     initial_obs_after_reset = self.extractor.get_all_features(
-        previous_node_index=-1, current_node_index=0, mask=mask)
+        previous_node_index=-1, current_node_index=0, mask=mask
+    )
     for k in initial_obs:
       self.assertAllClose(initial_obs[k], initial_obs_after_reset[k])
 
   def test_all_features_after_step(self):
     self.extractor.plc.update_node_coords('M0', 100, 120)
     mask = np.zeros(
-        self._observation_config.max_grid_size *
-        self._observation_config.max_grid_size,
-        dtype=np.float32)
+        self._observation_config.max_grid_size
+        * self._observation_config.max_grid_size,
+        dtype=np.float32,
+    )
     all_obs1 = self.extractor.get_all_features(
-        previous_node_index=0, current_node_index=1, mask=mask)
-    self.assertAllClose(all_obs1['locations_x'],
-                        np.asarray([100., 150., 150., 0., 150., 0.0]) / 300.0)
-    self.assertAllClose(all_obs1['locations_y'],
-                        np.asarray([120., 100., 100., 125., 200., 0.0]) / 200.0)
+        previous_node_index=0, current_node_index=1, mask=mask
+    )
+    self.assertAllClose(
+        all_obs1['locations_x'],
+        np.asarray([100.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
+    )
+    self.assertAllClose(
+        all_obs1['locations_y'],
+        np.asarray([120.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
+    )
     self.assertAllEqual(all_obs1['is_node_placed'], [1, 0, 0, 1, 1, 0])
     self.assertAllClose(all_obs1['current_node'], [1])
 
     self.extractor.plc.update_node_coords('M1', 200, 150)
     all_obs2 = self.extractor.get_all_features(
-        previous_node_index=1, current_node_index=2, mask=mask)
-    self.assertAllClose(all_obs2['locations_x'],
-                        np.asarray([100., 200., 150., 0., 150., 0.0]) / 300.0)
-    self.assertAllClose(all_obs2['locations_y'],
-                        np.asarray([120., 150., 100., 125., 200., 0.0]) / 200.0)
+        previous_node_index=1, current_node_index=2, mask=mask
+    )
+    self.assertAllClose(
+        all_obs2['locations_x'],
+        np.asarray([100.0, 200.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
+    )
+    self.assertAllClose(
+        all_obs2['locations_y'],
+        np.asarray([120.0, 150.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
+    )
     self.assertAllEqual(all_obs2['is_node_placed'], [1, 1, 0, 1, 1, 0])
     self.assertAllClose(all_obs2['current_node'], [2])
     self.assertEqual(all_obs2['netlist_index'][0], 0)
 
     # Also, ensure `all_obs1` is not modified.
-    self.assertAllClose(all_obs1['locations_x'],
-                        np.asarray([100., 150., 150., 0., 150., 0.0]) / 300.0)
-    self.assertAllClose(all_obs1['locations_y'],
-                        np.asarray([120., 100., 100., 125., 200., 0.0]) / 200.0)
+    self.assertAllClose(
+        all_obs1['locations_x'],
+        np.asarray([100.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
+    )
+    self.assertAllClose(
+        all_obs1['locations_y'],
+        np.asarray([120.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
+    )
     self.assertAllEqual(all_obs1['is_node_placed'], [1, 0, 0, 1, 1, 0])
     self.assertAllClose(all_obs1['current_node'], [1])
 
@@ -212,9 +267,13 @@ class ObservationExtractorTest(test_utils.TestCase):
     )
 
     # Only three macros use the default locations. The rest is clustered_port.
-    self.assertAllEqual(all_obs['locations_x'], [0.5, 0.5, 0.5, 0.0, 0.5, 0.0])
-    self.assertAllEqual(
-        all_obs['locations_y'], [0.5, 0.5, 0.5, 0.625, 1.0, 0.0]
+    self.assertAllClose(
+        all_obs['locations_x'],
+        np.asarray([150.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
+    )
+    self.assertAllClose(
+        all_obs['locations_y'],
+        np.asarray([100.0, 100.0, 100.0, 125.0, 200, 0.0]) / 500.0,
     )
 
 
