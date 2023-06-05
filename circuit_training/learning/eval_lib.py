@@ -175,7 +175,7 @@ def evaluate(
   model_id = common.create_variable('model_id')
 
   # Create the environment.
-  env = create_env_fn()
+  env = create_env_fn(train_step=train_step)
   observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
       spec_utils.get_tensor_specs(env)
   )
