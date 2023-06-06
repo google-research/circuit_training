@@ -217,7 +217,7 @@ class CircuitEnv(object):
     self._hard_macro_indices = [
         m
         for m in self._plc.get_macro_indices()
-        if not self._plc.is_node_soft_macro(m)
+        if not (self._plc.is_node_soft_macro(m) or self._plc.is_node_fixed(m))
     ]
     self._num_hard_macros = len(self._hard_macro_indices)
     logging.info('***Num node to place***:%s', self._num_hard_macros)
