@@ -248,6 +248,7 @@ def create_placement_cost(
     if canvas_width and canvas_height and grid_cols and grid_rows:
       plc.set_canvas_size(canvas_width, canvas_height)
       plc.set_placement_grid(grid_cols, grid_rows)
+      plc.set_congestion_grid(grid_cols, grid_rows)
 
   plc.set_project_name('circuit_training')
   plc.set_block_name(block_name or 'unset_block')
@@ -320,6 +321,7 @@ def save_placement(plc: plc_client.PlacementCost,
                    user_comments: str = '') -> None:
   """Saves the placement file with some information in the comments section."""
   cols, rows = plc.get_grid_num_columns_rows()
+  congestion_cols, congestion_rows = plc.get_congestion_grid_num_columns_rows()
   width, height = plc.get_canvas_width_height()
   hor_routes, ver_routes = plc.get_routes_per_micron()
   hor_macro_alloc, ver_macro_alloc = plc.get_macro_routing_allocation()
@@ -330,6 +332,7 @@ def save_placement(plc: plc_client.PlacementCost,
     This file : {filename}
     Date : {date}
     Columns : {cols}  Rows : {rows}
+    Congestion Columns : {congestion_cols}  Congestion Rows : {congestion_rows}
     Width : {width:.3f}  Height : {height:.3f}
     Area : {area}
     Wirelength : {wl:.3f}
@@ -349,6 +352,8 @@ def save_placement(plc: plc_client.PlacementCost,
       cols=cols,
       rows=rows,
       width=width,
+      congestion_cols=congestion_cols,
+      congestion_rows=congestion_rows,
       height=height,
       area=plc.get_area(),
       wl=plc.get_wirelength(),

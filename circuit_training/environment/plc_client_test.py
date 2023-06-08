@@ -451,6 +451,8 @@ class PlcClientTest(test_utils.TestCase):
     self.assertEqual(plc.get_canvas_width_height(), (1200.0, 1200.0))
     self.assertTrue(plc.set_placement_grid(20, 20))
     self.assertEqual(plc.get_grid_num_columns_rows(), (20, 20))
+    self.assertTrue(plc.set_congestion_grid(20, 20))
+    self.assertEqual(plc.get_congestion_grid_num_columns_rows(), (20, 20))
     self.assertEqual(plc.get_macro_indices(), [
         0, 13, 26, 39, 52, 65, 78, 91, 104, 117, 130, 143, 156, 169, 182, 195,
         208, 221, 234, 247, 260, 273, 286, 299, 312, 325, 338, 351, 364, 377,

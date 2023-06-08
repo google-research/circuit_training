@@ -63,6 +63,9 @@ class MockPlacementCost(object):
   def get_grid_num_columns_rows(self):
     return (10, 12)
 
+  def get_congestion_grid_num_columns_rows(self):
+    return (10, 12)
+
   def get_canvas_width_height(self):
     return (100.0, 120.0)
 
