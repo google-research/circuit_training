@@ -146,12 +146,14 @@ class MockPlacementCost(object):
         f.write('# ' + l + '\n')
 
   def get_grid_cell_of_node(self, index):
+    del index
     return 0
 
   def unplace_all_nodes(self):
     return
 
   def is_node_fixed(self, index):
+    del index
     return True
 
 
@@ -164,6 +166,7 @@ class PlacementUtilTest(test_utils.TestCase):
                                   'initial.plc')
     self.plc = placement_util.create_placement_cost(
         netlist_file=netlist_file, init_placement=init_placement)
+    super().setUp()
 
   def test_mock_plc_get_node_type(self):
     plc = MockPlacementCost()
@@ -293,7 +296,7 @@ class PlacementUtilTest(test_utils.TestCase):
     self.assertEqual(plc.get_block_name(), 'macro_tiles_10x10')
     self.assertEqual(plc.get_routes_per_micron(), (70.33, 74.51))
     self.assertEqual(plc.get_macro_routing_allocation(), (51.79, 51.79))
-    self.assertEqual(plc.get_congestion_smooth_range(), 2.0)
+    self.assertEqual(plc.get_congestion_smooth_range(), 5.0)
     self.assertEqual(plc.get_overlap_threshold(), 4e-3)
     self.assertFalse(plc.get_canvas_boundary_check())
 

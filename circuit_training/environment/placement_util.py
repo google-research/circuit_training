@@ -181,13 +181,13 @@ def fix_port_coordinates(plc: plc_client.PlacementCost) -> None:
 
 # The routing capacities are calculated based on the public information about
 # 7nm technology (https://en.wikichip.org/wiki/7_nm_lithography_process)
-# with an arbitary, yet reasonable, assumption of 18% of the tracks for
+# with an arbitrary, yet reasonable, assumption of 18% of the tracks for
 # the power grids.
 def create_placement_cost(
     netlist_file: str,
     init_placement: Optional[str] = None,
     overlap_threshold: float = 4e-3,
-    congestion_smooth_range: int = 2,
+    congestion_smooth_range: int = 5,
     # TODO(b/211039937): Increase macro spacing to 3-5um, after matching the
     # performance for Ariane.
     macro_macro_x_spacing: float = 0.1,
@@ -197,6 +197,7 @@ def create_placement_cost(
     vertical_routes_per_micron: float = 74.51,
     macro_horizontal_routing_allocation: float = 51.79,
     macro_vertical_routing_allocation: float = 51.79,
+    routes_per_congestion_grid: int = 1000,
     blockages: Optional[List[List[float]]] = None,
     fixed_macro_names_regex: Optional[List[str]] = None,
 ) -> plc_client.PlacementCost:
@@ -204,7 +205,7 @@ def create_placement_cost(
 
   Args:
     netlist_file: Path to the netlist proto text file.
-    init_placement: Path to the inital placement .plc file.
+    init_placement: Path to the initial placement .plc file.
     overlap_threshold: Used for macro overlap detection.
     congestion_smooth_range: Smoothing factor used for congestion estimation.
       Congestion is distributed to this many neighboring columns/rows.'
@@ -215,6 +216,9 @@ def create_placement_cost(
     vertical_routes_per_micron: Vertical route capacity per micros.
     macro_horizontal_routing_allocation: Macro horizontal routing allocation.
     macro_vertical_routing_allocation: Macro vertical routing allocation.
+    routes_per_congestion_grid: Number of routes that passes through the
+      congestion grid. This is used to calculate the congestion grid size base
+      on the technology info.
     blockages: List of blockages.
     fixed_macro_names_regex: A list of macro names regex that should be fixed
       in the placement.
@@ -248,7 +252,6 @@ def create_placement_cost(
     if canvas_width and canvas_height and grid_cols and grid_rows:
       plc.set_canvas_size(canvas_width, canvas_height)
       plc.set_placement_grid(grid_cols, grid_rows)
-      plc.set_congestion_grid(grid_cols, grid_rows)
 
   plc.set_project_name('circuit_training')
   plc.set_block_name(block_name or 'unset_block')
@@ -257,6 +260,19 @@ def create_placement_cost(
   plc.set_macro_routing_allocation(macro_horizontal_routing_allocation,
                                    macro_vertical_routing_allocation)
   plc.set_congestion_smooth_range(congestion_smooth_range)
+
+  congestion_grid_size = (
+      2.0
+      * routes_per_congestion_grid
+      / (
+          horizontal_routes_per_micron
+          + vertical_routes_per_micron
+      )
+  )
+  canvas_width, canvas_height = plc.get_canvas_width_height()
+  congestion_grid_cols = max(1, int(canvas_width / congestion_grid_size))
+  congestion_grid_rows = max(1, int(canvas_height / congestion_grid_size))
+  plc.set_congestion_grid(congestion_grid_cols, congestion_grid_rows)
   plc.set_overlap_threshold(overlap_threshold)
   plc.set_canvas_boundary_check(boundary_check)
   plc.make_soft_macros_square()
