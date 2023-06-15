@@ -425,7 +425,14 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
 
     grads = tape.gradient(loss_info.loss, variables_to_train)
     if self._gradient_clipping > 0:
-      grads, _ = tf.clip_by_global_norm(grads, self._gradient_clipping)
+      # global_norm may overflow or underflow. Clip and input it to the
+      # clip_by_global_norm function to ensure numerical stability.
+      global_norm = tf.linalg.global_norm(grads)
+      global_norm = tf.clip_by_value(global_norm, clip_value_min=1e-25,
+                                     clip_value_max=1e+25)
+
+      grads, _ = tf.clip_by_global_norm(grads, self._gradient_clipping,
+                                        global_norm)
 
     self._grad_norm = tf.linalg.global_norm(grads)
 
