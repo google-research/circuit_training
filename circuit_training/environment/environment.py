@@ -67,6 +67,7 @@ COST_COMPONENTS = ['wirelength', 'congestion', 'density']
 def cost_info_function(
     plc: plc_client.PlacementCost,
     done: bool,
+    infeasible_state: bool = False,
     wirelength_weight: float = 1.0,
     density_weight: float = 1.0,
     congestion_weight: float = 0.5,
@@ -76,6 +77,7 @@ def cost_info_function(
   Args:
     plc: Placement cost object.
     done: Set if it is the terminal step.
+    infeasible_state: Set if it is an infeasible state.
     wirelength_weight:  Weight of wirelength in the reward function.
     density_weight: Weight of density in the reward function.
     congestion_weight: Weight of congestion in the reward function used only for
@@ -89,6 +91,7 @@ def cost_info_function(
 
   Notes: we found the default congestion and density weights more stable.
   """
+  del infeasible_state
   proxy_cost = 0.0
   info = {cost: -1.0 for cost in COST_COMPONENTS}
 
@@ -125,7 +128,8 @@ class CircuitEnv(object):
       ] = placement_util.create_placement_cost,
       std_cell_placer_mode: Text = 'fd',
       cost_info_fn: Callable[
-          [plc_client.PlacementCost, bool], Tuple[float, Dict[Text, float]]
+          [plc_client.PlacementCost, bool, bool],
+          Tuple[float, Dict[Text, float]],
       ] = cost_info_function,
       global_seed: int = 0,
       netlist_index: int = 0,
@@ -242,7 +246,6 @@ class CircuitEnv(object):
     self._left_pad = cols_pad - self._right_pad
 
     self._saved_cost = np.inf
-    self._infeasible_state = False
 
     if self._std_cell_placer_mode == 'dreamplace':
       canvas_width, canvas_height = self._plc.get_canvas_width_height()
@@ -347,7 +350,7 @@ class CircuitEnv(object):
   def get_cost_info(
       self, done: bool = False
   ) -> Tuple[float, Dict[Text, float]]:
-    return self._cost_info_fn(plc=self._plc, done=done)  # pytype: disable=wrong-keyword-args  # trace-all-classes
+    return self._cost_info_fn(plc=self._plc, done=done, infeasible_state=False)  # pytype: disable=wrong-keyword-args  # trace-all-classes
 
   def _get_mask(self) -> np.ndarray:
     """Gets the node mask for the current node.
@@ -403,7 +406,7 @@ class CircuitEnv(object):
     # Plc modified by CD will be reset at the end of the episode.
 
     def cost_fn(plc):
-      return self._cost_info_fn(plc=plc, done=True)  # pytype: disable=wrong-keyword-args  # trace-all-classes
+      return self._cost_info_fn(plc=plc, done=True, infeasible_state=False)  # pytype: disable=wrong-keyword-args  # trace-all-classes
 
     cd = cd_placer.CoordinateDescentPlacer(plc=self._plc, cost_fn=cost_fn)
     cd.place()
@@ -444,7 +447,9 @@ class CircuitEnv(object):
       # Only runs CD if this is the best RL placement seen so far.
       if self._cd_finetune:
         self._run_cd()
-        cost = self._cost_info_fn(plc=self._plc, done=True)[0]  # pytype: disable=wrong-keyword-args  # trace-all-classes
+        cost = self._cost_info_fn(
+            plc=self._plc, done=True, infeasible_state=False  # pytype: disable=wrong-keyword-args  # trace-all-classes
+        )[0]
         cd_plc_file = os.path.join(self._output_plc_dir, self._cd_plc_file)
         placement_util.save_placement(self._plc, cd_plc_file, user_comments)
         cd_snapshot_file = os.path.join(
@@ -455,11 +460,16 @@ class CircuitEnv(object):
             self._plc, cd_snapshot_file, user_comments
         )
 
-  def call_analytical_placer_and_get_cost(self) -> Tuple[float, InfoType]:
+  def call_analytical_placer_and_get_cost(
+      self, infeasible_state=False
+  ) -> Tuple[float, InfoType]:
     """Calls analytical placer.
 
     Calls analystical placer and evaluates cost when all nodes are placed. Also,
     saves the placement file for eval if all the macros are placed by RL.
+
+    Args:
+      infeasible_state: If the function called for an infeasible state.
 
     Returns:
       A tuple for placement cost and info.
@@ -470,7 +480,9 @@ class CircuitEnv(object):
     # All samples in the episode receive the same reward equal to final cost.
     # This is realized by setting intermediate steps cost as zero, and
     # propagate the final cost with discount factor set to 1 in replay buffer.
-    cost, info = self._cost_info_fn(self._plc, self._done)
+    cost, info = self._cost_info_fn(
+        plc=self._plc, done=self._done, infeasible_state=infeasible_state  # pytype: disable=wrong-keyword-args  # trace-all-classes
+    )
 
     # Only saves placement in eval.
     # Happens when the episode is done, when RL places all nodes, or we want to
@@ -582,18 +594,22 @@ class CircuitEnv(object):
     self._current_mask = self._get_mask()
 
     if not self._done and not np.any(self._current_mask):
-      # Please note that _infeasible_state is not reset in reset function so,
-      # the caller of step() is responsible for resetting it.
-      self._infeasible_state = True
       logging.info(
           'Actions took before becoming infeasible: %s', self._current_actions
       )
-      info = {
-          'wirelength': -1.0,
-          'congestion': -1.0,
-          'density': -1.0,
-      }
-      return self.reset(), self.INFEASIBLE_REWARD, True, info
+      if self._std_cell_placer_mode == 'dreamplace':
+        logging.info(
+            'Using DREAMPlace mixed-size placer for the rest of the macros and'
+            ' std cell clusters.'
+        )
+        self._done = True
+        cost, info = self.call_analytical_placer_and_get_cost(
+            infeasible_state=True
+        )
+        return self.reset(), cost, True, info
+      else:
+        info = {cost: -1.0 for cost in COST_COMPONENTS}
+        return self.reset(), self.INFEASIBLE_REWARD, True, info
 
     cost, info = self.call_analytical_placer_and_get_cost()
 
