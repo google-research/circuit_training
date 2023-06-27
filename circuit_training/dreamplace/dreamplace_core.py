@@ -68,7 +68,7 @@ class SoftMacroPlacer:
 
 
 def optimize_using_dreamplace(
-    plc, params, output_dir, hard_macro_movable=False
+    plc, params, output_dir=None, hard_macro_movable=False
 ):
   """Optimzes using Dreamplace."""
   # Initialization, slow but only happens once.
@@ -99,11 +99,12 @@ def optimize_using_dreamplace(
       time.time() - start_write_time,
   )
 
-  # The total run time of using Dreamplace to optimize soft macro placement.
-  duration = time.time() - start_opt_time
-  filename_prefix = (
-      'mix_sized_dreamplace' if hard_macro_movable else 'dreamplace_cell'
-  )
-  dreamplace_util.print_and_save_result(
-      plc, duration, 'Dreamplace', filename_prefix, output_dir
-  )
+  if output_dir:
+    # The total run time of using Dreamplace to optimize soft macro placement.
+    duration = time.time() - start_opt_time
+    filename_prefix = (
+        'mix_sized_dreamplace' if hard_macro_movable else 'dreamplace_cell'
+    )
+    dreamplace_util.print_and_save_result(
+        plc, duration, 'Dreamplace', filename_prefix, output_dir
+    )
