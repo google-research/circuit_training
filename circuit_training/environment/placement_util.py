@@ -29,8 +29,9 @@ import numpy as np
 import tensorflow.io.gfile as gfile
 
 
-def nodes_of_types(plc: plc_client.PlacementCost,
-                   type_list: List[str]) -> Iterator[int]:
+def nodes_of_types(
+    plc: plc_client.PlacementCost, type_list: List[str]
+) -> Iterator[int]:
   """Yields the index of a node of certain types."""
   i = 0
   while True:
@@ -43,7 +44,8 @@ def nodes_of_types(plc: plc_client.PlacementCost,
 
 
 def get_node_xy_coordinates(
-    plc: plc_client.PlacementCost) -> Dict[int, Tuple[float, float]]:
+    plc: plc_client.PlacementCost,
+) -> Dict[int, Tuple[float, float]]:
   """Returns all node x,y coordinates (canvas) in a dict."""
   node_coords = dict()
   for node_index in nodes_of_types(plc, ['MACRO', 'STDCELL', 'PORT']):
@@ -61,21 +63,23 @@ def get_macro_orientations(plc: plc_client.PlacementCost) -> Dict[int, int]:
 
 
 def restore_node_xy_coordinates(
-    plc: plc_client.PlacementCost,
-    node_coords: Dict[int, Tuple[float, float]]) -> None:
+    plc: plc_client.PlacementCost, node_coords: Dict[int, Tuple[float, float]]
+) -> None:
   for node_index, coords in node_coords.items():
     if not plc.is_node_fixed(node_index):
       plc.update_node_coords(node_index, coords[0], coords[1])
 
 
-def restore_macro_orientations(plc: plc_client.PlacementCost,
-                               macro_orientations: Dict[int, int]) -> None:
+def restore_macro_orientations(
+    plc: plc_client.PlacementCost, macro_orientations: Dict[int, int]
+) -> None:
   for node_index, orientation in macro_orientations.items():
     plc.update_macro_orientation(node_index, orientation)
 
 
-def extract_attribute_from_comments(attribute: str,
-                                    filenames: List[str]) -> Optional[str]:
+def extract_attribute_from_comments(
+    attribute: str, filenames: List[str]
+) -> Optional[str]:
   """Parses the files' comments section, tries to extract the attribute.
 
   Args:
@@ -92,7 +96,7 @@ def extract_attribute_from_comments(attribute: str,
         with gfile.GFile(f, 'r') as infile:
           for line in infile:
             if line.startswith('#'):
-              match = re.search(fr'{attribute} : ([-\w]+)', line)
+              match = re.search(rf'{attribute} : ([-\w]+)', line)
               if match:
                 return match.group(1)
             else:
@@ -103,7 +107,8 @@ def extract_attribute_from_comments(attribute: str,
 
 
 def get_blockages_from_comments(
-    filenames: Union[str, List[str]]) -> Optional[List[List[float]]]:
+    filenames: Union[str, List[str]]
+) -> Optional[List[List[float]]]:
   """Returns list of blockages if they exist in the file's comments section."""
   for filename in filenames:
     if not filename:
@@ -129,7 +134,8 @@ def get_blockages_from_comments(
 
 
 def extract_sizes_from_comments(
-    filenames: List[str]) -> Optional[Tuple[float, float, int, int]]:
+    filenames: List[str],
+) -> Tuple[Optional[float], Optional[float], Optional[int], Optional[int]]:
   """Parses the file's comments section, tries to extract canvas/grid sizes.
 
   Args:
@@ -138,16 +144,17 @@ def extract_sizes_from_comments(
   Returns:
     Tuple of canvas_width, canvas_height, grid_cols, grid_rows
   """
+  canvas_width, canvas_height = None, None
+  grid_cols, grid_rows = None, None
   for filename in filenames:
     if not filename:
       continue
-    canvas_width, canvas_height = None, None
-    grid_cols, grid_rows = None, None
     with gfile.GFile(filename, 'r') as infile:
       for line in infile:
         if line.startswith('#'):
           fp_re = re.search(
-              r'FP bbox: \{([\d\.]+) ([\d\.]+)\} \{([\d\.]+) ([\d\.]+)\}', line)
+              r'FP bbox: \{([\d\.]+) ([\d\.]+)\} \{([\d\.]+) ([\d\.]+)\}', line
+          )
           if fp_re:
             canvas_width = float(fp_re.group(3))
             canvas_height = float(fp_re.group(4))
@@ -165,8 +172,7 @@ def extract_sizes_from_comments(
           # Do not parse the rest of the file, since all the comments are at the
           # top.
           break
-    if canvas_width and canvas_height and grid_cols and grid_rows:
-      return canvas_width, canvas_height, grid_cols, grid_rows
+  return canvas_width, canvas_height, grid_cols, grid_rows
 
 
 def fix_port_coordinates(plc: plc_client.PlacementCost) -> None:
@@ -220,8 +226,8 @@ def create_placement_cost(
       congestion grid. This is used to calculate the congestion grid size base
       on the technology info.
     blockages: List of blockages.
-    fixed_macro_names_regex: A list of macro names regex that should be fixed
-      in the placement.
+    fixed_macro_names_regex: A list of macro names regex that should be fixed in
+      the placement.
 
   Returns:
     A PlacementCost object.
@@ -229,45 +235,49 @@ def create_placement_cost(
   if not netlist_file:
     raise ValueError('netlist_file should be provided.')
 
-  block_name = extract_attribute_from_comments('Block',
-                                               [init_placement, netlist_file])
+  block_name = extract_attribute_from_comments(
+      'Block', [init_placement, netlist_file]
+  )
   if not block_name:
     logging.warning(
-        'block_name is not set. '
-        'Please add the block_name in:\n%s\nor in:\n%s', netlist_file,
-        init_placement)
+        'block_name is not set. Please add the block_name in:\n%s\nor in:\n%s',
+        netlist_file,
+        init_placement,
+    )
 
-  plc = plc_client.PlacementCost(netlist_file, macro_macro_x_spacing,
-                                 macro_macro_y_spacing)
+  plc = plc_client.PlacementCost(
+      netlist_file, macro_macro_x_spacing, macro_macro_y_spacing
+  )
 
   blockages = blockages or get_blockages_from_comments(
-      [netlist_file, init_placement])
+      [netlist_file, init_placement]
+  )
   if blockages:
     for blockage in blockages:
       plc.create_blockage(*blockage)
 
-  sizes = extract_sizes_from_comments([netlist_file, init_placement])
-  if sizes:
-    canvas_width, canvas_height, grid_cols, grid_rows = sizes
-    if canvas_width and canvas_height and grid_cols and grid_rows:
-      plc.set_canvas_size(canvas_width, canvas_height)
-      plc.set_placement_grid(grid_cols, grid_rows)
+  canvas_width, canvas_height, grid_cols, grid_rows = (
+      extract_sizes_from_comments([netlist_file, init_placement])
+  )
+  if canvas_width and canvas_height:
+    plc.set_canvas_size(canvas_width, canvas_height)
+  if grid_cols and grid_rows:
+    plc.set_placement_grid(grid_cols, grid_rows)
 
   plc.set_project_name('circuit_training')
   plc.set_block_name(block_name or 'unset_block')
-  plc.set_routes_per_micron(horizontal_routes_per_micron,
-                            vertical_routes_per_micron)
-  plc.set_macro_routing_allocation(macro_horizontal_routing_allocation,
-                                   macro_vertical_routing_allocation)
+  plc.set_routes_per_micron(
+      horizontal_routes_per_micron, vertical_routes_per_micron
+  )
+  plc.set_macro_routing_allocation(
+      macro_horizontal_routing_allocation, macro_vertical_routing_allocation
+  )
   plc.set_congestion_smooth_range(congestion_smooth_range)
 
   congestion_grid_size = (
       2.0
       * routes_per_congestion_grid
-      / (
-          horizontal_routes_per_micron
-          + vertical_routes_per_micron
-      )
+      / (horizontal_routes_per_micron + vertical_routes_per_micron)
   )
   canvas_width, canvas_height = plc.get_canvas_width_height()
   congestion_grid_cols = max(1, int(canvas_width / congestion_grid_size))
@@ -304,11 +314,12 @@ def get_node_type_counts(plc: plc_client.PlacementCost) -> Dict[str, int]:
       'SOFT_MACRO': 0,
       'HARD_MACRO': 0,
       'SOFT_MACRO_PIN': 0,
-      'HARD_MACRO_PIN': 0
+      'HARD_MACRO_PIN': 0,
   }
 
-  for node_index in nodes_of_types(plc,
-                                   ['MACRO', 'STDCELL', 'PORT', 'MACRO_PIN']):
+  for node_index in nodes_of_types(
+      plc, ['MACRO', 'STDCELL', 'PORT', 'MACRO_PIN']
+  ):
     node_type = plc.get_node_type(node_index)
     counts[node_type] += 1
     if node_type == 'MACRO':
@@ -332,9 +343,9 @@ def make_blockage_text(plc: plc_client.PlacementCost) -> str:
   return ret
 
 
-def save_placement(plc: plc_client.PlacementCost,
-                   filename: str,
-                   user_comments: str = '') -> None:
+def save_placement(
+    plc: plc_client.PlacementCost, filename: str, user_comments: str = ''
+) -> None:
   """Saves the placement file with some information in the comments section."""
   cols, rows = plc.get_grid_num_columns_rows()
   congestion_cols, congestion_rows = plc.get_congestion_grid_num_columns_rows()
@@ -342,7 +353,8 @@ def save_placement(plc: plc_client.PlacementCost,
   hor_routes, ver_routes = plc.get_routes_per_micron()
   hor_macro_alloc, ver_macro_alloc = plc.get_macro_routing_allocation()
   smooth = plc.get_congestion_smooth_range()
-  info = textwrap.dedent("""\
+  info = textwrap.dedent(
+      """\
     Placement file for Circuit Training
     Source input file(s) : {src_filename}
     This file : {filename}
@@ -362,51 +374,54 @@ def save_placement(plc: plc_client.PlacementCost,
     Smoothing factor : {smooth}
     Overlap threshold : {overlap_threshold}
   """.format(
-      src_filename=plc.get_source_filename(),
-      filename=filename,
-      date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-      cols=cols,
-      rows=rows,
-      width=width,
-      congestion_cols=congestion_cols,
-      congestion_rows=congestion_rows,
-      height=height,
-      area=plc.get_area(),
-      wl=plc.get_wirelength(),
-      wlc=plc.get_cost(),
-      cong=plc.get_congestion_cost(),
-      density=plc.get_density_cost(),
-      project=plc.get_project_name(),
-      block_name=plc.get_block_name(),
-      hor_routes=hor_routes,
-      ver_routes=ver_routes,
-      hor_macro_alloc=hor_macro_alloc,
-      ver_macro_alloc=ver_macro_alloc,
-      smooth=smooth,
-      overlap_threshold=plc.get_overlap_threshold()))
+          src_filename=plc.get_source_filename(),
+          filename=filename,
+          date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+          cols=cols,
+          rows=rows,
+          width=width,
+          congestion_cols=congestion_cols,
+          congestion_rows=congestion_rows,
+          height=height,
+          area=plc.get_area(),
+          wl=plc.get_wirelength(),
+          wlc=plc.get_cost(),
+          cong=plc.get_congestion_cost(),
+          density=plc.get_density_cost(),
+          project=plc.get_project_name(),
+          block_name=plc.get_block_name(),
+          hor_routes=hor_routes,
+          ver_routes=ver_routes,
+          hor_macro_alloc=hor_macro_alloc,
+          ver_macro_alloc=ver_macro_alloc,
+          smooth=smooth,
+          overlap_threshold=plc.get_overlap_threshold(),
+      )
+  )
 
   info += '\n' + make_blockage_text(plc) + '\n'
   info += '\nCounts of node types:\n'
   node_type_counts = get_node_type_counts(plc)
   for node_type in sorted(node_type_counts):
-    info += '{:<15} : {:>9}\n'.format(node_type + 's',
-                                      node_type_counts[node_type])
+    info += '{:<15} : {:>9}\n'.format(
+        node_type + 's', node_type_counts[node_type]
+    )
   if user_comments:
     info += '\nUser comments:\n' + user_comments + '\n'
   info += '\nnode_index x y orientation fixed'
   return plc.save_placement(filename, info)
 
 
-def fd_placement_schedule(plc: plc_client.PlacementCost,
-                          num_steps: Tuple[int, ...] = (100, 100, 100),
-                          io_factor: float = 1.0,
-                          move_distance_factors: Tuple[float,
-                                                       ...] = (1.0, 1.0, 1.0),
-                          attract_factor: Tuple[float,
-                                                ...] = (100.0, 1.0e-3, 1.0e-5),
-                          repel_factor: Tuple[float, ...] = (0.0, 1.0e6, 1.0e7),
-                          use_current_loc: bool = False,
-                          move_macros: bool = False) -> None:
+def fd_placement_schedule(
+    plc: plc_client.PlacementCost,
+    num_steps: Tuple[int, ...] = (100, 100, 100),
+    io_factor: float = 1.0,
+    move_distance_factors: Tuple[float, ...] = (1.0, 1.0, 1.0),
+    attract_factor: Tuple[float, ...] = (100.0, 1.0e-3, 1.0e-5),
+    repel_factor: Tuple[float, ...] = (0.0, 1.0e6, 1.0e7),
+    use_current_loc: bool = False,
+    move_macros: bool = False,
+) -> None:
   """A placement schedule that uses force directed method.
 
   Args:
@@ -433,15 +448,26 @@ def fd_placement_schedule(plc: plc_client.PlacementCost,
   move_stdcells = True
   log_scale_conns = False
   use_sizes = False
-  plc.optimize_stdcells(use_current_loc, move_stdcells, move_macros,
-                        log_scale_conns, use_sizes, io_factor, num_steps,
-                        max_move_distance, attract_factor, repel_factor)
+  plc.optimize_stdcells(
+      use_current_loc,
+      move_stdcells,
+      move_macros,
+      log_scale_conns,
+      use_sizes,
+      io_factor,
+      num_steps,
+      max_move_distance,
+      attract_factor,
+      repel_factor,
+  )
 
 
-def get_ordered_node_indices(mode: str,
-                             plc: plc_client.PlacementCost,
-                             seed: int = 111,
-                             exclude_fixed_nodes: bool = True) -> List[int]:
+def get_ordered_node_indices(
+    mode: str,
+    plc: plc_client.PlacementCost,
+    seed: int = 111,
+    exclude_fixed_nodes: bool = True,
+) -> List[int]:
   """Returns an ordering of node indices according to the specified mode.
 
   Args:
@@ -468,8 +494,9 @@ def get_ordered_node_indices(mode: str,
   logging.info('node_order: %s', mode)
   if mode == 'descending_size_macro_first':
     ordered_indices = (
-        sorted(hard_macro_indices, key=macro_area)[::-1] +
-        sorted(soft_macro_indices, key=macro_area)[::-1])
+        sorted(hard_macro_indices, key=macro_area)[::-1]
+        + sorted(soft_macro_indices, key=macro_area)[::-1]
+    )
   elif mode == 'random':
     rng.shuffle(macro_indices)
     ordered_indices = macro_indices
@@ -486,8 +513,8 @@ def get_ordered_node_indices(mode: str,
 
 
 def extract_blockages_from_file(
-    filename: str, canvas_width: float,
-    canvas_height: float) -> Optional[List[List[float]]]:
+    filename: str, canvas_width: float, canvas_height: float
+) -> Optional[List[List[float]]]:
   """Reads blockage information from a given file.
 
   Args:
@@ -507,8 +534,10 @@ def extract_blockages_from_file(
           continue
         items = line.split()
         if len(items) != 4:
-          raise ValueError('Blockage file does not meet expected format'
-                           'Expected format <llx> <lly> <urx> <ury>')
+          raise ValueError(
+              'Blockage file does not meet expected format'
+              'Expected format <llx> <lly> <urx> <ury>'
+          )
         llx = float(items[0])
         lly = float(items[1])
         urx = float(items[2])
@@ -521,12 +550,14 @@ def extract_blockages_from_file(
           raise ValueError(f'Illegal blockage llx {llx} < 0')
         if urx > canvas_width:
           raise ValueError(
-              f'Illegal blockage urx {urx} > canvas width {canvas_width}')
+              f'Illegal blockage urx {urx} > canvas width {canvas_width}'
+          )
         if lly < 0:
           raise ValueError(f'Illegal blockage lly {lly} < 0')
         if ury > canvas_height:
           raise ValueError(
-              f'Illegal blockage ury {ury} > canvas height {canvas_height}')
+              f'Illegal blockage ury {ury} > canvas height {canvas_height}'
+          )
         # Set 1.0 blockage rate so no macros or stdcells are allowed.
         blockages.append([llx, lly, urx, ury, 1.0])
   except IOError:
@@ -553,8 +584,9 @@ def get_node_ordering_by_size(plc: plc_client.PlacementCost) -> List[int]:
   return sorted(node_areas, key=node_areas.get, reverse=True)
 
 
-def grid_locations_near(plc: plc_client.PlacementCost,
-                        start_grid_index: int) -> Iterator[int]:
+def grid_locations_near(
+    plc: plc_client.PlacementCost, start_grid_index: int
+) -> Iterator[int]:
   """Yields node indices closest to the start_grid_index."""
   # Starting from the start_grid_index, it goes around the area from closest
   # (manhattan distance) to the farthest. For example, if the start grid index
@@ -581,8 +613,9 @@ def grid_locations_near(plc: plc_client.PlacementCost,
         yield int(new_col + new_row * cols)
 
 
-def place_near(plc: plc_client.PlacementCost, node_index: int,
-               location: int) -> bool:
+def place_near(
+    plc: plc_client.PlacementCost, node_index: int, location: int
+) -> bool:
   """Places a node (legally) closest to the given location.
 
   Args:
@@ -600,14 +633,18 @@ def place_near(plc: plc_client.PlacementCost, node_index: int,
   return False
 
 
-def disconnect_high_fanout_nets(plc: plc_client.PlacementCost,
-                                max_allowed_fanouts: int = 500) -> None:
+def disconnect_high_fanout_nets(
+    plc: plc_client.PlacementCost, max_allowed_fanouts: int = 500
+) -> None:
   high_fanout_nets = []
   for i in nodes_of_types(plc, ['PORT', 'STDCELL', 'MACRO_PIN']):
     num_fanouts = len(plc.get_fan_outs_of_node(i))
     if num_fanouts > max_allowed_fanouts:
-      print('Disconnecting node: {} with {} fanouts.'.format(
-          plc.get_node_name(i), num_fanouts))
+      print(
+          'Disconnecting node: {} with {} fanouts.'.format(
+              plc.get_node_name(i), num_fanouts
+          )
+      )
       high_fanout_nets.append(i)
   plc.disconnect_nets(high_fanout_nets)
 
@@ -634,17 +671,24 @@ def legalize_placement(plc: plc_client.PlacementCost) -> bool:
     if node in previous_xy_coords and not plc.is_node_soft_macro(node):
       x, y = plc.get_node_location(node)
       px, py = previous_xy_coords[node]
-      print('x/y displacement: dx = {}, dy = {}, macro: {}'.format(
-          x - px, y - py, plc.get_node_name(node)))
+      print(
+          'x/y displacement: dx = {}, dy = {}, macro: {}'.format(
+              x - px, y - py, plc.get_node_name(node)
+          )
+      )
       total_macro_displacement += abs(x - px) + abs(y - py)
       total_macros += 1
-  print('Total macro displacement: {}, avg: {}'.format(
-      total_macro_displacement, total_macro_displacement / total_macros))
+  print(
+      'Total macro displacement: {}, avg: {}'.format(
+          total_macro_displacement, total_macro_displacement / total_macros
+      )
+  )
   return True
 
 
-def fix_macros_by_regex(plc: plc_client.PlacementCost,
-                        macro_regex_str_list: List[str]):
+def fix_macros_by_regex(
+    plc: plc_client.PlacementCost, macro_regex_str_list: List[str]
+):
   """Fix macro locations given a list of macro name regex strings."""
   regexs = []
   for regex_str in macro_regex_str_list:
@@ -675,7 +719,8 @@ def create_blockages_by_spacing_constraints(
     canvas_width: float,
     canvas_height: float,
     macro_boundary_x_spacing: float = 0,
-    macro_boundary_y_spacing: float = 0) -> List[List[float]]:
+    macro_boundary_y_spacing: float = 0,
+) -> List[List[float]]:
   """Create blockages using macro-to-boundary spacing constraints."""
   blockages = []
   # Not macro overlap but allow stedcells to be placed within.
@@ -684,20 +729,28 @@ def create_blockages_by_spacing_constraints(
     assert 0 < macro_boundary_x_spacing <= canvas_width
     # Left horizontal
     blockages.append(
-        [0, 0, macro_boundary_x_spacing, canvas_height, blockage_rate])
+        [0, 0, macro_boundary_x_spacing, canvas_height, blockage_rate]
+    )
     # Right horizontal
     blockages.append([
-        canvas_width - macro_boundary_x_spacing, 0, canvas_width, canvas_height,
-        blockage_rate
+        canvas_width - macro_boundary_x_spacing,
+        0,
+        canvas_width,
+        canvas_height,
+        blockage_rate,
     ])
   if macro_boundary_y_spacing:
     assert 0 < macro_boundary_y_spacing <= canvas_height
     # Bottom vertical
     blockages.append(
-        [0, 0, canvas_width, macro_boundary_y_spacing, blockage_rate])
+        [0, 0, canvas_width, macro_boundary_y_spacing, blockage_rate]
+    )
     # Top vertical
     blockages.append([
-        0, canvas_height - macro_boundary_y_spacing, canvas_width,
-        canvas_height, blockage_rate
+        0,
+        canvas_height - macro_boundary_y_spacing,
+        canvas_width,
+        canvas_height,
+        blockage_rate,
     ])
   return blockages
