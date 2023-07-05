@@ -34,8 +34,9 @@ from tf_agents.utils import value_ops
 
 def _normalize_advantages(advantages, axes=(0), variance_epsilon=1e-8):
   adv_mean, adv_var = tf.nn.moments(x=advantages, axes=axes, keepdims=True)
-  normalized_advantages = ((advantages - adv_mean) /
-                           (tf.sqrt(adv_var) + variance_epsilon))
+  normalized_advantages = (advantages - adv_mean) / (
+      tf.sqrt(adv_var) + variance_epsilon
+  )
   return normalized_advantages
 
 
@@ -56,26 +57,28 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     which leads to different results in TPU setups.
   """
 
-  def __init__(self,
-               time_step_spec: ts.TimeStep,
-               action_spec: types.NestedTensorSpec,
-               optimizer: Optional[types.Optimizer] = None,
-               actor_net: Optional[network.Network] = None,
-               value_net: Optional[network.Network] = None,
-               importance_ratio_clipping: types.Float = 0.2,
-               discount_factor: types.Float = 1.0,
-               entropy_regularization: types.Float = 0.01,
-               value_pred_loss_coef: types.Float = 0.5,
-               gradient_clipping: Optional[types.Float] = 1.0,
-               value_clipping: Optional[types.Float] = None,
-               check_numerics: bool = False,
-               debug_summaries: bool = False,
-               summarize_grads_and_vars: bool = False,
-               train_step_counter: Optional[tf.Variable] = None,
-               aggregate_losses_across_replicas: bool = True,
-               report_loss_scaling_factor: float = 1.,
-               value_warmup_steps: int = 0,
-               name: Optional[Text] = 'PPOClipAgent'):
+  def __init__(
+      self,
+      time_step_spec: ts.TimeStep,
+      action_spec: types.NestedTensorSpec,
+      optimizer: Optional[types.Optimizer] = None,
+      actor_net: Optional[network.Network] = None,
+      value_net: Optional[network.Network] = None,
+      importance_ratio_clipping: types.Float = 0.2,
+      discount_factor: types.Float = 1.0,
+      entropy_regularization: types.Float = 0.01,
+      value_pred_loss_coef: types.Float = 0.5,
+      gradient_clipping: Optional[types.Float] = 1.0,
+      value_clipping: Optional[types.Float] = None,
+      check_numerics: bool = False,
+      debug_summaries: bool = False,
+      summarize_grads_and_vars: bool = False,
+      train_step_counter: Optional[tf.Variable] = None,
+      aggregate_losses_across_replicas: bool = True,
+      report_loss_scaling_factor: float = 1.0,
+      value_warmup_steps: int = 0,
+      name: Optional[Text] = 'PPOClipAgent',
+  ):
     """Creates a PPO Agent implementing the clipped probability ratios.
 
     Args:
@@ -151,8 +154,8 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     self._value_warmup_steps = value_warmup_steps
 
   def compute_return_and_advantage(
-      self, next_time_steps: ts.TimeStep,
-      value_preds: types.Tensor) -> Tuple[types.Tensor, types.Tensor]:
+      self, next_time_steps: ts.TimeStep, value_preds: types.Tensor
+  ) -> Tuple[types.Tensor, types.Tensor]:
     """Compute the Monte Carlo return and advantage.
 
     Args:
@@ -165,7 +168,8 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
       tuple of (return, advantage), both are batched tensors.
     """
     discounts = next_time_steps.discount * tf.constant(
-        self._discount_factor, dtype=tf.float32)
+        self._discount_factor, dtype=tf.float32
+    )
 
     rewards = next_time_steps.reward
     # TODO(b/202226773): Move debugging to helper function for clarity.
@@ -175,16 +179,19 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
       # supported on TPUs.
       if not self._use_tpu:
         tf.compat.v2.summary.histogram(
-            name='rewards', data=rewards, step=self.train_step_counter)
+            name='rewards', data=rewards, step=self.train_step_counter
+        )
       tf.compat.v2.summary.scalar(
           name='rewards_mean',
           data=tf.reduce_mean(rewards),
-          step=self.train_step_counter)
+          step=self.train_step_counter,
+      )
 
     # Normalize rewards if self._reward_normalizer is defined.
     if self._reward_normalizer:
       rewards = self._reward_normalizer.normalize(
-          rewards, center_mean=False, clip_value=self._reward_norm_clipping)
+          rewards, center_mean=False, clip_value=self._reward_norm_clipping
+      )
       if self._debug_summaries:
         # TODO(b/171573175): remove the condition once histograms are
         # supported on TPUs.
@@ -192,11 +199,13 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
           tf.compat.v2.summary.histogram(
               name='rewards_normalized',
               data=rewards,
-              step=self.train_step_counter)
+              step=self.train_step_counter,
+          )
         tf.compat.v2.summary.scalar(
             name='rewards_normalized_mean',
             data=tf.reduce_mean(rewards),
-            step=self.train_step_counter)
+            step=self.train_step_counter,
+        )
 
     # Make discount 0.0 at end of each episode to restart cumulative sum
     #   end of each episode.
@@ -216,47 +225,56 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
         rewards,
         discounts,
         time_major=False,
-        final_value=final_value_bootstrapped)
+        final_value=final_value_bootstrapped,
+    )
     # TODO(b/171573175): remove the condition once histograms are
     # supported on TPUs.
     if self._debug_summaries and not self._use_tpu:
       tf.compat.v2.summary.histogram(
-          name='returns', data=returns, step=self.train_step_counter)
+          name='returns', data=returns, step=self.train_step_counter
+      )
 
     # Compute advantages.
-    advantages = self.compute_advantages(rewards, returns, discounts,
-                                         value_preds)
+    advantages = self.compute_advantages(
+        rewards, returns, discounts, value_preds
+    )
 
     # TODO(b/171573175): remove the condition once histograms are
     # supported on TPUs.
     if self._debug_summaries and not self._use_tpu:
       tf.compat.v2.summary.histogram(
-          name='advantages', data=advantages, step=self.train_step_counter)
+          name='advantages', data=advantages, step=self.train_step_counter
+      )
 
     # Return TD-Lambda returns if both use_td_lambda_return and use_gae.
     if self._use_td_lambda_return:
       if not self._use_gae:
-        logging.warning('use_td_lambda_return was True, but use_gae was '
-                        'False. Using Monte Carlo return.')
+        logging.warning(
+            'use_td_lambda_return was True, but use_gae was '
+            'False. Using Monte Carlo return.'
+        )
       else:
         returns = tf.add(
-            advantages, value_preds[:, :-1], name='td_lambda_returns')
+            advantages, value_preds[:, :-1], name='td_lambda_returns'
+        )
 
     return returns, advantages
 
-  def get_loss(self,
-               time_steps: ts.TimeStep,
-               actions: types.NestedTensorSpec,
-               act_log_probs: types.Tensor,
-               returns: types.Tensor,
-               normalized_advantages: types.Tensor,
-               action_distribution_parameters: types.NestedTensor,
-               weights: types.Tensor,
-               train_step: tf.Variable,
-               debug_summaries: bool,
-               old_value_predictions: Optional[types.Tensor] = None,
-               finetune_value_only: bool = False,
-               training: bool = False) -> tf_agent.LossInfo:
+  def get_loss(
+      self,
+      time_steps: ts.TimeStep,
+      actions: types.NestedTensorSpec,
+      act_log_probs: types.Tensor,
+      returns: types.Tensor,
+      normalized_advantages: types.Tensor,
+      action_distribution_parameters: types.NestedTensor,
+      weights: types.Tensor,
+      train_step: tf.Variable,
+      debug_summaries: bool,
+      old_value_predictions: Optional[types.Tensor] = None,
+      finetune_value_only: bool = False,
+      training: bool = False,
+  ) -> tf_agent.LossInfo:
     """Compute the loss and create optimization op for one training epoch.
 
     All tensors should have a single batch dimension.
@@ -288,27 +306,41 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
         losses in the extra field contained in a PPOLossInfo named tuple.
     """
     ppo_loss = super(CircuitPPOAgent, self).get_loss(
-        time_steps, actions, act_log_probs, returns, normalized_advantages,
-        action_distribution_parameters, weights, train_step, debug_summaries,
-        old_value_predictions, training)
+        time_steps,
+        actions,
+        act_log_probs,
+        returns,
+        normalized_advantages,
+        action_distribution_parameters,
+        weights,
+        train_step,
+        debug_summaries,
+        old_value_predictions,
+        training,
+    )
 
-    total_loss = tf.cond(finetune_value_only,
-                         lambda: ppo_loss.extra.value_estimation_loss,
-                         lambda: ppo_loss.loss)
+    total_loss = tf.cond(
+        finetune_value_only,
+        lambda: ppo_loss.extra.value_estimation_loss,
+        lambda: ppo_loss.loss,
+    )
 
     # Properly report losses.
     policy_gradient_loss = tf.cond(
         finetune_value_only,
         lambda: tf.zeros_like(ppo_loss.extra.policy_gradient_loss),
-        lambda: ppo_loss.extra.policy_gradient_loss)
+        lambda: ppo_loss.extra.policy_gradient_loss,
+    )
     entropy_regularization_loss = tf.cond(
         finetune_value_only,
         lambda: tf.zeros_like(ppo_loss.extra.entropy_regularization_loss),
-        lambda: ppo_loss.extra.entropy_regularization_loss)
+        lambda: ppo_loss.extra.entropy_regularization_loss,
+    )
     kl_penalty_loss = tf.cond(
         finetune_value_only,
         lambda: tf.zeros_like(ppo_loss.extra.kl_penalty_loss),
-        lambda: ppo_loss.extra.kl_penalty_loss)
+        lambda: ppo_loss.extra.kl_penalty_loss,
+    )
 
     return tf_agent.LossInfo(
         total_loss,
@@ -319,7 +351,8 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
             entropy_regularization_loss=entropy_regularization_loss,
             kl_penalty_loss=kl_penalty_loss,
             clip_fraction=self._clip_fraction,
-        ))
+        ),
+    )
 
   def _train(self, experience, weights):
     experience = self._as_trajectory(experience)
@@ -332,8 +365,9 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     def squeeze_time_dim(t):
       return tf.squeeze(t, axis=[1])
 
-    processed_experience = tf.nest.map_structure(squeeze_time_dim,
-                                                 processed_experience)
+    processed_experience = tf.nest.map_structure(
+        squeeze_time_dim, processed_experience
+    )
 
     valid_mask = ppo_utils.make_trajectory_mask(processed_experience)
 
@@ -343,21 +377,23 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
 
     # Reconstruct per-timestep policy distribution from stored distribution
     #   parameters.
-    old_action_distribution_parameters = (
-        processed_experience.policy_info['dist_params'])
+    old_action_distribution_parameters = processed_experience.policy_info[
+        'dist_params'
+    ]
 
-    old_actions_distribution = (
-        ppo_utils.distribution_from_spec(
-            self._action_distribution_spec,
-            old_action_distribution_parameters,
-            legacy_distribution_network=isinstance(
-                self._actor_net, network.DistributionNetwork)))
+    old_actions_distribution = ppo_utils.distribution_from_spec(
+        self._action_distribution_spec,
+        old_action_distribution_parameters,
+        legacy_distribution_network=isinstance(
+            self._actor_net, network.DistributionNetwork
+        ),
+    )
 
     # Compute log probability of actions taken during data collection, using the
     #   collect policy distribution.
-    old_act_log_probs = common.log_probability(old_actions_distribution,
-                                               processed_experience.action,
-                                               self._action_spec)
+    old_act_log_probs = common.log_probability(
+        old_actions_distribution, processed_experience.action, self._action_spec
+    )
 
     # TODO(b/171573175): remove the condition once histograms are
     # supported on TPUs.
@@ -365,23 +401,25 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
       actions_list = tf.nest.flatten(processed_experience.action)
       show_action_index = len(actions_list) != 1
       for i, single_action in enumerate(actions_list):
-        action_name = ('actions_{}'.format(i)
-                       if show_action_index else 'actions')
+        action_name = 'actions_{}'.format(i) if show_action_index else 'actions'
         tf.compat.v2.summary.histogram(
-            name=action_name, data=single_action, step=self.train_step_counter)
+            name=action_name, data=single_action, step=self.train_step_counter
+        )
 
     time_steps = ts.TimeStep(
         step_type=processed_experience.step_type,
         reward=processed_experience.reward,
         discount=processed_experience.discount,
-        observation=processed_experience.observation)
+        observation=processed_experience.observation,
+    )
 
     actions = processed_experience.action
     returns = processed_experience.policy_info['return']
     advantages = processed_experience.policy_info['advantage']
 
     normalized_advantages = _normalize_advantages(
-        advantages, variance_epsilon=1e-8)
+        advantages, variance_epsilon=1e-8
+    )
 
     # TODO(b/171573175): remove the condition once histograms are
     # supported on TPUs.
@@ -389,15 +427,19 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
       tf.compat.v2.summary.histogram(
           name='advantages_normalized',
           data=normalized_advantages,
-          step=self.train_step_counter)
+          step=self.train_step_counter,
+      )
     old_value_predictions = processed_experience.policy_info['value_prediction']
 
     batch_size = nest_utils.get_outer_shape(time_steps, self._time_step_spec)[0]
 
     loss_info = None  # TODO(b/123627451): Remove.
     variables_to_train = list(
-        object_identity.ObjectIdentitySet(self._actor_net.trainable_weights +
-                                          self._value_net.trainable_weights))
+        object_identity.ObjectIdentitySet(
+            self._actor_net.trainable_weights
+            + self._value_net.trainable_weights
+        )
+    )
     # Sort to ensure tensors on different processes end up in same order.
     variables_to_train = sorted(variables_to_train, key=lambda x: x.name)
 
@@ -405,7 +447,8 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     finetune_value_only = self.train_step_counter < self._value_warmup_steps
     if self._value_warmup_steps:
       self._collect_policy._value_network.set_finetune_value_only(  # pylint: disable=protected-access
-          finetune_value_only)
+          finetune_value_only
+      )
 
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(variables_to_train)
@@ -421,18 +464,21 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
           self._debug_summaries,
           old_value_predictions=old_value_predictions,
           finetune_value_only=finetune_value_only,
-          training=True)
+          training=True,
+      )
 
     grads = tape.gradient(loss_info.loss, variables_to_train)
     if self._gradient_clipping > 0:
       # global_norm may overflow or underflow. Clip and input it to the
       # clip_by_global_norm function to ensure numerical stability.
       global_norm = tf.linalg.global_norm(grads)
-      global_norm = tf.clip_by_value(global_norm, clip_value_min=1e-25,
-                                     clip_value_max=1e+25)
+      global_norm = tf.clip_by_value(
+          global_norm, clip_value_min=1e-25, clip_value_max=1e25
+      )
 
-      grads, _ = tf.clip_by_global_norm(grads, self._gradient_clipping,
-                                        global_norm)
+      grads, _ = tf.clip_by_global_norm(
+          grads, self._gradient_clipping, global_norm
+      )
 
     self._grad_norm = tf.linalg.global_norm(grads)
 
@@ -442,10 +488,12 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     # If summarize_gradients, create functions for summarizing both
     # gradients and variables.
     if self._summarize_grads_and_vars and self._debug_summaries:
-      eager_utils.add_gradients_summaries(grads_and_vars,
-                                          self.train_step_counter)
-      eager_utils.add_variables_summaries(grads_and_vars,
-                                          self.train_step_counter)
+      eager_utils.add_gradients_summaries(
+          grads_and_vars, self.train_step_counter
+      )
+      eager_utils.add_variables_summaries(
+          grads_and_vars, self.train_step_counter
+      )
 
     self._optimizer.apply_gradients(grads_and_vars)
     self.train_step_counter.assign_add(1)
@@ -457,8 +505,10 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
       policy_state = self._collect_policy.get_initial_state(batch_size)
       # Compute the mean kl from previous action distribution.
       kl_divergence = self._kl_divergence(
-          time_steps, old_action_distribution_parameters,
-          self._collect_policy.distribution(time_steps, policy_state).action)
+          time_steps,
+          old_action_distribution_parameters,
+          self._collect_policy.distribution(time_steps, policy_state).action,
+      )
       kl_divergence *= masked_weights
       self.update_adaptive_kl_beta(kl_divergence)
 
@@ -471,85 +521,100 @@ class CircuitPPOAgent(ppo_agent.PPOAgent):
     with tf.name_scope('Losses/'):
       tf.compat.v2.summary.scalar(
           name='policy_gradient_loss',
-          data=loss_info.extra.policy_gradient_loss *
-          self._report_loss_scaling_factor,
-          step=self.train_step_counter)
+          data=loss_info.extra.policy_gradient_loss
+          * self._report_loss_scaling_factor,
+          step=self.train_step_counter,
+      )
       tf.compat.v2.summary.scalar(
           name='value_estimation_loss',
-          data=loss_info.extra.value_estimation_loss *
-          self._report_loss_scaling_factor,
-          step=self.train_step_counter)
+          data=loss_info.extra.value_estimation_loss
+          * self._report_loss_scaling_factor,
+          step=self.train_step_counter,
+      )
       tf.compat.v2.summary.scalar(
           name='l2_regularization_loss',
-          data=loss_info.extra.l2_regularization_loss *
-          self._report_loss_scaling_factor,
-          step=self.train_step_counter)
+          data=loss_info.extra.l2_regularization_loss
+          * self._report_loss_scaling_factor,
+          step=self.train_step_counter,
+      )
       tf.compat.v2.summary.scalar(
           name='entropy_regularization_loss',
-          data=loss_info.extra.entropy_regularization_loss *
-          self._report_loss_scaling_factor,
-          step=self.train_step_counter)
+          data=loss_info.extra.entropy_regularization_loss
+          * self._report_loss_scaling_factor,
+          step=self.train_step_counter,
+      )
       tf.compat.v2.summary.scalar(
           name='kl_penalty_loss',
-          data=loss_info.extra.kl_penalty_loss *
-          self._report_loss_scaling_factor,
-          step=self.train_step_counter)
+          data=loss_info.extra.kl_penalty_loss
+          * self._report_loss_scaling_factor,
+          step=self.train_step_counter,
+      )
       tf.compat.v2.summary.scalar(
           name='clip_fraction',
           data=loss_info.extra.clip_fraction,
-          step=self.train_step_counter)
+          step=self.train_step_counter,
+      )
       tf.compat.v2.summary.scalar(
-          name='grad_norm', data=self._grad_norm, step=self.train_step_counter)
+          name='grad_norm', data=self._grad_norm, step=self.train_step_counter
+      )
 
       total_abs_loss = (
-          tf.abs(loss_info.extra.policy_gradient_loss) +
-          tf.abs(loss_info.extra.value_estimation_loss) +
-          tf.abs(loss_info.extra.entropy_regularization_loss) +
-          tf.abs(loss_info.extra.l2_regularization_loss) +
-          tf.abs(loss_info.extra.kl_penalty_loss))
+          tf.abs(loss_info.extra.policy_gradient_loss)
+          + tf.abs(loss_info.extra.value_estimation_loss)
+          + tf.abs(loss_info.extra.entropy_regularization_loss)
+          + tf.abs(loss_info.extra.l2_regularization_loss)
+          + tf.abs(loss_info.extra.kl_penalty_loss)
+      )
 
       tf.compat.v2.summary.scalar(
           name='total_abs_loss',
           data=total_abs_loss * self._report_loss_scaling_factor,
-          step=self.train_step_counter)
+          step=self.train_step_counter,
+      )
 
       tf.compat.v2.summary.scalar(
           name='total_loss',
           data=loss_info.loss * self._report_loss_scaling_factor,
-          step=self.train_step_counter)
+          step=self.train_step_counter,
+      )
 
     with tf.name_scope('LearningRate/'):
       tf.compat.v2.summary.scalar(
           name='learning_rate',
           data=self._optimizer.learning_rate,
-          step=self.train_step_counter)
+          step=self.train_step_counter,
+      )
 
     # TODO(b/171573175): remove the condition once histograms are
     # supported on TPUs.
     if self._summarize_grads_and_vars and not self._use_tpu:
       with tf.name_scope('Variables/'):
         all_vars = (
-            self._actor_net.trainable_weights +
-            self._value_net.trainable_weights)
+            self._actor_net.trainable_weights
+            + self._value_net.trainable_weights
+        )
         for var in all_vars:
           tf.compat.v2.summary.histogram(
               name=var.name.replace(':', '_'),
               data=var,
-              step=self.train_step_counter)
+              step=self.train_step_counter,
+          )
 
     return loss_info
 
 
 @gin.configurable(allowlist=['aggregate_losses_across_replicas'])
-def create_circuit_ppo_agent(train_step: tf.Variable,
-                             action_tensor_spec: types.NestedTensorSpec,
-                             time_step_tensor_spec: types.TimeStep,
-                             actor_net: network.Network,
-                             value_net: network.Network,
-                             strategy: tf.distribute.Strategy,
-                             optimizer: Optional[types.Optimizer] = None,
-                             aggregate_losses_across_replicas: bool = True,
-                             **kwargs) -> CircuitPPOAgent:
+def create_circuit_ppo_agent(
+    train_step: tf.Variable,
+    action_tensor_spec: types.NestedTensorSpec,
+    time_step_tensor_spec: types.TimeStep,
+    actor_net: network.Network,
+    value_net: network.Network,
+    strategy: tf.distribute.Strategy,
+    optimizer: Optional[types.Optimizer] = None,
+    aggregate_losses_across_replicas: bool = True,
+    **kwargs
+) -> CircuitPPOAgent:
   """Creates a PPO agent."""
 
   if aggregate_losses_across_replicas:
@@ -566,4 +631,5 @@ def create_circuit_ppo_agent(train_step: tf.Variable,
       train_step_counter=train_step,
       aggregate_losses_across_replicas=aggregate_losses_across_replicas,
       report_loss_scaling_factor=report_loss_scaling_factor,
-      **kwargs)
+      **kwargs
+  )

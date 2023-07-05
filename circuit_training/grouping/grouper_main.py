@@ -32,13 +32,14 @@ from collections.abc import Sequence
 
 from absl import app
 from absl import flags
-
 from circuit_training.grouping import grouper
 
-_NETLIST_FILE = flags.DEFINE_string('netlist_file', None,
-                                    'Path to the input netlist file.')
-_OUTPUT_DIR = flags.DEFINE_string('output_dir', None,
-                                  'Base directory to output logs and results.')
+_NETLIST_FILE = flags.DEFINE_string(
+    'netlist_file', None, 'Path to the input netlist file.'
+)
+_OUTPUT_DIR = flags.DEFINE_string(
+    'output_dir', None, 'Base directory to output logs and results.'
+)
 _BLOCK_NAME = flags.DEFINE_string('block_name', None, 'Name of the block.')
 
 flags.mark_flags_as_required(['output_dir', 'netlist_file', 'block_name'])

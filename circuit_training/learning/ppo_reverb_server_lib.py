@@ -16,10 +16,8 @@
 import os
 
 from absl import logging
-
 import reverb
 import tensorflow as tf
-
 from tf_agents.experimental.distributed import reverb_variable_container
 from tf_agents.policies import py_tf_eager_policy
 from tf_agents.specs import tensor_spec
@@ -28,23 +26,27 @@ from tf_agents.train.utils import train_utils
 from tf_agents.utils import common
 
 
-def start_reverb_server(root_dir: str,
-                        replay_buffer_capacity: int,
-                        port: int,
-                        num_netlists: int = 1):
+def start_reverb_server(
+    root_dir: str, replay_buffer_capacity: int, port: int, num_netlists: int = 1
+):
   """todo."""
   collect_policy_saved_model_path = os.path.join(
-      root_dir, learner.POLICY_SAVED_MODEL_DIR,
-      learner.COLLECT_POLICY_SAVED_MODEL_DIR)
-  saved_model_pb_path = os.path.join(collect_policy_saved_model_path,
-                                     'saved_model.pb')
+      root_dir,
+      learner.POLICY_SAVED_MODEL_DIR,
+      learner.COLLECT_POLICY_SAVED_MODEL_DIR,
+  )
+  saved_model_pb_path = os.path.join(
+      collect_policy_saved_model_path, 'saved_model.pb'
+  )
   try:
     # Wait for the collect policy to be outputed by learner (timeout after 2
     # days), then load it.
     train_utils.wait_for_file(
-        saved_model_pb_path, sleep_time_secs=2, num_retries=86400)
+        saved_model_pb_path, sleep_time_secs=2, num_retries=86400
+    )
     collect_policy = py_tf_eager_policy.SavedModelPyTFEagerPolicy(
-        collect_policy_saved_model_path, load_specs_from_pbtxt=True)
+        collect_policy_saved_model_path, load_specs_from_pbtxt=True
+    )
   except TimeoutError as e:
     # If the collect policy does not become available during the wait time of
     # the call `wait_for_file`, that probably means the learner is not running.
@@ -61,12 +63,14 @@ def start_reverb_server(root_dir: str,
   }
   variable_container_signature = tf.nest.map_structure(
       lambda variable: tf.TensorSpec(variable.shape, dtype=variable.dtype),
-      variables)
+      variables,
+  )
   logging.info('Signature of variables: \n%s', variable_container_signature)
 
   # Create the signature for the replay buffer holding observed experience.
   replay_buffer_signature = tensor_spec.from_spec(
-      collect_policy.collect_data_spec)
+      collect_policy.collect_data_spec
+  )
   replay_buffer_signature = tensor_spec.add_outer_dim(replay_buffer_signature)
   logging.info('Signature of experience: \n%s', replay_buffer_signature)
 
@@ -93,7 +97,8 @@ def start_reverb_server(root_dir: str,
   # Crete and start the replay buffer and variable container server.
   # TODO(b/159130813): Optionally turn the reverb server pieces into a library.
   server = reverb.Server(
-      tables=training_tables + [
+      tables=training_tables
+      + [
           reverb.Table(  # Variable container storing policy parameters.
               name=reverb_variable_container.DEFAULT_TABLE,
               sampler=reverb.selectors.Fifo(),
@@ -104,5 +109,6 @@ def start_reverb_server(root_dir: str,
               signature=variable_container_signature,
           ),
       ],
-      port=port)
+      port=port,
+  )
   server.wait()

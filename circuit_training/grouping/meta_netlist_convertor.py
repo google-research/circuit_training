@@ -60,8 +60,9 @@ def read_attr(node: tf.compat.v1.NodeDef, attr_name: str) -> Any:
   return getattr(attr, attr.WhichOneof("value"))
 
 
-def translate_node(node: tf.compat.v1.NodeDef,
-                   name_to_id_map: Dict[str, int]) -> mnds.NetlistNode:
+def translate_node(
+    node: tf.compat.v1.NodeDef, name_to_id_map: Dict[str, int]
+) -> mnds.NetlistNode:
   """Translate a tensorflow node to a NetlistNode.
 
   Args:
@@ -102,7 +103,8 @@ def translate_node(node: tf.compat.v1.NodeDef,
       netlist_node.soft_macro = node.name.startswith("Grp_")
   else:
     raise ValueError(
-        f"Required attribute 'type' not found for node: {node.name}")
+        f"Required attribute 'type' not found for node: {node.name}"
+    )
 
   orientation = read_attr(node, "orientation")
   if orientation is not None:
@@ -122,7 +124,8 @@ def translate_node(node: tf.compat.v1.NodeDef,
   if x_offset is not None and y_offset is not None:
     if netlist_node.type != mnds.Type.MACRO_PIN:
       raise ValueError(
-          "'x_offset' and 'y_offset' attributes are only for macros_pin's.")
+          "'x_offset' and 'y_offset' attributes are only for macros_pin's."
+      )
     netlist_node.offset = mnds.Offset(x=x_offset, y=y_offset)
 
   width = read_attr(node, "width")
@@ -167,11 +170,13 @@ def generate_canvas(total_area: float) -> mnds.Canvas:
   return mnds.Canvas(
       dimension=dimension,
       num_rows=_DEFAULT_NUM_COLS_ROWS,
-      num_columns=_DEFAULT_NUM_COLS_ROWS)
+      num_columns=_DEFAULT_NUM_COLS_ROWS,
+  )
 
 
-def place_macro_pin(netlist_node: mnds.NetlistNode,
-                    netlist_node_macro: mnds.NetlistNode) -> None:
+def place_macro_pin(
+    netlist_node: mnds.NetlistNode, netlist_node_macro: mnds.NetlistNode
+) -> None:
   """Places macro pin node.
 
   Places a macro pin using its ref macro's orientation and its offset. The
@@ -187,13 +192,14 @@ def place_macro_pin(netlist_node: mnds.NetlistNode,
     netlist_node_macro is not a type of MACRO node.
   """
   if netlist_node.type != mnds.Type.MACRO_PIN:
-    raise ValueError("Pleace make sure the input netlist_node is a type of "
-                     "MACRO_PIN node.")
+    raise ValueError(
+        "Pleace make sure the input netlist_node is a type of MACRO_PIN node."
+    )
 
   if netlist_node_macro.type != mnds.Type.MACRO:
     raise ValueError(
-        "Pleace make sure the input netlist_node_macro is a type of MACRO "
-        "node.")
+        "Pleace make sure the input netlist_node_macro is a type of MACRO node."
+    )
 
   x_offset = netlist_node.offset.x
   y_offset = netlist_node.offset.y
@@ -231,7 +237,8 @@ def place_macro_pin(netlist_node: mnds.NetlistNode,
 
 
 def convert_tfgraph_to_meta_netlist(
-    netlist_tf_graph: tf.compat.v1.MetaGraphDef) -> mnds.MetaNetlist:
+    netlist_tf_graph: tf.compat.v1.MetaGraphDef,
+) -> mnds.MetaNetlist:
   """Converts the netlist in tf graph format to meta netlist.
 
   Args:
@@ -281,22 +288,27 @@ def convert_tfgraph_to_meta_netlist(
 
     if netlist_node.type == mnds.Type.MACRO_PIN:
       if netlist_node.ref_node_id is None:
-        raise ValueError(f"Macro pin missing ref macro for node: "
-                         f"{id_to_name_map[netlist_node.id]}.")
+        raise ValueError(
+            "Macro pin missing ref macro for node: "
+            f"{id_to_name_map[netlist_node.id]}."
+        )
 
       if not netlist_node.output_indices:
         netlist_node_list[netlist_node.ref_node_id].input_indices.append(
-            netlist_node.id)
+            netlist_node.id
+        )
       else:
         netlist_node_list[netlist_node.ref_node_id].output_indices.append(
-            netlist_node.id)
+            netlist_node.id
+        )
 
   area = 0
   for netlist_node in netlist_node_list:
     node_name = id_to_name_map[netlist_node.id]
     if len(netlist_node.output_indices) >= _HIGH_FANOUT:
-      logging.warning("%s driving %d outputs.", node_name,
-                      len(netlist_node.output_indices))
+      logging.warning(
+          "%s driving %d outputs.", node_name, len(netlist_node.output_indices)
+      )
 
     if netlist_node.type in {mnds.Type.STDCELL, mnds.Type.MACRO}:
       if netlist_node.dimension is None:
@@ -309,18 +321,23 @@ def convert_tfgraph_to_meta_netlist(
         raise ValueError(f"Macro pin missing offset coords: {node_name}.")
     if not netlist_node.output_indices and not netlist_node.input_indices:
       logging.info("Unconnected node found: %s", node_name)
-    elif (netlist_node.type == mnds.Type.MACRO and
-          netlist_node.coord is not None):
-      for cind in itertools.chain(netlist_node.input_indices,
-                                  netlist_node.output_indices):
+    elif (
+        netlist_node.type == mnds.Type.MACRO and netlist_node.coord is not None
+    ):
+      for cind in itertools.chain(
+          netlist_node.input_indices, netlist_node.output_indices
+      ):
         place_macro_pin(netlist_node_list[cind], netlist_node)
 
   logging.info(
-      "Total area of the macros and stdcells: %s. "
-      "Number nodes: %d.", area, len(netlist_node_list))
+      "Total area of the macros and stdcells: %s. Number nodes: %d.",
+      area,
+      len(netlist_node_list),
+  )
 
   return mnds.MetaNetlist(
-      node=netlist_node_list, canvas=generate_canvas(area), total_area=area)
+      node=netlist_node_list, canvas=generate_canvas(area), total_area=area
+  )
 
 
 def read_netlist(netlist_filepath: str) -> mnds.MetaNetlist:
@@ -328,9 +345,9 @@ def read_netlist(netlist_filepath: str) -> mnds.MetaNetlist:
 
   Args:
     netlist_filepath: netlist proto file path. It is expected in the
-      tf.GraphDef() format. If a file is extremely large
-      (larger than 2147483647 bytes) then we should break it up into smaller
-      files, and pass them as comma separated list.
+      tf.GraphDef() format. If a file is extremely large (larger than 2147483647
+      bytes) then we should break it up into smaller files, and pass them as
+      comma separated list.
 
   Returns:
     Converted MetaNetlist.

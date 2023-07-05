@@ -18,7 +18,6 @@ import copy
 from typing import Dict, Optional, Text, Tuple
 
 from absl import logging
-
 from circuit_training.environment import observation_config as observation_config_lib
 from circuit_training.environment import plc_client
 import gin

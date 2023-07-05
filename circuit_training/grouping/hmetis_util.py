@@ -22,20 +22,24 @@ from absl import logging
 import tensorflow.io.gfile as gfile
 
 _HMETIS_DIR = flags.DEFINE_string(
-    'hmetis_dir', 'third_party/hmetis/',
-    'Path to executable and libraries for hmetis.')
+    'hmetis_dir',
+    'third_party/hmetis/',
+    'Path to executable and libraries for hmetis.',
+)
 
 
-def call_hmetis(graph_file: str,
-                fix_file: str,
-                n_parts: int,
-                ub_factor: int = 5,
-                n_runs: int = 10,
-                c_type: int = 5,
-                r_type: int = 3,
-                v_cycle: int = 3,
-                reconst: int = 1,
-                dbglvl: int = 0) -> str:
+def call_hmetis(
+    graph_file: str,
+    fix_file: str,
+    n_parts: int,
+    ub_factor: int = 5,
+    n_runs: int = 10,
+    c_type: int = 5,
+    r_type: int = 3,
+    v_cycle: int = 3,
+    reconst: int = 1,
+    dbglvl: int = 0,
+) -> str:
   """Call hMETIS.
 
   Args:
@@ -58,8 +62,17 @@ def call_hmetis(graph_file: str,
   hmetis_exe = os.path.join(_HMETIS_DIR.value, 'hmetis')
   assert gfile.exists(hmetis_exe), f"{hmetis_exe} doesn't exist."
   args = [
-      hmetis_exe, graph_file, fix_file, n_parts, ub_factor, n_runs, c_type,
-      r_type, v_cycle, reconst, dbglvl
+      hmetis_exe,
+      graph_file,
+      fix_file,
+      n_parts,
+      ub_factor,
+      n_runs,
+      c_type,
+      r_type,
+      v_cycle,
+      reconst,
+      dbglvl,
   ]
   args = [str(arg) for arg in args]
   logging.info('Run: %s', ' '.join(args))

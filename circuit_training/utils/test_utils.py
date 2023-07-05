@@ -15,7 +15,6 @@
 """Common utility functions for testing."""
 
 from absl import flags
-
 import gin
 import tensorflow as tf
 

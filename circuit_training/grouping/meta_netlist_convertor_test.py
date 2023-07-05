@@ -179,22 +179,26 @@ attr {
 """
 
 _CIRCUIT_TRAINING_DIR = 'circuit_training'
-_TESTDATA_DIR = (
-    _CIRCUIT_TRAINING_DIR + '/grouping/testdata'
-)
+_TESTDATA_DIR = _CIRCUIT_TRAINING_DIR + '/grouping/testdata'
+
 
 class MetaNetlistConvertorTest(parameterized.TestCase, test_utils.TestCase):
 
   def test_read_netlist(self):
     meta_netlist = meta_netlist_convertor.read_netlist(
-        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt')
+    )
     self.assertLen(meta_netlist.node, 10)
 
   def test_read_netlist_separate(self):
-    meta_netlist = meta_netlist_convertor.read_netlist(','.join([
-        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'),
-        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'one_node_graph.pb.txt')
-    ]))
+    meta_netlist = meta_netlist_convertor.read_netlist(
+        ','.join([
+            os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'),
+            os.path.join(
+                FLAGS.test_srcdir, _TESTDATA_DIR, 'one_node_graph.pb.txt'
+            ),
+        ])
+    )
     self.assertLen(meta_netlist.node, 11)
 
   def test_empty_netlist_raises_value_error(self):
@@ -301,7 +305,8 @@ class MetaNetlistConvertorTest(parameterized.TestCase, test_utils.TestCase):
     name_to_id_map = {'P0_M0': 0, 'M0': 1}
     # pylint:disable=g-long-lambda.
     read_and_convert_node = lambda x: meta_netlist_convertor.translate_node(
-        text_format.Parse(x, tf.compat.v1.NodeDef()), name_to_id_map)
+        text_format.Parse(x, tf.compat.v1.NodeDef()), name_to_id_map
+    )
     node_macro_pin = read_and_convert_node(_TEST_NODE_DEF_MACRO_PIN)
     node_macro = read_and_convert_node(_TEST_NODE_DEF_MACRO_ORIE)
 
@@ -318,7 +323,8 @@ class MetaNetlistConvertorTest(parameterized.TestCase, test_utils.TestCase):
     netlist_tf_graph.graph_def.node.append(node1)
     netlist_tf_graph.graph_def.node.append(node2)
     meta_netlist = meta_netlist_convertor.convert_tfgraph_to_meta_netlist(
-        netlist_tf_graph)
+        netlist_tf_graph
+    )
 
     self.assertLen(meta_netlist.node, 2)
     self.assertEqual(meta_netlist.node[0].id, 0)
@@ -339,9 +345,11 @@ class MetaNetlistConvertorTest(parameterized.TestCase, test_utils.TestCase):
     self.assertEqual(meta_netlist.node[1].input_indices[0], 0)
 
     self.assertAlmostEqual(
-        meta_netlist.canvas.dimension.width, 154.91933, places=5)
+        meta_netlist.canvas.dimension.width, 154.91933, places=5
+    )
     self.assertAlmostEqual(
-        meta_netlist.canvas.dimension.height, 154.91933, places=5)
+        meta_netlist.canvas.dimension.height, 154.91933, places=5
+    )
     self.assertAlmostEqual(meta_netlist.canvas.num_rows, 10)
     self.assertAlmostEqual(meta_netlist.canvas.num_columns, 10)
     self.assertAlmostEqual(meta_netlist.total_area, 14400.0)

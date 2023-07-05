@@ -42,7 +42,7 @@ _TESTDATA_DIR = (
 
 
 def random_action(mask):
-  valid_actions, = np.nonzero(mask.flatten())
+  (valid_actions,) = np.nonzero(mask.flatten())
   if len(valid_actions):  # pylint: disable=g-explicit-length-test
     return np.random.choice(valid_actions)
 
@@ -57,7 +57,8 @@ class _RandomValidCircuitPolicy(random_py_policy.RandomPyPolicy):
   def _action(self, time_step, policy_state):
     valid_random_action = random_action(time_step.observation['mask'])
     return policy_step.PolicyStep(
-        action=valid_random_action, state=policy_state)
+        action=valid_random_action, state=policy_state
+    )
 
 
 class _ValidateTimeStepObserver(object):
@@ -78,14 +79,16 @@ class _ValidateTimeStepObserver(object):
         trajectory.step_type,
         reward=trajectory.reward,
         discount=trajectory.discount,
-        observation=trajectory.observation)
+        observation=trajectory.observation,
+    )
     if trajectory.is_last():
       self._episode_lengths.append(self._current_len)
       self._current_len = 0
     else:
       self._current_len += 1
     self._test_case.assertTrue(
-        array_spec.check_arrays_nest(time_step, self._time_step_spec))
+        array_spec.check_arrays_nest(time_step, self._time_step_spec)
+    )
 
 
 def infeasible_action(mask):
@@ -104,12 +107,15 @@ class EnvironmentTest(test_utils.TestCase):
     gin.bind_parameter('SoftMacroPlacer.enable_timeout', False)
 
   def test_create_and_obs_space(self):
-    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                  'initial.plc')
+    netlist_file = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'netlist.pb.txt'
+    )
+    init_placement = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'initial.plc'
+    )
     env = environment.CircuitEnv(
-        netlist_file=netlist_file, init_placement=init_placement)
+        netlist_file=netlist_file, init_placement=init_placement
+    )
 
     obs = env.reset()
     self.assertTrue(env.observation_space.contains(obs))
@@ -122,10 +128,12 @@ class EnvironmentTest(test_utils.TestCase):
       self.assertIsInstance(done, bool)
 
   def test_save_file_train_step(self):
-    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                  'initial.plc')
+    netlist_file = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'netlist.pb.txt'
+    )
+    init_placement = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'initial.plc'
+    )
     output_dir = self.create_tempdir()
     output_plc_file = os.path.join(output_dir, 'ppo_opt_placement.plc')
     output_cd_file = os.path.join(output_dir, 'ppo_cd_placement.plc')
@@ -140,7 +148,8 @@ class EnvironmentTest(test_utils.TestCase):
         save_best_cost=True,
         output_plc_file=output_plc_file,
         cd_finetune=True,
-        train_step=train_step)
+        train_step=train_step,
+    )
 
     obs = env.reset()
     done = False
@@ -160,12 +169,15 @@ class EnvironmentTest(test_utils.TestCase):
       ObservationConfig.max_grid_size = 128
     """
     gin.parse_config(bindings)
-    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                  'initial.plc')
+    netlist_file = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'netlist.pb.txt'
+    )
+    init_placement = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'initial.plc'
+    )
     env = environment.CircuitEnv(
-        netlist_file=netlist_file, init_placement=init_placement)
+        netlist_file=netlist_file, init_placement=init_placement
+    )
     self.assertEqual(env.action_space.shape, ())
     self.assertTrue(env.action_space.contains(0))
     self.assertTrue(env.action_space.contains(128**2 - 1))
@@ -184,10 +196,12 @@ class EnvironmentTest(test_utils.TestCase):
     self.assertTrue(mask[(up_pad + 1) * 128 + (right_pad + 1)])  # (1, 1)
 
   def test_infisible(self):
-    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                  'initial.plc')
+    netlist_file = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'netlist.pb.txt'
+    )
+    init_placement = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'initial.plc'
+    )
     env = environment.CircuitEnv(
         netlist_file=netlist_file,
         init_placement=init_placement,
@@ -204,10 +218,12 @@ class EnvironmentTest(test_utils.TestCase):
       ObservationConfig.max_grid_size = 128
     """
     gin.parse_config(bindings)
-    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                  'initial.plc')
+    netlist_file = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'netlist.pb.txt'
+    )
+    init_placement = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'initial.plc'
+    )
     env = environment.create_circuit_environment(
         netlist_file=netlist_file,
         init_placement=init_placement,
@@ -222,10 +238,12 @@ class EnvironmentTest(test_utils.TestCase):
     self.assertEqual(spec.name, 'action')
 
   def test_validate_circuite_env(self):
-    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                  'initial.plc')
+    netlist_file = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'netlist.pb.txt'
+    )
+    init_placement = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'initial.plc'
+    )
     env = environment.create_circuit_environment(
         netlist_file=netlist_file,
         init_placement=init_placement,
@@ -234,19 +252,22 @@ class EnvironmentTest(test_utils.TestCase):
     # Create a Python policy that provides *valid* random actions.
     time_step_spec = env.time_step_spec()
     valid_random_policy = _RandomValidCircuitPolicy(
-        time_step_spec=time_step_spec, action_spec=env.action_spec())
+        time_step_spec=time_step_spec, action_spec=env.action_spec()
+    )
 
     # Create an observer that asserts that the time steps are valid given the
     # time step spec of the environment.
     validate_time_step = _ValidateTimeStepObserver(
-        test_case=self, time_step_spec=time_step_spec)
+        test_case=self, time_step_spec=time_step_spec
+    )
 
     # Create and run a driver using to validate the time steps observerd.
     driver = py_driver.PyDriver(
         env,
         valid_random_policy,
         observers=[validate_time_step],
-        max_episodes=10)
+        max_episodes=10,
+    )
     driver.run(env.reset())
 
     # Make sure that environment steps were taken.

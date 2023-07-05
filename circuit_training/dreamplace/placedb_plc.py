@@ -18,7 +18,6 @@ In this file, we do not conduct placement as it will needs torch library.
 Realistic placement is done in dreamplace_core.
 """
 from absl import logging
-
 from circuit_training.dreamplace import plc_converter
 
 
@@ -55,20 +54,23 @@ class PlacedbPlc(object):
 
     if num_non_movable_macros != self.placedb.num_non_movable_macros:
       logging.info("Reinitialized the PlaceDB.")
-      self.converter.update_num_non_movable_macros(self.placedb, plc,
-                                                   num_non_movable_macros)
+      self.converter.update_num_non_movable_macros(
+          self.placedb, plc, num_non_movable_macros
+      )
       self.placedb(self.params)
 
   def write_movable_locations_to_plc(self, plc):
     """Write the locations of the movable nodes back to the plc."""
     for node_id, node_index in enumerate(
-        self.converter.soft_macro_and_stdcell_indices +
-        self.converter.hard_macro_indices):
+        self.converter.soft_macro_and_stdcell_indices
+        + self.converter.hard_macro_indices
+    ):
       # DREAMPlace uses lower left position, while plc uses centered position.
       plc.update_node_coords(
           node_index,
           self.placedb.node_x[node_id] + self.placedb.node_size_x[node_id] / 2,
-          self.placedb.node_y[node_id] + self.placedb.node_size_y[node_id] / 2)
+          self.placedb.node_y[node_id] + self.placedb.node_size_y[node_id] / 2,
+      )
 
   def update_net_weights(self, plc):
     """Update net weights in placedb according to the input plc."""

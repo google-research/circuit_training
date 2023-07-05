@@ -27,34 +27,52 @@ import gin
 from tf_agents.policies import greedy_policy  # pylint: disable=unused-import
 from tf_agents.system import system_multiprocessing as multiprocessing
 
-_GIN_FILE = flags.DEFINE_multi_string('gin_file', None,
-                                      'Paths to the gin-config files.')
-_GIN_BINDINGS = flags.DEFINE_multi_string('gin_bindings', [],
-                                          'Gin binding parameters.')
+_GIN_FILE = flags.DEFINE_multi_string(
+    'gin_file', None, 'Paths to the gin-config files.'
+)
+_GIN_BINDINGS = flags.DEFINE_multi_string(
+    'gin_bindings', [], 'Gin binding parameters.'
+)
 flags.DEFINE_string('netlist_file', '', 'File path to the netlist file.')
-flags.DEFINE_string('init_placement', '',
-                    'File path to the init placement file.')
+flags.DEFINE_string(
+    'init_placement', '', 'File path to the init placement file.'
+)
 _STD_CELL_PLACER_MODE = flags.DEFINE_string(
-    'std_cell_placer_mode', 'fd',
+    'std_cell_placer_mode',
+    'fd',
     'Options for fast std cells placement: `fd` (uses the '
     'force-directed algorithm), `dreamplace` (uses DREAMPlace '
-    'algorithm).')
-flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-                    'Root directory for writing logs/summaries/checkpoints.')
-flags.DEFINE_string('variable_container_server_address', None,
-                    'Variable container server address.')
+    'algorithm).',
+)
+flags.DEFINE_string(
+    'root_dir',
+    os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
+    'Root directory for writing logs/summaries/checkpoints.',
+)
+flags.DEFINE_string(
+    'variable_container_server_address',
+    None,
+    'Variable container server address.',
+)
 flags.DEFINE_integer(
-    'global_seed', 111,
-    'Used in env and weight initialization, does not impact action sampling.')
+    'global_seed',
+    111,
+    'Used in env and weight initialization, does not impact action sampling.',
+)
 
 # TODO(b/211519018): Remove after the optimal placement can be written in GCS.
 flags.DEFINE_string(
-    'output_placement_save_dir', '',
+    'output_placement_save_dir',
+    '',
     'File path to the output placement directory. If not set,'
-    'defaults to root_dir/global_seed.')
+    'defaults to root_dir/global_seed.',
+)
 flags.DEFINE_bool(
-    'cd_finetune', False, 'runs coordinate descent to finetune macro '
-    'orientations. Supposed to run in eval only, not training.')
+    'cd_finetune',
+    False,
+    'runs coordinate descent to finetune macro '
+    'orientations. Supposed to run in eval only, not training.',
+)
 
 FLAGS = flags.FLAGS
 
@@ -63,14 +81,16 @@ def main(_):
   gin.parse_config_files_and_bindings(
       _GIN_FILE.value,
       # Turn off noise for GRL model.
-      _GIN_BINDINGS.value +
-      ['circuittraining.models.GrlModel.policy_noise_weight=0'],
-      skip_unknown=True)
+      _GIN_BINDINGS.value
+      + ['circuittraining.models.GrlModel.policy_noise_weight=0'],
+      skip_unknown=True,
+  )
   root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))
 
   if FLAGS.output_placement_save_dir:
-    output_plc_file = os.path.join(FLAGS.output_placement_save_dir,
-                                   'rl_opt_placement.plc')
+    output_plc_file = os.path.join(
+        FLAGS.output_placement_save_dir, 'rl_opt_placement.plc'
+    )
   else:
     output_plc_file = os.path.join(root_dir, 'rl_opt_placement.plc')
 
@@ -99,5 +119,6 @@ def main(_):
 
 if __name__ == '__main__':
   flags.mark_flags_as_required(
-      ['root_dir', 'variable_container_server_address'])
+      ['root_dir', 'variable_container_server_address']
+  )
   multiprocessing.handle_main(functools.partial(app.run, main))

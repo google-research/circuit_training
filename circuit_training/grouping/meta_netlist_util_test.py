@@ -24,35 +24,38 @@ from circuit_training.utils import test_utils
 FLAGS = flags.FLAGS
 
 _CIRCUIT_TRAINING_DIR = 'circuit_training'
-_TESTDATA_DIR = (
-    _CIRCUIT_TRAINING_DIR + '/grouping/testdata'
-)
+_TESTDATA_DIR = _CIRCUIT_TRAINING_DIR + '/grouping/testdata'
+
 
 class MetaNetlistUtilTest(absltest.TestCase):
 
   def test_set_canvas_width_height(self):
     meta_netlist = meta_netlist_convertor.read_netlist(
-        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt')
+    )
     meta_netlist_util.set_canvas_width_height(meta_netlist, 11, 10)
     self.assertAlmostEqual(meta_netlist.canvas.dimension.width, 11)
     self.assertAlmostEqual(meta_netlist.canvas.dimension.height, 10)
 
   def test_set_canvas_cols_rows(self):
     meta_netlist = meta_netlist_convertor.read_netlist(
-        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt')
+    )
     meta_netlist_util.set_canvas_columns_rows(meta_netlist, 11, 10)
     self.assertAlmostEqual(meta_netlist.canvas.num_columns, 11)
     self.assertAlmostEqual(meta_netlist.canvas.num_rows, 10)
 
   def test_disconnect_single_net(self):
     meta_netlist = meta_netlist_convertor.read_netlist(
-        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt')
+    )
     meta_netlist_util.disconnect_single_net(meta_netlist, 0)
     self.assertEmpty(meta_netlist.node[2].input_indices)
 
   def test_disconnect_high_fanout_nets(self):
     meta_netlist = meta_netlist_convertor.read_netlist(
-        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt')
+    )
     meta_netlist_util.disconnect_high_fanout_nets(meta_netlist, 1)
 
     # Max length for the output_indices is 1.

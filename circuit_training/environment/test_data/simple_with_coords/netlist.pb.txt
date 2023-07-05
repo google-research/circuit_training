@@ -29,7 +29,6 @@ node {
   }
 }
 
-
 node {
   name: "P1"
   attr {
@@ -57,7 +56,6 @@ node {
     }
   }
 }
-
 
 node {
   name: "S0"
@@ -100,7 +98,6 @@ node {
   }
 }
 
-
 node {
   name: "S1"
   input: "P0_M1"
@@ -141,7 +138,6 @@ node {
     }
   }
 }
-
 
 node {
   name: "M0"

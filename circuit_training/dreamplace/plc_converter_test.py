@@ -28,6 +28,7 @@ _CIRCUIT_TRAINING_DIR = 'circuit_training'
 
 
 class PlcConverterTest(test_utils.TestCase):
+
   def get_params_for_test(self, plc):
     params = Params.Params()
     params.num_bins_x, params.num_bins_y = plc.get_grid_num_columns_rows()

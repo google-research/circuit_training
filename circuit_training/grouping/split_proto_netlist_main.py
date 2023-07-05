@@ -24,7 +24,6 @@ from collections.abc import Sequence
 
 from absl import app
 from absl import flags
-
 from circuit_training.grouping import split_proto_netlist
 
 _FILE_NAME = flags.DEFINE_string('file_name', None, 'input file name')
@@ -39,8 +38,9 @@ def main(argv: Sequence[str]) -> None:
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  split_list = split_proto_netlist.split_proto_netlist(_FILE_NAME.value,
-                                                       _OUTPUT_DIR.value)
+  split_list = split_proto_netlist.split_proto_netlist(
+      _FILE_NAME.value, _OUTPUT_DIR.value
+  )
   print('Split into {} parts.'.format(len(split_list)))
 
 

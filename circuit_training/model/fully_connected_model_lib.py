@@ -29,16 +29,20 @@ from tf_agents.networks import sequential
 from tf_agents.typing import types
 
 
-def create_actor_net(observation_tensor_spec: types.NestedTensorSpec,
-                     action_tensor_spec: types.NestedTensorSpec,
-                     seed: types.Seed = 0) -> sequential.Sequential:
+def create_actor_net(
+    observation_tensor_spec: types.NestedTensorSpec,
+    action_tensor_spec: types.NestedTensorSpec,
+    seed: types.Seed = 0,
+) -> sequential.Sequential:
   """Define the actor network."""
   seed_stream = tfp.util.SeedStream(
-      seed=seed, salt='actor_net_weight_init_seed')
+      seed=seed, salt='actor_net_weight_init_seed'
+  )
   init = tf.keras.initializers.GlorotUniform(seed=seed_stream() % sys.maxsize)
 
   dense = functools.partial(
-      tf.keras.layers.Dense, activation='relu', kernel_initializer=init)
+      tf.keras.layers.Dense, activation='relu', kernel_initializer=init
+  )
   fc_layer_units = [64, 64, 64, 64]
 
   def no_op_layer():
@@ -49,7 +53,8 @@ def create_actor_net(observation_tensor_spec: types.NestedTensorSpec,
         np.unique(action_tensor_spec.maximum - action_tensor_spec.minimum + 1),
         activation=None,
         kernel_initializer=init,
-        name='projection_layer')
+        name='projection_layer',
+    )
 
   def create_dist(logits_and_mask):
     # Apply mask onto the logits such that infeasible actions will not be taken.
@@ -62,44 +67,50 @@ def create_actor_net(observation_tensor_spec: types.NestedTensorSpec,
     # number. We do not use -inf because it produces NaNs in many tfp
     # functions.
     # Currently keep aligned with Menger. Eventually move to logits.dtype.min.
-    almost_neg_inf = tf.ones_like(logits) * (-2.**32 + 1)
+    almost_neg_inf = tf.ones_like(logits) * (-(2.0**32) + 1)
     logits = tf.where(tf.equal(mask, 1), logits, almost_neg_inf)
 
     return tfp.distributions.Categorical(
-        logits=logits, dtype=action_tensor_spec.dtype)
+        logits=logits, dtype=action_tensor_spec.dtype
+    )
 
   return sequential.Sequential(
       [
           nest_map.NestMap({
-              'graph_embedding':
-                  tf.keras.Sequential(
-                      [tf.keras.layers.Flatten()] +
-                      [dense(num_units)
-                       for num_units in fc_layer_units] + [projection_layer()]),
-              'mask':
-                  no_op_layer(),
+              'graph_embedding': tf.keras.Sequential(
+                  [tf.keras.layers.Flatten()]
+                  + [dense(num_units) for num_units in fc_layer_units]
+                  + [projection_layer()]
+              ),
+              'mask': no_op_layer(),
           })
-      ] +
+      ]
+      +
       # Create the output distribution from the mean and standard deviation.
       [tf.keras.layers.Lambda(create_dist)],
       input_spec=observation_tensor_spec,
-      name='actor_network')
+      name='actor_network',
+  )
 
 
-def create_value_net(observation_tensor_spec: types.NestedTensorSpec,
-                     seed: types.Seed = 0) -> sequential.Sequential:
+def create_value_net(
+    observation_tensor_spec: types.NestedTensorSpec, seed: types.Seed = 0
+) -> sequential.Sequential:
   """Create the value network."""
   seed_stream = tfp.util.SeedStream(
-      seed=seed, salt='value_net_weight_init_seed')
+      seed=seed, salt='value_net_weight_init_seed'
+  )
   init = tf.keras.initializers.GlorotUniform(seed=seed_stream() % sys.maxsize)
 
   dense = functools.partial(
-      tf.keras.layers.Dense, activation='relu', kernel_initializer=init)
+      tf.keras.layers.Dense, activation='relu', kernel_initializer=init
+  )
   fc_layer_units = [64, 64, 64, 64]
 
   def value_layer():
     return tf.keras.layers.Dense(
-        1, activation=None, kernel_initializer=init, name='value')
+        1, activation=None, kernel_initializer=init, name='value'
+    )
 
   def drop_mask(observation_and_mask):
     return observation_and_mask['graph_embedding']
@@ -109,8 +120,10 @@ def create_value_net(observation_tensor_spec: types.NestedTensorSpec,
     return tf.squeeze(value, -1, name='squeeze_value_net')
 
   return sequential.Sequential(
-      [tf.keras.layers.Lambda(drop_mask)] + [tf.keras.layers.Flatten()] +
-      [dense(num_units) for num_units in fc_layer_units] +
-      [value_layer(), tf.keras.layers.Lambda(squeeze_value_dim)],
+      [tf.keras.layers.Lambda(drop_mask)]
+      + [tf.keras.layers.Flatten()]
+      + [dense(num_units) for num_units in fc_layer_units]
+      + [value_layer(), tf.keras.layers.Lambda(squeeze_value_dim)],
       input_spec=observation_tensor_spec,
-      name='value_network')
+      name='value_network',
+  )

@@ -38,8 +38,9 @@ class StaticFeatureCacheTest(test_utils.TestCase):
     all_static_features = cache.get_all_static_features()
     np.testing.assert_equal(all_static_features['netlist_index'], [[10]])
     for feature in observation_config.STATIC_OBSERVATIONS:
-      np.testing.assert_equal(all_static_features[feature],
-                              np.array([sample1[feature]]))
+      np.testing.assert_equal(
+          all_static_features[feature], np.array([sample1[feature]])
+      )
 
     sample2 = obs_space.sample()
     sample2['netlist_index'] = np.array([8])
@@ -47,8 +48,10 @@ class StaticFeatureCacheTest(test_utils.TestCase):
     all_static_features = cache.get_all_static_features()
     np.testing.assert_equal(all_static_features['netlist_index'], [[8], [10]])
     for feature in observation_config.STATIC_OBSERVATIONS:
-      np.testing.assert_equal(all_static_features[feature],
-                              np.array([sample2[feature], sample1[feature]]))
+      np.testing.assert_equal(
+          all_static_features[feature],
+          np.array([sample2[feature], sample1[feature]]),
+      )
 
 
 if __name__ == '__main__':

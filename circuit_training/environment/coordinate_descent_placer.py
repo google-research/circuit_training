@@ -122,7 +122,8 @@ class CoordinateDescentPlacer(object):
 
     # If node order is random, will shuffle node orders for each iteration.
     self._ordered_node_indices = placement_util.get_ordered_node_indices(
-        self._node_order, self.plc)
+        self._node_order, self.plc
+    )
 
     # Exclude fixed macros with pre-determined locations.
     self._ordered_node_indices = [
@@ -136,7 +137,8 @@ class CoordinateDescentPlacer(object):
     if self._use_stdcell_placer:
       # Only include hard macros in self._ordered_node_indices.
       self._ordered_node_indices = [
-          i for i in self._ordered_node_indices
+          i
+          for i in self._ordered_node_indices
           if not self.plc.is_node_soft_macro(i)
       ]
 
@@ -150,8 +152,9 @@ class CoordinateDescentPlacer(object):
           self.plc, dreamplace_params
       )
 
-    logging.info('Total number of ordered nodes: %d',
-                 len(self._ordered_node_indices))
+    logging.info(
+        'Total number of ordered nodes: %d', len(self._ordered_node_indices)
+    )
     logging.info('ordered_node_indices: %s', self._ordered_node_indices)
     logging.info('Cost of initial placement: %s', self.report_cost())
 
@@ -280,7 +283,8 @@ class CoordinateDescentPlacer(object):
       self.plc.place_node(node, best_loc)
     else:
       best_loc, best_ori = self.find_best_location_orientation(
-          node, locations, orientations)
+          node, locations, orientations
+      )
       self.plc.place_node(node, best_loc)
       self.plc.update_macro_orientation(node, best_ori)
 
@@ -304,7 +308,8 @@ class CoordinateDescentPlacer(object):
       self._dreamplace.placedb_plc.write_movable_locations_to_plc(self.plc)
     else:
       raise ValueError(
-          f'stdcell placer {self._stdcell_placer} is not supported')
+          f'stdcell placer {self._stdcell_placer} is not supported'
+      )
 
     new_cost, _ = self.cost_fn(self.plc)
 
@@ -327,16 +332,21 @@ class CoordinateDescentPlacer(object):
       if i % 25 == 0:
         logging.info('Number of nodes placed by CD: %d', i)
       self.place_node(node)
-      if (self._use_stdcell_placer and self._stdcell_place_every_n_macros and
-          (i + 1) % self._stdcell_place_every_n_macros == 0):
+      if (
+          self._use_stdcell_placer
+          and self._stdcell_place_every_n_macros
+          and (i + 1) % self._stdcell_place_every_n_macros == 0
+      ):
         self.place_stdcells()
 
     # Always run stdcell placement after all macros are placed.
     if self._use_stdcell_placer:
       self.place_stdcells()
 
-    logging.info('One iteration of coordinate descent takes %f seconds.',
-                 (time.time() - start_time))
+    logging.info(
+        'One iteration of coordinate descent takes %f seconds.',
+        (time.time() - start_time),
+    )
 
   def report_cost(self) -> str:
     proxy_cost, info = self.cost_fn(self.plc)

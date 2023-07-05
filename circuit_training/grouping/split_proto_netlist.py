@@ -33,7 +33,8 @@ def split_proto_netlist(
     file_name: str,
     output_dir: str,
     max_file_size: int = _MAX_FILE_SIZE,
-    print_pos_interval: int = _PRINT_POS_INTERVAL) -> Optional[List[str]]:
+    print_pos_interval: int = _PRINT_POS_INTERVAL,
+) -> Optional[List[str]]:
   """Main function of split Protobuf circuit graph.
 
   Args:
@@ -41,19 +42,20 @@ def split_proto_netlist(
     output_dir: Location where the split files to be written.
     max_file_size: Max file size.
     print_pos_interval: Print position interval.
+
   Returns:
     List of names of split files. 'None' if there's a failure.
   """
   print('-------------------')
   print('split_proto_netlist')
   print('-------------------')
-  print('Max file size = {}MB'.format(int(max_file_size / (1024*1024))))
-  print('Print interval = {}MB'.format(int(print_pos_interval / (1024*1024))))
+  print('Max file size = {}MB'.format(int(max_file_size / (1024 * 1024))))
+  print('Print interval = {}MB'.format(int(print_pos_interval / (1024 * 1024))))
 
   print('Input file: ', file_name)
   basename = os.path.basename(file_name)
   if not basename.endswith('.pb.txt'):
-    logging.error('The input file name doesn\'t end with .pb.txt')
+    logging.error("The input file name doesn't end with .pb.txt")
     return None
   if output_dir is None:
     output_dir = os.path.dirname(file_name)
@@ -78,7 +80,9 @@ def split_proto_netlist(
       outfile.write(line)
       infile_pos += len(line) + 1
       if infile_pos >= next_print_pos:
-        print('Reading input file at {}MB'.format(int(infile_pos/(1024*1024))))
+        print(
+            'Reading input file at {}MB'.format(int(infile_pos / (1024 * 1024)))
+        )
         next_print_pos += print_pos_interval
 
       if infile_pos > next_close_pos:

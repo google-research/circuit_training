@@ -29,9 +29,7 @@ import numpy as np
 FLAGS = flags.FLAGS
 
 _CIRCUIT_TRAINING_DIR = 'circuit_training'
-_TESTDATA_DIR = (
-    _CIRCUIT_TRAINING_DIR + '/environment/test_data/'
-)
+_TESTDATA_DIR = _CIRCUIT_TRAINING_DIR + '/environment/test_data/'
 
 
 class CoordinateDescentPlacerTest(parameterized.TestCase, test_utils.TestCase):
@@ -42,8 +40,9 @@ class CoordinateDescentPlacerTest(parameterized.TestCase, test_utils.TestCase):
     np.random.seed(666)
 
   def _create_plc(self, block_name):
-    test_netlist_dir = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                    block_name)
+    test_netlist_dir = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, block_name
+    )
     netlist_file = os.path.join(test_netlist_dir, 'netlist.pb.txt')
     init_placement = os.path.join(test_netlist_dir, 'initial.plc')
     return placement_util.create_placement_cost(netlist_file, init_placement)
@@ -74,7 +73,8 @@ class CoordinateDescentPlacerTest(parameterized.TestCase, test_utils.TestCase):
           done=True,
           wirelength_weight=1.0,
           density_weight=0.1,
-          congestion_weight=0.1)
+          congestion_weight=0.1,
+      )
 
     cd_placer = coordinate_descent_placer.CoordinateDescentPlacer(
         plc,

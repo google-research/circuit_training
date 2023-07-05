@@ -31,7 +31,8 @@ class StaticFeatureCache:
     if netlist_index in self.static_feature_dict:
       raise ValueError(
           'Adding two static features with '
-          f'the same netlist_index: {netlist_index}.')
+          f'the same netlist_index: {netlist_index}.'
+      )
     self.static_feature_dict[netlist_index] = static_feature
 
   def get_all_static_features(self) -> Dict[str, np.ndarray]:
@@ -40,8 +41,10 @@ class StaticFeatureCache:
 
     all_static_features = {}
     for feature in observation_config.STATIC_OBSERVATIONS:
-      all_static_features[feature] = np.array([
-          self.static_feature_dict[netlist_index][feature]
-          for netlist_index in netlist_indices
-      ])
+      all_static_features[feature] = np.array(
+          [
+              self.static_feature_dict[netlist_index][feature]
+              for netlist_index in netlist_indices
+          ]
+      )
     return all_static_features

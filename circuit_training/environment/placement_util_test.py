@@ -48,7 +48,12 @@ class MockPlacementCost(object):
 
   def __init__(self):
     self.node_type = [
-        'PORT', 'PORT', 'MACRO_PIN', 'MACRO_PIN', 'MACRO', 'STDCELL'
+        'PORT',
+        'PORT',
+        'MACRO_PIN',
+        'MACRO_PIN',
+        'MACRO',
+        'STDCELL',
     ]
     self._fix_node_coord = [False] * len(self.node_type)
 
@@ -160,34 +165,36 @@ class MockPlacementCost(object):
 class PlacementUtilTest(test_utils.TestCase):
 
   def setUp(self):
-    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                  'initial.plc')
+    netlist_file = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'netlist.pb.txt'
+    )
+    init_placement = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'initial.plc'
+    )
     self.plc = placement_util.create_placement_cost(
-        netlist_file=netlist_file, init_placement=init_placement)
+        netlist_file=netlist_file, init_placement=init_placement
+    )
     super().setUp()
 
   def test_mock_plc_get_node_type(self):
     plc = MockPlacementCost()
     self.assertEqual(list(placement_util.nodes_of_types(plc, ['PORT'])), [0, 1])
     self.assertEqual(
-        list(placement_util.nodes_of_types(plc, ['MACRO_PIN'])), [2, 3])
+        list(placement_util.nodes_of_types(plc, ['MACRO_PIN'])), [2, 3]
+    )
     self.assertEqual(list(placement_util.nodes_of_types(plc, ['MACRO'])), [4])
     self.assertEqual(
-        list(placement_util.nodes_of_types(plc, ['PORT', 'MACRO'])), [0, 1, 4])
+        list(placement_util.nodes_of_types(plc, ['PORT', 'MACRO'])), [0, 1, 4]
+    )
     self.assertEmpty(list(placement_util.nodes_of_types(plc, ['BAD_TYPE'])))
 
   def test_mock_plc_get_node_xy_coordinates(self):
     plc = MockPlacementCost()
     # This function returns only PORT, MACRO, and STDCELL nodes.
     self.assertDictEqual(
-        placement_util.get_node_xy_coordinates(plc), {
-            0: (0, 0),
-            1: (0, 1),
-            4: (0, 4),
-            5: (0, 5)
-        })
+        placement_util.get_node_xy_coordinates(plc),
+        {0: (0, 0), 1: (0, 1), 4: (0, 4), 5: (0, 5)},
+    )
 
   def test_mock_plc_get_macro_orientations(self):
     plc = MockPlacementCost()
@@ -208,13 +215,17 @@ class PlacementUtilTest(test_utils.TestCase):
       f.write(TEST_FILE_BODY)
     self.assertEqual(
         placement_util.extract_attribute_from_comments('Block', [tempfile]),
-        'fp_test_1')
+        'fp_test_1',
+    )
     self.assertEqual(
         placement_util.extract_attribute_from_comments('Project', [tempfile]),
-        'viperfish')
+        'viperfish',
+    )
     self.assertIsNone(
-        placement_util.extract_attribute_from_comments('Unknown_Atrribute',
-                                                       [tempfile]))
+        placement_util.extract_attribute_from_comments(
+            'Unknown_Atrribute', [tempfile]
+        )
+    )
 
   def test_sample_file_extract_parameters(self):
     tempfile = self.create_tempfile().full_path
@@ -247,48 +258,72 @@ class PlacementUtilTest(test_utils.TestCase):
     sizes = placement_util.extract_sizes_from_comments([filename])
     self.assertEqual(sizes, (100.0, 120.0, 10, 12))
     self.assertEqual(
-        placement_util.extract_attribute_from_comments('Area', [filename]),
-        '10')
+        placement_util.extract_attribute_from_comments('Area', [filename]), '10'
+    )
     self.assertEqual(
-        placement_util.extract_attribute_from_comments('Wirelength',
-                                                       [filename]), '11')
+        placement_util.extract_attribute_from_comments(
+            'Wirelength', [filename]
+        ),
+        '11',
+    )
     self.assertEqual(
-        placement_util.extract_attribute_from_comments('Wirelength cost',
-                                                       [filename]), '12')
+        placement_util.extract_attribute_from_comments(
+            'Wirelength cost', [filename]
+        ),
+        '12',
+    )
     self.assertEqual(
-        placement_util.extract_attribute_from_comments('Congestion cost',
-                                                       [filename]), '13')
+        placement_util.extract_attribute_from_comments(
+            'Congestion cost', [filename]
+        ),
+        '13',
+    )
     self.assertEqual(
-        placement_util.extract_attribute_from_comments('Density cost',
-                                                       [filename]), '14')
+        placement_util.extract_attribute_from_comments(
+            'Density cost', [filename]
+        ),
+        '14',
+    )
     self.assertEqual(
         placement_util.extract_attribute_from_comments('Project', [filename]),
-        'project')
+        'project',
+    )
     self.assertEqual(
         placement_util.extract_attribute_from_comments('Block', [filename]),
-        'block')
+        'block',
+    )
     self.assertEqual(
-        placement_util.extract_attribute_from_comments('Smoothing factor',
-                                                       [filename]), '2')
+        placement_util.extract_attribute_from_comments(
+            'Smoothing factor', [filename]
+        ),
+        '2',
+    )
     self.assertEqual(
-        placement_util.extract_attribute_from_comments('Overlap threshold',
-                                                       [filename]), '1e-06')
+        placement_util.extract_attribute_from_comments(
+            'Overlap threshold', [filename]
+        ),
+        '1e-06',
+    )
 
     self.assertEqual(
         placement_util.get_blockages_from_comments([filename]),
-        [[0, 0, 10.0, 10.0], [0, 20.0, 10.0, 30.0]])
+        [[0, 0, 10.0, 10.0], [0, 20.0, 10.0, 30.0]],
+    )
 
   def test_sample_netlist_create_plc(self):
     """Test creating placement cost with sample netlist.
 
     # Internal circuit training docs link.
     """
-    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR,
-                                  'initial.plc')
+    netlist_file = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'netlist.pb.txt'
+    )
+    init_placement = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, 'initial.plc'
+    )
     plc = placement_util.create_placement_cost(
-        netlist_file=netlist_file, init_placement=init_placement)
+        netlist_file=netlist_file, init_placement=init_placement
+    )
 
     self.assertEqual(plc.get_canvas_width_height(), (1200, 1200))
     self.assertEqual(plc.get_grid_num_columns_rows(), (20, 20))
@@ -331,10 +366,16 @@ class PlacementUtilTest(test_utils.TestCase):
 
   def test_blockage_with_spacing_constraints(self):
     blockages = placement_util.create_blockages_by_spacing_constraints(
-        10, 20, 1, 2)
-    expected_blockages = [[0, 0, 1, 20, 0.1], [9, 0, 10, 20, 0.1],
-                          [0, 0, 10, 2, 0.1], [0, 18, 10, 20, 0.1]]
+        10, 20, 1, 2
+    )
+    expected_blockages = [
+        [0, 0, 1, 20, 0.1],
+        [9, 0, 10, 20, 0.1],
+        [0, 0, 10, 2, 0.1],
+        [0, 18, 10, 20, 0.1],
+    ]
     self.assertEqual(blockages, expected_blockages)
+
 
 if __name__ == '__main__':
   test_utils.main()

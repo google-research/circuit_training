@@ -16,12 +16,12 @@
 import collections
 import copy
 import math
-from typing import List, Tuple, Dict, Union
+from typing import Dict, List, Tuple, Union
 
+from circuit_training.grouping import meta_netlist_data_structure as mnds
 import sortedcontainers
 import tensorflow as tf
 
-from circuit_training.grouping import meta_netlist_data_structure as mnds
 from google.protobuf import text_format
 import tensorflow.io.gfile as gfile
 
@@ -42,10 +42,12 @@ class Grouping:
   It has interfaces to write out hMetis files.
   """
 
-  def __init__(self,
-               meta_netlist: mnds.MetaNetlist,
-               max_group_id: int = 0,
-               cell_area_utilization: float = 0.5) -> None:
+  def __init__(
+      self,
+      meta_netlist: mnds.MetaNetlist,
+      max_group_id: int = 0,
+      cell_area_utilization: float = 0.5,
+  ) -> None:
     """Initializes the grouping class.
 
     Args:
@@ -75,8 +77,9 @@ class Grouping:
     """Sets cell area utilization."""
     self._cell_area_utilization = ratio
 
-  def get_side(self, x: float, y: float, width: float,
-               height: float) -> mnds.Side:
+  def get_side(
+      self, x: float, y: float, width: float, height: float
+  ) -> mnds.Side:
     r"""Returns which side of the canvas area coordinate is.
 
     Uses two lines drawn across the corners diagonally.
@@ -129,7 +132,7 @@ class Grouping:
     group_index = 0
     # Goes through each macro, put each macro's pins into a separate group.
     for netlist_node in self._meta_netlist.node:
-      if (netlist_node.type == mnds.Type.MACRO and not netlist_node.soft_macro):
+      if netlist_node.type == mnds.Type.MACRO and not netlist_node.soft_macro:
         for pin_ind in netlist_node.output_indices:
           self.set_node_group(pin_ind, group_index)
 
@@ -152,15 +155,20 @@ class Grouping:
       if netlist_node.type != mnds.Type.PORT or netlist_node.coord is None:
         continue
 
-      side = self.get_side(netlist_node.coord.x, netlist_node.coord.y,
-                           canvas_width, canvas_height)
+      side = self.get_side(
+          netlist_node.coord.x,
+          netlist_node.coord.y,
+          canvas_width,
+          canvas_height,
+      )
       if side in {mnds.Side.LEFT, mnds.Side.RIGHT}:
         key_coord = netlist_node.coord.y
       else:
         key_coord = netlist_node.coord.x
 
       ports_at_side[side].append(
-          mnds.CoordIndex(coord=key_coord, id=netlist_node.id))
+          mnds.CoordIndex(coord=key_coord, id=netlist_node.id)
+      )
 
     num_cols = self._meta_netlist.canvas.num_columns
     num_rows = self._meta_netlist.canvas.num_rows
@@ -201,8 +209,10 @@ class Grouping:
     initial_data = copy.deepcopy(self._node_group_map)
 
     def _insert_into_group(inout_index, group_index):
-      if inout_index in self._node_group_map or self._meta_netlist.node[
-          inout_index].type != mnds.Type.STDCELL:
+      if (
+          inout_index in self._node_group_map
+          or self._meta_netlist.node[inout_index].type != mnds.Type.STDCELL
+      ):
         return
       self.set_node_group(inout_index, group_index)
 
@@ -357,8 +367,9 @@ class Grouping:
       area += width * height
     return area
 
-  def write_as_macro(self, group_no: int,
-                     graph_def: tf.compat.v1.GraphDef) -> None:
+  def write_as_macro(
+      self, group_no: int, graph_def: tf.compat.v1.GraphDef
+  ) -> None:
     """Appends the macro definition to protobuf."""
     group_vect_p = self._node_groups.get(group_no, None)
     if group_vect_p is None or not group_vect_p:
@@ -371,8 +382,9 @@ class Grouping:
     x_coord, y_coord = self.group_coordinates(group_no)
     # Setting the group width to grid width.
     group_width = (
-        self._meta_netlist.canvas.dimension.width /
-        self._meta_netlist.canvas.num_columns)
+        self._meta_netlist.canvas.dimension.width
+        / self._meta_netlist.canvas.num_columns
+    )
     group_height = area / group_width
     new_node = graph_def.node.add()
     new_node.name = macro_name
@@ -452,8 +464,12 @@ class Grouping:
     self.add_attr(new_node, "x_offset", 0.0)
     self.add_attr(new_node, "y_offset", 0.0)
 
-  def add_attr(self, node: tf.compat.v1.NodeDef, attr_name: str,
-               attr_value: Union[str, float]) -> None:
+  def add_attr(
+      self,
+      node: tf.compat.v1.NodeDef,
+      attr_name: str,
+      attr_value: Union[str, float],
+  ) -> None:
     """Adds attributes to the node."""
     if isinstance(attr_value, float):
       node.attr[attr_name].f = attr_value
@@ -466,8 +482,9 @@ class Grouping:
     graph_def = tf.compat.v1.GraphDef()
     metadata_node = graph_def.node.add()
     metadata_node.name = "__metadata__"
-    metadata_node.attr[
-        "soft_macro_area_bloating_ratio"].f = 1.0 / self._cell_area_utilization
+    metadata_node.attr["soft_macro_area_bloating_ratio"].f = (
+        1.0 / self._cell_area_utilization
+    )
 
     for node in self._meta_netlist.node:
       node_index = node.id
@@ -505,8 +522,11 @@ class Grouping:
         self.add_attr(new_node, "side", node.constraint.side.name)
 
       if node.type == mnds.Type.MACRO_PIN:
-        self.add_attr(new_node, "macro_name",
-                      self._meta_netlist.node[node.ref_node_id].name)
+        self.add_attr(
+            new_node,
+            "macro_name",
+            self._meta_netlist.node[node.ref_node_id].name,
+        )
 
       if node.type == mnds.Type.MACRO:
         if node.orientation is None:
@@ -584,19 +604,22 @@ class Grouping:
         ydiff = c_y - node.coord.y
         ysqr_sum += ydiff * ydiff
 
-    spread_metric = math.sqrt(
-        math.sqrt(xsqr_sum) * math.sqrt(ysqr_sum)) * len(group_vect_p)
+    spread_metric = math.sqrt(math.sqrt(xsqr_sum) * math.sqrt(ysqr_sum)) * len(
+        group_vect_p
+    )
     return spread_metric
 
-  def is_close(self, a: Tuple[float, float], b: Tuple[float, float],
-               distance: float) -> bool:
+  def is_close(
+      self, a: Tuple[float, float], b: Tuple[float, float], distance: float
+  ) -> bool:
     """Returns true if manhattan distance of two points is close."""
     xa, ya = a
     xb, yb = b
     return (abs(xa - xb) + abs(ya - yb)) <= distance
 
-  def merge_small_adj_close_groups(self, max_num_nodes: int,
-                                   distance: float) -> bool:
+  def merge_small_adj_close_groups(
+      self, max_num_nodes: int, distance: float
+  ) -> bool:
     """Merges small adjacency groups.
 
     Merges small groups to the most adjacent group if they are within
@@ -693,8 +716,13 @@ class Grouping:
 
     return bbox
 
-  def x_bucket(self, x: float, box: mnds.BoundingBox, cut_size: float,
-               center: Tuple[float, float]) -> int:
+  def x_bucket(
+      self,
+      x: float,
+      box: mnds.BoundingBox,
+      cut_size: float,
+      center: Tuple[float, float],
+  ) -> int:
     """Gets x bucket."""
     if box.maxx - box.minx < cut_size:
       return 0
@@ -706,8 +734,13 @@ class Grouping:
 
     return int(-0.5 + (x - x_center) / cut_size)
 
-  def y_bucket(self, y: float, box: mnds.BoundingBox, cut_size: float,
-               center: Tuple[float, float]) -> int:
+  def y_bucket(
+      self,
+      y: float,
+      box: mnds.BoundingBox,
+      cut_size: float,
+      center: Tuple[float, float],
+  ) -> int:
     """Gets y bucket."""
     if box.maxy - box.miny < cut_size:
       return 0
@@ -722,8 +755,9 @@ class Grouping:
     """Breaks up groups that span a distance larger than threshold."""
     for group_id in self.group_ids():
       grp_bbox = self.get_bounding_box(group_id)
-      if (grp_bbox.maxx - grp_bbox.minx >
-          threshold) or (grp_bbox.maxy - grp_bbox.miny > threshold):
+      if (grp_bbox.maxx - grp_bbox.minx > threshold) or (
+          grp_bbox.maxy - grp_bbox.miny > threshold
+      ):
         coord = self.group_coordinates(group_id)
         gcell_vs_new_group = sortedcontainers.SortedDict()
         # Must make a copy of node_groups_, since SetNodeGroup modifies it.

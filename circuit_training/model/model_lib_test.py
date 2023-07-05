@@ -26,10 +26,15 @@ from circuit_training.utils import test_utils
 import tensorflow as tf
 from tf_agents.train.utils import strategy_utils
 
-flags.DEFINE_enum('strategy_type', 'tpu', [
-    'tpu', 'gpu', 'cpu'
-], ('Distribution Strategy type to use for training. `tpu` uses TPUStrategy for'
-    ' running on TPUs (1x1), `gpu` uses GPUs with single host.'))
+flags.DEFINE_enum(
+    'strategy_type',
+    'tpu',
+    ['tpu', 'gpu', 'cpu'],
+    (
+        'Distribution Strategy type to use for training. `tpu` uses TPUStrategy'
+        ' for running on TPUs (1x1), `gpu` uses GPUs with single host.'
+    ),
+)
 
 FLAGS = flags.FLAGS
 
@@ -59,11 +64,13 @@ class ModelTest(test_utils.TestCase, parameterized.TestCase):
       if isinstance(strategy, tf.distribute.TPUStrategy):
         test_model = model_lib.CircuitTrainingTPUModel(
             all_static_features=cache.get_all_static_features(),
-            observation_config=config)
+            observation_config=config,
+        )
       else:
         test_model = model_lib.CircuitTrainingModel(
             all_static_features=cache.get_all_static_features(),
-            observation_config=config)
+            observation_config=config,
+        )
 
     @tf.function
     def forward():
@@ -76,13 +83,12 @@ class ModelTest(test_utils.TestCase, parameterized.TestCase):
 
     logging.info('logits: %s', logits)
     logging.info('value: %s', value)
-    self.assertAllEqual(logits['location'].shape, (1, config.max_grid_size**2))
+    self.assertAllEqual(
+        logits['location'].shape, (1, config.max_grid_size**2)
+    )
     self.assertAllEqual(value.shape, (1, 1))
 
-  @parameterized.parameters(
-      (True),
-      (False)
-  )
+  @parameterized.parameters((True), (False))
   def test_backwards_pass(self, finetune_value_only):
     config = observation_config.ObservationConfig()
     static_features = config.observation_space.sample()
@@ -94,11 +100,13 @@ class ModelTest(test_utils.TestCase, parameterized.TestCase):
       if isinstance(strategy, tf.distribute.TPUStrategy):
         test_model = model_lib.CircuitTrainingTPUModel(
             all_static_features=cache.get_all_static_features(),
-            observation_config=config)
+            observation_config=config,
+        )
       else:
         test_model = model_lib.CircuitTrainingModel(
             all_static_features=cache.get_all_static_features(),
-            observation_config=config)
+            observation_config=config,
+        )
       optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
 
     obs = config.dynamic_observation_space.sample()
@@ -106,10 +114,10 @@ class ModelTest(test_utils.TestCase, parameterized.TestCase):
 
     @tf.function
     def loss_fn(x, training=False):
-      logits, value = test_model(x, training=training,
-                                 finetune_value_only=finetune_value_only)
-      loss = (
-          tf.math.reduce_sum(logits['location']) + tf.math.reduce_sum(value))
+      logits, value = test_model(
+          x, training=training, finetune_value_only=finetune_value_only
+      )
+      loss = tf.math.reduce_sum(logits['location']) + tf.math.reduce_sum(value)
       return loss
 
     def train_step(obs):
@@ -144,13 +152,13 @@ class ModelTest(test_utils.TestCase, parameterized.TestCase):
 
     # If finetune_value only, we expect non-value head weights to be unchanged.
     if finetune_value_only:
-      for initial_v, current_v in zip(initial_variables,
-                                      test_model.trainable_variables):
+      for initial_v, current_v in zip(
+          initial_variables, test_model.trainable_variables
+      ):
         if initial_v.name in ['dense_5', 'dense_6', 'dense_7']:
           self.assertNotAllClose(initial_v.numpy(), current_v.numpy())
         else:
           self.assertAllClose(initial_v.numpy(), current_v.numpy())
-
 
 
 if __name__ == '__main__':

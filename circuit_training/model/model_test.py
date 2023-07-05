@@ -33,20 +33,24 @@ from tf_agents.train.utils import strategy_utils
 from tf_agents.trajectories import time_step as ts
 
 
-flags.DEFINE_enum('strategy_type', 'cpu', [
-    'tpu', 'gpu', 'cpu'
-], ('Distribution Strategy type to use for training. `tpu` uses TPUStrategy for'
-    ' running on TPUs (1x1), `gpu` uses GPUs with single host.'))
+flags.DEFINE_enum(
+    'strategy_type',
+    'cpu',
+    ['tpu', 'gpu', 'cpu'],
+    (
+        'Distribution Strategy type to use for training. `tpu` uses TPUStrategy'
+        ' for running on TPUs (1x1), `gpu` uses GPUs with single host.'
+    ),
+)
 flags.DEFINE_integer('batch_size', 64, 'Defines the batch size.')
-flags.DEFINE_integer('dataset_repeat', 16,
-                     'Defines the number of dataset repeat.')
+flags.DEFINE_integer(
+    'dataset_repeat', 16, 'Defines the number of dataset repeat.'
+)
 
 FLAGS = flags.FLAGS
 
 _CIRCUIT_TRAINING_DIR = 'circuit_training'
-_TESTDATA_DIR = (
-    _CIRCUIT_TRAINING_DIR + '/environment/test_data'
-)
+_TESTDATA_DIR = _CIRCUIT_TRAINING_DIR + '/environment/test_data'
 
 
 class ActorModelTest(test_utils.TestCase, parameterized.TestCase):
@@ -54,14 +58,17 @@ class ActorModelTest(test_utils.TestCase, parameterized.TestCase):
   def setUp(self):
     super(ActorModelTest, self).setUp()
     block_name = 'sample_clustered'
-    netlist_file = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, block_name,
-                                'netlist.pb.txt')
-    init_placement = os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, block_name,
-                                  'initial.plc')
+    netlist_file = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, block_name, 'netlist.pb.txt'
+    )
+    init_placement = os.path.join(
+        FLAGS.test_srcdir, _TESTDATA_DIR, block_name, 'initial.plc'
+    )
     env = environment.create_circuit_environment(
         netlist_file=netlist_file,
         init_placement=init_placement,
-        netlist_index=0)
+        netlist_index=0,
+    )
     tf_env = tf_py_environment.TFPyEnvironment(suite_gym.wrap_env(env))
     self._input_tensors_spec = tf_env.observation_spec()
     self._output_tensors_spec = tf_env.action_spec()
@@ -84,11 +91,13 @@ class ActorModelTest(test_utils.TestCase, parameterized.TestCase):
           input_tensors_spec=self._input_tensors_spec,
           output_tensors_spec=None,
           all_static_features=cache.get_all_static_features(),
-          name='grl_model')
+          name='grl_model',
+      )
       self._value_model = grl_model.GrlValueModel(
           input_tensors_spec=self._input_tensors_spec,
           shared_network=shared_network,
-          name='value_model')
+          name='value_model',
+      )
       self._optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
       self._value_model.create_variables()
 
@@ -97,12 +106,16 @@ class ActorModelTest(test_utils.TestCase, parameterized.TestCase):
     time_step_spec = ts.time_step_spec(observation_spec)
     outer_dims = (FLAGS.batch_size,)
     time_step = tensor_spec.sample_spec_nest(
-        time_step_spec, outer_dims=outer_dims)
+        time_step_spec, outer_dims=outer_dims
+    )
     # TPU on forge has two cores (1x1).
     # The batch defined here represents the global batch size.
     # Will be evenly divided between the two cores.
-    dataset = tf.data.Dataset.from_tensor_slices(time_step.observation).repeat(
-        FLAGS.dataset_repeat).batch(FLAGS.batch_size)
+    dataset = (
+        tf.data.Dataset.from_tensor_slices(time_step.observation)
+        .repeat(FLAGS.dataset_repeat)
+        .batch(FLAGS.batch_size)
+    )
     dist_dataset = self._strategy.experimental_distribute_dataset(dataset)
     with self._strategy.scope():
 
@@ -112,7 +125,8 @@ class ActorModelTest(test_utils.TestCase, parameterized.TestCase):
           loss = tf.math.reduce_sum(value)
         grads = tape.gradient(loss, self._value_model.trainable_variables)
         grads_and_vars = tuple(
-            zip(grads, self._value_model.trainable_variables))
+            zip(grads, self._value_model.trainable_variables)
+        )
         self._optimizer.apply_gradients(grads_and_vars)
 
       @tf.function

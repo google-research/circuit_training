@@ -12,22 +12,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Utils for creating models.
-"""
+"""Utils for creating models."""
 from typing import Any, Dict
 
 from circuit_training.model import fully_connected_model_lib
 from circuit_training.model import model
-
 import numpy as np
 from tf_agents.typing import types
 
 
-def create_models_fn(rl_architecture: str,
-                     observation_tensor_spec: types.NestedTensorSpec,
-                     action_tensor_spec: types.NestedTensorSpec,
-                     static_features: Dict[str, np.ndarray],
-                     seed: int = 0) -> tuple[Any, Any]:
+def create_models_fn(
+    rl_architecture: str,
+    observation_tensor_spec: types.NestedTensorSpec,
+    action_tensor_spec: types.NestedTensorSpec,
+    static_features: Dict[str, np.ndarray],
+    seed: int = 0,
+) -> tuple[Any, Any]:
   """Creates actor/value networks.
 
   Args:
@@ -46,11 +46,14 @@ def create_models_fn(rl_architecture: str,
         action_tensor_spec,
         static_features,
         use_model_tpu=False,
-        seed=seed)
+        seed=seed,
+    )
   else:
     actor_net = fully_connected_model_lib.create_actor_net(
-        observation_tensor_spec, action_tensor_spec)
+        observation_tensor_spec, action_tensor_spec
+    )
     value_net = fully_connected_model_lib.create_value_net(
-        observation_tensor_spec)
+        observation_tensor_spec
+    )
 
   return actor_net, value_net

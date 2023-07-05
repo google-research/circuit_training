@@ -16,22 +16,25 @@
 from circuit_training.grouping import meta_netlist_data_structure as mnds
 
 
-def set_canvas_width_height(meta_netlist: mnds.MetaNetlist, canvas_width: float,
-                            canvas_height: float) -> None:
+def set_canvas_width_height(
+    meta_netlist: mnds.MetaNetlist, canvas_width: float, canvas_height: float
+) -> None:
   """Sets canvas width and height."""
   meta_netlist.canvas.dimension.width = canvas_width
   meta_netlist.canvas.dimension.height = canvas_height
 
 
-def set_canvas_columns_rows(meta_netlist: mnds.MetaNetlist, canvas_columns: int,
-                            canvas_rows: int) -> None:
+def set_canvas_columns_rows(
+    meta_netlist: mnds.MetaNetlist, canvas_columns: int, canvas_rows: int
+) -> None:
   """Sets canvas columns and rows."""
   meta_netlist.canvas.num_columns = canvas_columns
   meta_netlist.canvas.num_rows = canvas_rows
 
 
-def disconnect_single_net(meta_netlist: mnds.MetaNetlist,
-                          node_index: int) -> None:
+def disconnect_single_net(
+    meta_netlist: mnds.MetaNetlist, node_index: int
+) -> None:
   """Disconnects a single net."""
   node = meta_netlist.node[node_index]
   for out_index in node.output_indices:
@@ -39,8 +42,9 @@ def disconnect_single_net(meta_netlist: mnds.MetaNetlist,
   node.output_indices = []
 
 
-def disconnect_high_fanout_nets(meta_netlist: mnds.MetaNetlist,
-                                max_allowed_fanouts: int = 500) -> None:
+def disconnect_high_fanout_nets(
+    meta_netlist: mnds.MetaNetlist, max_allowed_fanouts: int = 500
+) -> None:
   """Disconnect all the nodes whose output_indices exceeds max_allowed_fanouts.
 
   Args:
@@ -48,6 +52,8 @@ def disconnect_high_fanout_nets(meta_netlist: mnds.MetaNetlist,
     max_allowed_fanouts: Maximum allowed fanouts.
   """
   for index, node in enumerate(meta_netlist.node):
-    if (node.type in {mnds.Type.PORT, mnds.Type.STDCELL, mnds.Type.MACRO_PIN}
-        and len(node.output_indices) > max_allowed_fanouts):
+    if (
+        node.type in {mnds.Type.PORT, mnds.Type.STDCELL, mnds.Type.MACRO_PIN}
+        and len(node.output_indices) > max_allowed_fanouts
+    ):
       disconnect_single_net(meta_netlist, index)

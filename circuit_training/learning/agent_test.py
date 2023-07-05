@@ -23,7 +23,6 @@ from circuit_training.learning import agent
 from circuit_training.learning import static_feature_cache
 from circuit_training.model import model
 from circuit_training.utils import test_utils
-
 import tensorflow as tf
 from tf_agents.specs import tensor_spec
 from tf_agents.train.utils import spec_utils

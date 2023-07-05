@@ -23,8 +23,10 @@ from typing import Any, Text
 from absl import flags
 from absl import logging
 
+# pyformat: disable
 flags.DEFINE_string('plc_wrapper_main', 'plc_wrapper_main',
                     'Path to plc_wrapper_main binary.')
+# pyformat: enable
 
 FLAGS = flags.FLAGS
 
@@ -35,10 +37,12 @@ class PlacementCost(object):
   BUFFER_LEN = 1024 * 1024
   MAX_RETRY = 256
 
-  def __init__(self,
-               netlist_file: Text,
-               macro_macro_x_spacing: float = 0.0,
-               macro_macro_y_spacing: float = 0.0) -> None:
+  def __init__(
+      self,
+      netlist_file: Text,
+      macro_macro_x_spacing: float = 0.0,
+      macro_macro_y_spacing: float = 0.0,
+  ) -> None:
     """Creates a PlacementCost client object.
 
     It creates a subprocess by calling plc_wrapper_main and communicate with
@@ -70,7 +74,6 @@ class PlacementCost(object):
 
   # See circuit_training/environment/plc_client_test.py for the supported APIs.
   def __getattr__(self, name) -> Any:
-
     # snake_case to PascalCase.
     name = name.replace('_', ' ').title().replace(' ', '')
 
@@ -95,15 +98,20 @@ class PlacementCost(object):
           except json.decoder.JSONDecodeError as e:
             logging.warn('JSONDecode Error for %s \n %s', name, e)
             if retry < PlacementCost.MAX_RETRY:
-              logging.info('Looking for more data for %s on connection:%s/%s',
-                           name, retry, PlacementCost.MAX_RETRY)
+              logging.info(
+                  'Looking for more data for %s on connection:%s/%s',
+                  name,
+                  retry,
+                  PlacementCost.MAX_RETRY,
+              )
               retry += 1
             else:
               raise e
       if isinstance(output, dict):
         if 'ok' in output and not output['ok']:  # Status::NotOk
           raise ValueError(
-              f"Error in calling {name} with {args}: {output['message']}.")
+              f"Error in calling {name} with {args}: {output['message']}."
+          )
         elif '__tuple__' in output:  # Tuple
           output = tuple(output['items'])
       return output

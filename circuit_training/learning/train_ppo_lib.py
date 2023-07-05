@@ -21,10 +21,8 @@ from absl import logging
 from circuit_training.learning import agent
 from circuit_training.learning import learner as learner_lib
 import gin
-
 import reverb
 import tensorflow as tf
-
 from tf_agents.experimental.distributed import reverb_variable_container
 from tf_agents.networks import network
 from tf_agents.replay_buffers import reverb_replay_buffer
@@ -385,4 +383,5 @@ def train(
         )
         if debug_summaries:
           tf.summary.scalar(
-              name='data_wait_time_sec', data=data_wait_time, step=train_step)
+              name='data_wait_time_sec', data=data_wait_time, step=train_step
+          )

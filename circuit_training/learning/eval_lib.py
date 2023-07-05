@@ -184,8 +184,11 @@ def evaluate(
   cache.add_static_feature(static_features)
 
   actor_net, value_net = create_models_fn(
-      rl_architecture, observation_tensor_spec, action_tensor_spec,
-      cache.get_all_static_features())
+      rl_architecture,
+      observation_tensor_spec,
+      action_tensor_spec,
+      cache.get_all_static_features(),
+  )
 
   if rl_architecture == 'static_graph_embedding':
     image_metrics = [

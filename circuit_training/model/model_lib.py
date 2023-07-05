@@ -184,8 +184,10 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
 
     if self._is_augmented:
       self._augmented_embedding_layer = tf.keras.layers.Dense(
-          self._gcn_node_dim, name='augmented_embedding_layer',
-          kernel_initializer=kernel_initializer)
+          self._gcn_node_dim,
+          name='augmented_embedding_layer',
+          kernel_initializer=kernel_initializer,
+      )
 
     # GAN-like deconv layers to generated the policy image.
     # See figures in http://shortn/_9HCSFwasnu.
@@ -381,8 +383,9 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     alphas = tf.fill(tf.shape(probs), self._dirichlet_alpha)
     dirichlet_distribution = tfp.distributions.Dirichlet(alphas)
     noise = dirichlet_distribution.sample(seed=seed() % sys.maxsize)
-    noised_probs = ((1.0 - self._policy_noise_weight) * probs +
-                    (self._policy_noise_weight) * noise)
+    noised_probs = (1.0 - self._policy_noise_weight) * probs + (
+        self._policy_noise_weight
+    ) * noise
 
     noised_logit = tf.math.log(noised_probs + self.EPSILON)
 
@@ -433,8 +436,8 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
       inputs: dict[str, tf.Tensor],
       training: bool = False,
       is_eval: bool = False,
-      finetune_value_only: bool = False) -> tuple[dict[str, tf.Tensor],
-                                                  tf.Tensor]:
+      finetune_value_only: bool = False,
+  ) -> tuple[dict[str, tf.Tensor], tf.Tensor]:
     # Netlist metadata.
     netlist_metadata_inputs = [
         self._get_static_input(key, inputs)  # pytype: disable=wrong-arg-types  # always-use-return-annotations
@@ -571,15 +574,15 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
 
     if self._is_augmented:
       augmented_embedding = self._augmented_embedding_layer(
-          inputs['augmented_features'])
+          inputs['augmented_features']
+      )
       observation_hiddens.append(augmented_embedding)
 
     finetune_value_only = tf.convert_to_tensor(
-        finetune_value_only, dtype=tf.bool)
+        finetune_value_only, dtype=tf.bool
+    )
     h = tf.concat(observation_hiddens, axis=1)
-    h = tf.cond(finetune_value_only,
-                lambda: tf.stop_gradient(h),
-                lambda: h)
+    h = tf.cond(finetune_value_only, lambda: tf.stop_gradient(h), lambda: h)
 
     location_logits = self._policy_location_head(h, training=training)
     # smart_cond avoids using tf.cond when condition value is static.
@@ -591,9 +594,13 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
         ),
     }
     value = self._value_head(h, training=training)
-    logits = {'location': tf.cond(finetune_value_only,
-                                  lambda: tf.stop_gradient(logits['location']),
-                                  lambda: logits['location'])}
+    logits = {
+        'location': tf.cond(
+            finetune_value_only,
+            lambda: tf.stop_gradient(logits['location']),
+            lambda: logits['location'],
+        )
+    }
 
     return logits, value
 
@@ -677,13 +684,13 @@ class CircuitTrainingTPUModel(CircuitTrainingModel):
     mask = tf.broadcast_to(sparse_adj_weight != 0.0, tf.shape(h_edges))
     return tf.where(mask, h_edges, tf.zeros_like(h_edges))
 
-
-  def call(self,
-           inputs: dict[str, tf.Tensor],
-           training: bool = False,
-           is_eval: bool = False,
-           finetune_value_only: bool = False) -> tuple[dict[str, tf.Tensor],
-                                                       tf.Tensor]:
+  def call(
+      self,
+      inputs: dict[str, tf.Tensor],
+      training: bool = False,
+      is_eval: bool = False,
+      finetune_value_only: bool = False,
+  ) -> tuple[dict[str, tf.Tensor], tf.Tensor]:
     # Netlist metadata.
     netlist_metadata_inputs = [
         self._get_static_input(key, inputs)
@@ -878,15 +885,15 @@ class CircuitTrainingTPUModel(CircuitTrainingModel):
 
     if self._is_augmented:
       augmented_embedding = self._augmented_embedding_layer(
-          inputs['augmented_features'])
+          inputs['augmented_features']
+      )
       observation_hiddens.append(augmented_embedding)
 
     finetune_value_only = tf.convert_to_tensor(
-        finetune_value_only, dtype=tf.bool)
+        finetune_value_only, dtype=tf.bool
+    )
     h = tf.concat(observation_hiddens, axis=1)
-    h = tf.cond(finetune_value_only,
-                lambda: tf.stop_gradient(h),
-                lambda: h)
+    h = tf.cond(finetune_value_only, lambda: tf.stop_gradient(h), lambda: h)
 
     location_logits = self._policy_location_head(h, training=training)
     # smart_cond avoids using tf.cond when condition value is static.
@@ -898,8 +905,12 @@ class CircuitTrainingTPUModel(CircuitTrainingModel):
         ),
     }
     value = self._value_head(h, training=training)
-    logits = {'location': tf.cond(finetune_value_only,
-                                  lambda: tf.stop_gradient(logits['location']),
-                                  lambda: logits['location'])}
+    logits = {
+        'location': tf.cond(
+            finetune_value_only,
+            lambda: tf.stop_gradient(logits['location']),
+            lambda: logits['location'],
+        )
+    }
 
     return logits, value

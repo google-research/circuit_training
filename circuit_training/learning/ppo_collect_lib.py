@@ -15,11 +15,10 @@
 """Library for PPO collect job."""
 import os
 from typing import Any, Callable
-import gin
-
 from absl import logging
 from circuit_training.learning import agent
 from circuit_training.learning import static_feature_cache
+import gin
 import reverb
 import tensorflow as tf
 from tf_agents.experimental.distributed import reverb_variable_container
@@ -33,23 +32,26 @@ from tf_agents.utils import common
 
 
 @gin.configurable(allowlist=['write_summaries_task_threshold'])
-def collect(task: int,
-            root_dir: str,
-            replay_buffer_server_address: str,
-            variable_container_server_address: str,
-            create_env_fn: Callable[..., Any],
-            max_sequence_length: int,
-            create_models_fn: Callable[..., Any],
-            rl_architecture: str = 'generalization',
-            summary_subdir: str = '',
-            write_summaries_task_threshold: int = 1,
-            netlist_index: int = 0):
+def collect(
+    task: int,
+    root_dir: str,
+    replay_buffer_server_address: str,
+    variable_container_server_address: str,
+    create_env_fn: Callable[..., Any],
+    max_sequence_length: int,
+    create_models_fn: Callable[..., Any],
+    rl_architecture: str = 'generalization',
+    summary_subdir: str = '',
+    write_summaries_task_threshold: int = 1,
+    netlist_index: int = 0,
+):
   """Collects experience using a policy updated after every episode."""
   # Create the environment.
   train_step = train_utils.create_train_step()
   env = create_env_fn(train_step=train_step)
   observation_tensor_spec, action_tensor_spec, time_step_tensor_spec = (
-      spec_utils.get_tensor_specs(env))
+      spec_utils.get_tensor_specs(env)
+  )
   static_features = env.wrapped_env().get_static_obs()
   cache = static_feature_cache.StaticFeatureCache()
   cache.add_static_feature(static_features)
@@ -58,7 +60,8 @@ def collect(task: int,
       rl_architecture,
       observation_tensor_spec,
       action_tensor_spec,
-      cache.get_all_static_features())
+      cache.get_all_static_features(),
+  )
 
   tf_agent = agent.create_circuit_ppo_agent(
       train_step,
@@ -81,7 +84,8 @@ def collect(task: int,
   }
   variable_container = reverb_variable_container.ReverbVariableContainer(
       variable_container_server_address,
-      table_names=[reverb_variable_container.DEFAULT_TABLE])
+      table_names=[reverb_variable_container.DEFAULT_TABLE],
+  )
   variable_container.update(variables)
 
   # Create the replay buffer observer for collect jobs.
@@ -90,15 +94,17 @@ def collect(task: int,
           reverb.Client(replay_buffer_server_address),
           table_name=[f'training_table_{netlist_index}'],
           max_sequence_length=max_sequence_length,
-          priority=model_id)
+          priority=model_id,
+      )
   ]
 
   # Write metrics only if the task ID of the current job is below the limit.
   summary_dir = None
   metrics = []
   if task < write_summaries_task_threshold:
-    summary_dir = os.path.join(root_dir, learner.TRAIN_DIR, summary_subdir,
-                               str(task))
+    summary_dir = os.path.join(
+        root_dir, learner.TRAIN_DIR, summary_subdir, str(task)
+    )
     metrics = actor.collect_metrics(1)
 
   # Create the collect actor.
@@ -110,7 +116,8 @@ def collect(task: int,
       summary_dir=summary_dir,
       summary_interval=200,
       metrics=metrics,
-      observers=observers)
+      observers=observers,
+  )
 
   # Run the experience collection loop.
   while True:

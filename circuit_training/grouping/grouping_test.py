@@ -29,16 +29,16 @@ import tensorflow.io.gfile as gfile
 FLAGS = flags.FLAGS
 
 _CIRCUIT_TRAINING_DIR = 'circuit_training'
-_TESTDATA_DIR = (
-    _CIRCUIT_TRAINING_DIR + '/grouping/testdata'
-)
+_TESTDATA_DIR = _CIRCUIT_TRAINING_DIR + '/grouping/testdata'
+
 
 class GroupingTest(tf.test.TestCase):
 
   def setUp(self):
     super().setUp()
     self._meta_netlist = meta_netlist_convertor.read_netlist(
-        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt')
+    )
 
   def _unplace_node_helper(self, meta_netlist: mnds.MetaNetlist) -> None:
     """Helper function for removing the coord of nodes."""
@@ -75,7 +75,8 @@ class GroupingTest(tf.test.TestCase):
 
   def test_spread_metric(self):
     meta_netlist = meta_netlist_convertor.read_netlist(
-        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt')
+    )
     group = grouping.Grouping(self._meta_netlist)
     group.setup_fixed_groups(0)
     # SpeadMetric only applies to STDCELL. There is no STDCELL in the
@@ -84,7 +85,8 @@ class GroupingTest(tf.test.TestCase):
 
   def test_grouping(self):
     meta_netlist = meta_netlist_convertor.read_netlist(
-        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt'))
+        os.path.join(FLAGS.test_srcdir, _TESTDATA_DIR, 'simple.pb.txt')
+    )
     group = grouping.Grouping(self._meta_netlist)
     group.setup_fixed_groups(0)
     self.assertEqual(group.num_groups(), 2)
@@ -151,8 +153,9 @@ class GroupingTest(tf.test.TestCase):
 
     m0_group = group.get_node_group(name_to_id_map['P0_M0'])
     m1_group = group.get_node_group(name_to_id_map['P0_M1'])
-    self.assertTrue((m0_group == 0 and m1_group == 1) or
-                    (m0_group == 1 and m1_group == 0))
+    self.assertTrue(
+        (m0_group == 0 and m1_group == 1) or (m0_group == 1 and m1_group == 0)
+    )
 
     # S0 is driven by the port P0.
     self.assertEqual(group.get_node_group(s0_id), group.get_node_group(p0_id))
@@ -199,8 +202,10 @@ class GroupingTest(tf.test.TestCase):
       tmp_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
     expected_grouped_netlist_file_path = os.path.join(
-        FLAGS.test_srcdir, _TESTDATA_DIR,
-        'simple_grouped_soft_macro_not_bloated.pb.txt')
+        FLAGS.test_srcdir,
+        _TESTDATA_DIR,
+        'simple_grouped_soft_macro_not_bloated.pb.txt',
+    )
     with gfile.GFile(expected_grouped_netlist_file_path, 'r') as f:
       expected_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
@@ -230,8 +235,10 @@ class GroupingTest(tf.test.TestCase):
       tmp_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 
     expected_grouped_netlist_file_path = os.path.join(
-        FLAGS.test_srcdir, _TESTDATA_DIR,
-        'simple_grouped_soft_macro_not_bloated_s.pb.txt')
+        FLAGS.test_srcdir,
+        _TESTDATA_DIR,
+        'simple_grouped_soft_macro_not_bloated_s.pb.txt',
+    )
     with gfile.GFile(expected_grouped_netlist_file_path, 'r') as f:
       expected_graph_def = text_format.Parse(f.read(), tf.compat.v1.GraphDef())
 

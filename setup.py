@@ -83,15 +83,16 @@ class SetupToolsHelper(object):
   def run_setup(self):
     # Builds the long description from the README.
     root_path = os.path.abspath(os.path.dirname(__file__))
-    with codecs.open(os.path.join(root_path, 'README.md'),
-                     encoding='utf-8') as f:
+    with codecs.open(
+        os.path.join(root_path, 'README.md'), encoding='utf-8'
+    ) as f:
       long_description = f.read()
 
     version, project_name = self._get_version()
     setup(
         name=project_name,
         version=version,
-        description=('Circuit Training'),
+        description='Circuit Training',
         long_description=long_description,
         long_description_content_type='text/markdown',
         author='Google LLC',
@@ -134,12 +135,14 @@ if __name__ == '__main__':
   parser.add_argument(
       '--release',
       action='store_true',
-      help='Pass as true to do a release build')
+      help='Pass as true to do a release build',
+  )
   parser.add_argument(
       '--tf-agents-version',
       type=str,
       default=None,
-      help='Overrides version of TF-Agents required')
+      help='Overrides version of TF-Agents required',
+  )
 
   FLAGS, unparsed = parser.parse_known_args()
   # Go forward with only non-custom flags.
@@ -148,6 +151,6 @@ if __name__ == '__main__':
   unparsed.insert(0, 'foo')
   sys.argv.extend(unparsed)
   setup_tools_helper = SetupToolsHelper(
-      release=FLAGS.release,
-      tf_agents_override=FLAGS.tf_agents_version)
+      release=FLAGS.release, tf_agents_override=FLAGS.tf_agents_version
+  )
   setup_tools_helper.run_setup()

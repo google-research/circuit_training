@@ -18,22 +18,30 @@ import os
 
 from absl import app
 from absl import flags
-
 from circuit_training.learning import ppo_reverb_server_lib
 
-flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-                    'Root directory for writing logs/summaries/checkpoints.')
+flags.DEFINE_string(
+    'root_dir',
+    os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
+    'Root directory for writing logs/summaries/checkpoints.',
+)
 flags.DEFINE_integer(
-    'replay_buffer_capacity', 1024,
+    'replay_buffer_capacity',
+    1024,
     'Capacity of the replay buffer table. Please set this to '
-    'larger than num_episodes_per_iteration.')
+    'larger than num_episodes_per_iteration.',
+)
 flags.DEFINE_integer('port', None, 'Port to start the server on.')
 flags.DEFINE_integer(
-    'global_seed', 111,
-    'Used in env and weight initialization, does not impact action sampling.')
+    'global_seed',
+    111,
+    'Used in env and weight initialization, does not impact action sampling.',
+)
 _NUM_NETLISTS = flags.DEFINE_integer(
-    'num_netlists', 1,
-    'Used in env and weight initialization, does not impact action sampling.')
+    'num_netlists',
+    1,
+    'Used in env and weight initialization, does not impact action sampling.',
+)
 
 FLAGS = flags.FLAGS
 
@@ -41,10 +49,9 @@ FLAGS = flags.FLAGS
 def main(_):
   # Create the path for the serialized collect policy.
   root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))
-  ppo_reverb_server_lib.start_reverb_server(root_dir,
-                                            FLAGS.replay_buffer_capacity,
-                                            FLAGS.port,
-                                            _NUM_NETLISTS.value)
+  ppo_reverb_server_lib.start_reverb_server(
+      root_dir, FLAGS.replay_buffer_capacity, FLAGS.port, _NUM_NETLISTS.value
+  )
 
 
 if __name__ == '__main__':

@@ -31,10 +31,13 @@ class TrainPpoLibTest(test_utils.TestCase):
     num_replicas_in_sync = 3
 
     init_iteration = train_ppo_lib.compute_init_iteration(
-        init_train_step=init_train_step, sequence_length=sequence_length,
+        init_train_step=init_train_step,
+        sequence_length=sequence_length,
         num_episodes_per_iteration=num_episodes_per_iteration,
-        num_epochs=num_epochs, per_replica_batch_size=per_replica_batch_size,
-        num_replicas_in_sync=num_replicas_in_sync)
+        num_epochs=num_epochs,
+        per_replica_batch_size=per_replica_batch_size,
+        num_replicas_in_sync=num_replicas_in_sync,
+    )
 
     # 100 / 10 / 1 / 2 * 2 * 3 = 30
     self.assertEqual(init_iteration, 30)
@@ -56,7 +59,8 @@ class TrainPpoLibTest(test_utils.TestCase):
         num_episodes_per_iteration=num_episodes_per_iteration,
         num_epochs=num_epochs,
         per_replica_batch_size=per_replica_batch_size,
-        num_replicas_in_sync=num_replicas_in_sync)
+        num_replicas_in_sync=num_replicas_in_sync,
+    )
 
     # 10 * 2 * 1 * 2 / 2 / 2 = 10
     self.assertEqual(total_training_step, 10)

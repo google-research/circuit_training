@@ -21,6 +21,7 @@ from typing import List, Optional
 @enum.unique
 class Type(enum.Enum):
   """Type enum."""
+
   UNSET = 0
   STDCELL = 1
   MACRO = 2
@@ -31,6 +32,7 @@ class Type(enum.Enum):
 @enum.unique
 class Side(enum.IntEnum):
   """Side of the node."""
+
   TOP = 0
   RIGHT = 1
   BOTTOM = 2
@@ -40,6 +42,7 @@ class Side(enum.IntEnum):
 @dataclasses.dataclass
 class CoordIndex:
   """Coord index. It is used in storing the grouping information."""
+
   coord: float
   id: int  # Node index.
 
@@ -47,6 +50,7 @@ class CoordIndex:
 @dataclasses.dataclass
 class Coord:
   """Coord dataclass."""
+
   x: float
   y: float
 
@@ -54,6 +58,7 @@ class Coord:
 @dataclasses.dataclass
 class Dimension:
   """Dimension dataclass."""
+
   width: float
   height: float
 
@@ -61,6 +66,7 @@ class Dimension:
 @dataclasses.dataclass
 class Offset:
   """Offset dataclass."""
+
   x: float
   y: float
 
@@ -84,8 +90,8 @@ class Orientation(enum.Enum):
    ------    ------   ------    ------
   E,        FE,      W,        FW
   R270,     MX90,    R90,      MY90
-
   """
+
   N = 0
   R0 = 0
   NORMAL = 0
@@ -124,6 +130,7 @@ class Orientation(enum.Enum):
 @dataclasses.dataclass
 class BoundingBox:
   """Bounding Box dataclass."""
+
   minx: float
   maxx: float
   miny: float
@@ -133,6 +140,7 @@ class BoundingBox:
 @dataclasses.dataclass
 class Constraint:
   """Constraint dataclass."""
+
   side: Optional[Side] = None
 
 
@@ -143,6 +151,7 @@ class NetlistNode:
   A netlist node can be of type STDCELL, MACRO, PORT, or MACRO_PIN.
   It has the location, size, inputs and outputs information.
   """
+
   id: Optional[int] = 0
   name: Optional[str] = ""
   type: Optional[Type] = Type.UNSET
@@ -185,6 +194,7 @@ class Canvas:
   Canvas is the placement area. It also has the information of how many rows
   and columns it's divided for placement use.
   """
+
   dimension: Dimension
   num_rows: int
   num_columns: int
@@ -196,6 +206,7 @@ class MetaNetlist:
 
   MetaNetlist contains a node graph, a canvas and other meta informations.
   """
+
   node: List[NetlistNode] = dataclasses.field(default_factory=list)
   canvas: Optional[Canvas] = None
 

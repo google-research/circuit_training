@@ -18,7 +18,6 @@ from typing import Callable, List, Optional, Text, Tuple
 
 from absl import logging
 import gin
-
 import tensorflow as tf
 from tf_agents.agents.ppo import ppo_agent
 from tf_agents.train import interval_trigger
@@ -31,9 +30,13 @@ _SequenceParamsType = Tuple[types.NestedTensor, types.ReverbSampleInfo]
 _SequenceFnType = Callable[[_SequenceParamsType], _SequenceParamsType]
 
 
-@gin.configurable(allowlist=[
-    'checkpoint_interval', 'summary_interval', 'allow_variable_length_episodes'
-])
+@gin.configurable(
+    allowlist=[
+        'checkpoint_interval',
+        'summary_interval',
+        'allow_variable_length_episodes',
+    ]
+)
 class CircuittrainingPPOLearner(object):
   """Manages all the learning details needed.
 
@@ -50,24 +53,25 @@ class CircuittrainingPPOLearner(object):
       the agent.
   """
 
-  def __init__(self,
-               root_dir: Text,
-               train_step: tf.Variable,
-               model_id: tf.Variable,
-               agent: ppo_agent.PPOAgent,
-               experience_datasets_fn: Callable[[], tf.data.Dataset],
-               sequence_length: int,
-               num_episodes_per_iteration: int,
-               minibatch_size: int,
-               shuffle_buffer_size: int,
-               num_epochs: int,
-               triggers: Optional[List[
-                   interval_trigger.IntervalTrigger]] = None,
-               strategy: Optional[tf.distribute.Strategy] = None,
-               per_sequence_fn: Optional[_SequenceFnType] = None,
-               checkpoint_interval: int = 100000,
-               summary_interval: int = 200,
-               allow_variable_length_episodes: bool = False) -> None:
+  def __init__(
+      self,
+      root_dir: Text,
+      train_step: tf.Variable,
+      model_id: tf.Variable,
+      agent: ppo_agent.PPOAgent,
+      experience_datasets_fn: Callable[[], tf.data.Dataset],
+      sequence_length: int,
+      num_episodes_per_iteration: int,
+      minibatch_size: int,
+      shuffle_buffer_size: int,
+      num_epochs: int,
+      triggers: Optional[List[interval_trigger.IntervalTrigger]] = None,
+      strategy: Optional[tf.distribute.Strategy] = None,
+      per_sequence_fn: Optional[_SequenceFnType] = None,
+      checkpoint_interval: int = 100000,
+      summary_interval: int = 200,
+      allow_variable_length_episodes: bool = False,
+  ) -> None:
     """Initializes a CircuittrainingPPOLearner instance.
 
     Args:
@@ -152,7 +156,8 @@ class CircuittrainingPPOLearner(object):
         checkpoint_interval=checkpoint_interval,
         summary_interval=summary_interval,
         use_kwargs_in_agent_train=False,
-        strategy=self._strategy)
+        strategy=self._strategy,
+    )
 
     self.num_replicas = self._strategy.num_replicas_in_sync
     self._allow_variable_length_episodes = allow_variable_length_episodes
@@ -171,7 +176,8 @@ class CircuittrainingPPOLearner(object):
     def _filter_invalid_episodes(sample):
       sample_info = sample.info
       data_model_id = tf.cast(
-          tf.reduce_min(sample_info.priority), dtype=tf.int64)
+          tf.reduce_min(sample_info.priority), dtype=tf.int64
+      )
 
       if self._allow_variable_length_episodes:
         # Filter off policy samples.
@@ -182,7 +188,8 @@ class CircuittrainingPPOLearner(object):
         data = sample.data
         return tf.math.logical_and(
             tf.math.equal(tf.size(data.discount), self._sequence_length),
-            tf.math.equal(self._model_id, data_model_id))
+            tf.math.equal(self._model_id, data_model_id),
+        )
 
     def make_dataset(_) -> tf.data.Dataset:
       # `experience_dataset_fn` returns a tf.Dataset. Each item is a (Trajectory
@@ -196,7 +203,8 @@ class CircuittrainingPPOLearner(object):
           train_dataset = train_dataset.map(
               self._per_sequence_fn,
               num_parallel_calls=tf.data.AUTOTUNE,
-              deterministic=False)
+              deterministic=False,
+          )
 
         # We unbatch the dataset shaped [B, T, ...] to a new dataset that
         # contains individual elements.
@@ -208,13 +216,14 @@ class CircuittrainingPPOLearner(object):
         train_dataset = train_dataset.shuffle(self._shuffle_buffer_size)
         train_dataset = train_dataset.repeat(self._num_epochs)
         train_dataset = train_dataset.batch(
-            self._minibatch_size, drop_remainder=True)
+            self._minibatch_size, drop_remainder=True
+        )
 
         processed_datasets += [train_dataset]
 
       all_dataset = tf.data.Dataset.sample_from_datasets(
-          processed_datasets,
-          stop_on_empty_dataset=False)
+          processed_datasets, stop_on_empty_dataset=False
+      )
       options = tf.data.Options()
       options.deterministic = False
       options.experimental_optimization.parallel_batch = True
@@ -223,10 +232,10 @@ class CircuittrainingPPOLearner(object):
       return all_dataset
 
     with self._strategy.scope():
-
       if self._strategy.num_replicas_in_sync > 1:
-        self._train_dataset = (
-            self._strategy.distribute_datasets_from_function(make_dataset))
+        self._train_dataset = self._strategy.distribute_datasets_from_function(
+            make_dataset
+        )
       else:
         self._train_dataset = make_dataset(0)
       self._train_iterator = iter(self._train_dataset)
@@ -237,8 +246,9 @@ class CircuittrainingPPOLearner(object):
     # We exhaust all num_episodes_per_iteration taken from Reverb in this setup.
     # Here we assume that there's only 1 episode per batch, and each episode is
     # of the fixed sequence length.
-    num_mini_batches = int(self._num_samples * self._num_epochs /
-                           self._minibatch_size)
+    num_mini_batches = int(
+        self._num_samples * self._num_epochs / self._minibatch_size
+    )
     train_steps = int(num_mini_batches / self.num_replicas)
     return train_steps
 
@@ -253,8 +263,9 @@ class CircuittrainingPPOLearner(object):
     Returns:
       The total loss computed before running the final step.
     """
-    loss_info = self._generic_learner.run(self._steps_per_iter,
-                                          self._train_iterator)
+    loss_info = self._generic_learner.run(
+        self._steps_per_iter, self._train_iterator
+    )
     self._model_id.assign_add(1)
     return loss_info
 
