@@ -33,12 +33,14 @@ NETLIST_METADATA = (
     'normalized_num_hard_macros',
     'normalized_num_soft_macros',
     'normalized_num_port_clusters',
-    'horizontal_routes_per_micron',
-    'vertical_routes_per_micron',
-    'macro_horizontal_routing_allocation',
-    'macro_vertical_routing_allocation',
+    'total_horizontal_routes_k',
+    'total_vertical_routes_k',
+    'total_macro_horizontal_routes_k',
+    'total_macro_vertical_routes_k',
     'grid_cols',
     'grid_rows',
+    'canvas_width',
+    'canvas_height',
 )
 
 GRAPH_ADJACENCY_MATRIX = (
@@ -127,20 +129,18 @@ class ObservationConfig(object):
         'normalized_num_port_clusters': gym.spaces.Box(
             low=0, high=1, shape=(1,)
         ),
-        'horizontal_routes_per_micron': gym.spaces.Box(
-            low=0, high=100, shape=(1,)
+        'total_horizontal_routes_k': gym.spaces.Box(
+            low=0, high=1000, shape=(1,)
         ),
-        'vertical_routes_per_micron': gym.spaces.Box(
-            low=0, high=100, shape=(1,)
+        'total_vertical_routes_k': gym.spaces.Box(low=0, high=1000, shape=(1,)),
+        'total_macro_horizontal_routes_k': gym.spaces.Box(
+            low=0, high=1000, shape=(1,)
         ),
-        'macro_horizontal_routing_allocation': gym.spaces.Box(
-            low=0, high=100, shape=(1,)
-        ),
-        'macro_vertical_routing_allocation': gym.spaces.Box(
-            low=0, high=100, shape=(1,)
+        'total_macro_vertical_routes_k': gym.spaces.Box(
+            low=0, high=1000, shape=(1,)
         ),
         'sparse_adj_weight': gym.spaces.Box(
-            low=0, high=100, shape=(self.max_num_edges,)
+            low=0, high=1000, shape=(self.max_num_edges,)
         ),
         'sparse_adj_i': gym.spaces.Box(
             low=0,
@@ -176,6 +176,8 @@ class ObservationConfig(object):
         ),
         'grid_cols': gym.spaces.Box(low=0, high=1, shape=(1,)),
         'grid_rows': gym.spaces.Box(low=0, high=1, shape=(1,)),
+        'canvas_width': gym.spaces.Box(low=0, high=1, shape=(1,)),
+        'canvas_height': gym.spaces.Box(low=0, high=1, shape=(1,)),
         'current_node': gym.spaces.Box(
             low=0, high=self.max_num_nodes - 1, shape=(1,), dtype=np.int32
         ),
@@ -199,8 +201,8 @@ def _to_dict(
   else:
     obs_space = ObservationConfig().observation_space
   splits = [obs_space[k].shape[0] for k in keys]
-  splitted_obs = tf.split(flatten_obs, splits, axis=-1)
-  return {k: o for o, k in zip(splitted_obs, keys)}
+  split_obs = tf.split(flatten_obs, splits, axis=-1)
+  return {k: o for o, k in zip(split_obs, keys)}
 
 
 def _flatten(

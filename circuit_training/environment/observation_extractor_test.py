@@ -83,11 +83,11 @@ class ObservationExtractorTest(test_utils.TestCase):
     self.assertEqual(static_obs['normalized_num_port_clusters'], 2.0 / 6.0)
     self.assertAllClose(
         static_obs['macros_w'],
-        np.asarray([120.0, 80.0, 0.0, 0.0, 0.0, 0.0]) / 300.0,
+        np.asarray([120.0, 80.0, 0.0, 0.0, 0.0, 0.0]) / 500.0,
     )
     self.assertAllClose(
         static_obs['macros_h'],
-        np.asarray([120.0, 40.0, 0.0, 0.0, 0.0, 0.0]) / 200.0,
+        np.asarray([120.0, 40.0, 0.0, 0.0, 0.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(static_obs['node_types'], [1, 1, 2, 3, 3, 0])
     self.assertAllEqual(static_obs['sparse_adj_i'], [0, 0, 1, 1, 2, 0, 0, 0])
@@ -118,11 +118,11 @@ class ObservationExtractorTest(test_utils.TestCase):
     # Replaces the unplaced node in the middle of the canvas.
     self.assertAllClose(
         dynamic_obs['locations_x'],
-        np.asarray([150.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 300.0,
+        np.asarray([150.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
     )
     self.assertAllClose(
         dynamic_obs['locations_y'],
-        np.asarray([100.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 200.0,
+        np.asarray([100.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(dynamic_obs['is_node_placed'], [0, 0, 0, 1, 1, 0])
     self.assertAllClose(
@@ -152,11 +152,11 @@ class ObservationExtractorTest(test_utils.TestCase):
     self.assertEqual(all_obs['normalized_num_port_clusters'], 2.0 / 6.0)
     self.assertAllClose(
         all_obs['macros_w'],
-        np.asarray([120.0, 80.0, 0.0, 0.0, 0.0, 0.0]) / 300.0,
+        np.asarray([120.0, 80.0, 0.0, 0.0, 0.0, 0.0]) / 500.0,
     )
     self.assertAllClose(
         all_obs['macros_h'],
-        np.asarray([120.0, 40.0, 0.0, 0.0, 0.0, 0.0]) / 200.0,
+        np.asarray([120.0, 40.0, 0.0, 0.0, 0.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(all_obs['node_types'], [1, 1, 2, 3, 3, 0])
     self.assertAllEqual(all_obs['sparse_adj_i'], [0, 0, 1, 1, 2, 0, 0, 0])
@@ -166,11 +166,11 @@ class ObservationExtractorTest(test_utils.TestCase):
     )
     self.assertAllClose(
         all_obs['locations_x'],
-        np.asarray([150.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 300.0,
+        np.asarray([150.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
     )
     self.assertAllClose(
         all_obs['locations_y'],
-        np.asarray([100.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 200.0,
+        np.asarray([100.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(all_obs['is_node_placed'], [0, 0, 0, 1, 1, 0])
     self.assertAllClose(
@@ -219,11 +219,11 @@ class ObservationExtractorTest(test_utils.TestCase):
     )
     self.assertAllClose(
         all_obs1['locations_x'],
-        np.asarray([100.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 300.0,
+        np.asarray([100.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
     )
     self.assertAllClose(
         all_obs1['locations_y'],
-        np.asarray([120.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 200.0,
+        np.asarray([120.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(all_obs1['is_node_placed'], [1, 0, 0, 1, 1, 0])
     self.assertAllClose(all_obs1['current_node'], [1])
@@ -234,11 +234,11 @@ class ObservationExtractorTest(test_utils.TestCase):
     )
     self.assertAllClose(
         all_obs2['locations_x'],
-        np.asarray([100.0, 200.0, 150.0, 0.0, 150.0, 0.0]) / 300.0,
+        np.asarray([100.0, 200.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
     )
     self.assertAllClose(
         all_obs2['locations_y'],
-        np.asarray([120.0, 150.0, 100.0, 125.0, 200.0, 0.0]) / 200.0,
+        np.asarray([120.0, 150.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(all_obs2['is_node_placed'], [1, 1, 0, 1, 1, 0])
     self.assertAllClose(all_obs2['current_node'], [2])
@@ -247,11 +247,11 @@ class ObservationExtractorTest(test_utils.TestCase):
     # Also, ensure `all_obs1` is not modified.
     self.assertAllClose(
         all_obs1['locations_x'],
-        np.asarray([100.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 300.0,
+        np.asarray([100.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
     )
     self.assertAllClose(
         all_obs1['locations_y'],
-        np.asarray([120.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 200.0,
+        np.asarray([120.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(all_obs1['is_node_placed'], [1, 0, 0, 1, 1, 0])
     self.assertAllClose(all_obs1['current_node'], [1])
@@ -267,9 +267,13 @@ class ObservationExtractorTest(test_utils.TestCase):
     )
 
     # Only three macros use the default locations. The rest is clustered_port.
-    self.assertAllEqual(all_obs['locations_x'], [0.5, 0.5, 0.5, 0.0, 0.5, 0.0])
-    self.assertAllEqual(
-        all_obs['locations_y'], [0.5, 0.5, 0.5, 0.625, 1.0, 0.0]
+    self.assertAllClose(
+        all_obs['locations_x'],
+        np.asarray([150.0, 150.0, 150.0, 0.0, 150.0, 0.0]) / 500.0,
+    )
+    self.assertAllClose(
+        all_obs['locations_y'],
+        np.asarray([100.0, 100.0, 100.0, 125.0, 200, 0.0]) / 500.0,
     )
 
 

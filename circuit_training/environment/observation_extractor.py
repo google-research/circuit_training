@@ -51,6 +51,7 @@ class ObservationExtractor(object):
     self._use_plc_init_location = use_plc_init_location
 
     self.width, self.height = self.plc.get_canvas_width_height()
+    self.half_perimeter = self.width + self.height
     self.num_cols, self.num_rows = self.plc.get_grid_num_columns_rows()
     self.grid_width = self.width / self.num_cols
     self.grid_height = self.height / self.num_rows
@@ -97,6 +98,7 @@ class ObservationExtractor(object):
     self._pad_adj_matrix(features)
     self._pad_macro_static_features(features)
     self._normalize_macro_size_by_canvas(features)
+    self._normalize_canvas_size_by_canvas(features)
     self._normalize_grid_size(features)
     self._normalize_locations_by_canvas(features)
     self._pad_macro_dynamic_features(features)
@@ -108,14 +110,20 @@ class ObservationExtractor(object):
 
   def _extract_technology_info(self, features: Dict[Text, np.ndarray]) -> None:
     """Extracts Technology-related information."""
+    # Divide these by 1000.0 to make their values closer to the rest of the
+    # features.
     routing_resources = {
-        'horizontal_routes_per_micron': self.plc.get_routes_per_micron()[0],
-        'vertical_routes_per_micron': self.plc.get_routes_per_micron()[1],
-        'macro_horizontal_routing_allocation': (
-            self.plc.get_macro_routing_allocation()[0]
+        'total_horizontal_routes_k': (
+            self.plc.get_routes_per_micron()[0] * self.height / 1000.0
         ),
-        'macro_vertical_routing_allocation': (
-            self.plc.get_macro_routing_allocation()[0]
+        'total_vertical_routes_k': (
+            self.plc.get_routes_per_micron()[1] * self.width / 1000.0
+        ),
+        'total_macro_horizontal_routes_k': (
+            self.plc.get_macro_routing_allocation()[0] * self.height / 1000.0
+        ),
+        'total_macro_vertical_routes_k': (
+            self.plc.get_macro_routing_allocation()[0] * self.width / 1000.0
         ),
     }
     for k in routing_resources:
@@ -213,8 +221,8 @@ class ObservationExtractor(object):
     features['edge_counts'] = edge_counts
 
   def _extract_canvas_size(self, features: Dict[Text, np.ndarray]) -> None:
-    features['canvas_width'] = np.asarray([self.width])
-    features['canvas_height'] = np.asarray([self.height])
+    features['canvas_width'] = np.asarray([self.width]).astype(np.float32)
+    features['canvas_height'] = np.asarray([self.height]).astype(np.float32)
 
   def _extract_grid_size(self, features: Dict[Text, np.ndarray]) -> None:
     features['grid_cols'] = np.asarray([self.num_cols]).astype(np.float32)
@@ -361,6 +369,16 @@ class ObservationExtractor(object):
           features[var], self._observation_config.max_num_nodes
       )
 
+  def _normalize_canvas_size_by_canvas(
+      self, features: Dict[Text, np.ndarray]
+  ) -> None:
+    features['canvas_width'] = (
+        features['canvas_width'] / (self.half_perimeter)
+    ).astype(np.float32)
+    features['canvas_height'] = (
+        features['canvas_height'] / (self.half_perimeter)
+    ).astype(np.float32)
+
   def _normalize_grid_size(self, features: Dict[Text, np.ndarray]) -> None:
     features['grid_cols'] = (
         features['grid_cols'] / self._observation_config.max_grid_size
@@ -374,12 +392,10 @@ class ObservationExtractor(object):
   ) -> None:
     """Normalizes macro sizes with the canvas size."""
     features['macros_w'] = (
-        features['macros_w']
-        / (features['canvas_width'] + ObservationExtractor.EPSILON)
+        features['macros_w'] / (self.half_perimeter)
     ).astype(np.float32)
     features['macros_h'] = (
-        features['macros_h']
-        / (features['canvas_height'] + ObservationExtractor.EPSILON)
+        features['macros_h'] / (self.half_perimeter)
     ).astype(np.float32)
 
   def _normalize_locations_by_canvas(
@@ -387,12 +403,10 @@ class ObservationExtractor(object):
   ) -> None:
     """Normalizes locations with the canvas size."""
     features['locations_x'] = (
-        features['locations_x']
-        / (features['canvas_width'] + ObservationExtractor.EPSILON)
+        features['locations_x'] / self.half_perimeter
     ).astype(np.float32)
     features['locations_y'] = (
-        features['locations_y']
-        / (features['canvas_height'] + ObservationExtractor.EPSILON)
+        features['locations_y'] / self.half_perimeter
     ).astype(np.float32)
 
   def get_static_features(self) -> Dict[Text, np.ndarray]:
@@ -410,10 +424,10 @@ class ObservationExtractor(object):
           self.plc.get_macro_indices()[previous_node_index]
       )
       self._features['locations_x'][previous_node_index] = (
-          x / self.width + ObservationExtractor.EPSILON
+          x / self.half_perimeter
       )
       self._features['locations_y'][previous_node_index] = (
-          y / self.height + ObservationExtractor.EPSILON
+          y / self.half_perimeter
       )
       self._features['is_node_placed'][previous_node_index] = 1
     self._features['mask'] = mask.astype(np.int32)
