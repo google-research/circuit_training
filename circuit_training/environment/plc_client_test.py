@@ -11051,7 +11051,11 @@ class PlcClientTest(test_utils.TestCase):
     initial_placement = os.path.join(self.create_tempdir(), 'initial.plc')
     self.assertTrue(plc.save_placement(initial_placement, 'Info'))
     self.assertTrue(os.path.exists(initial_placement))
-
+    pnr_tcl = os.path.join(self.create_tempdir(), 'placement.tcl')
+    self.assertTrue(
+        plc.save_placement_pnr(pnr_tcl, '', '', 'innovus', 'circuit_training')
+    )
+    self.assertTrue(os.path.exists(pnr_tcl))
 
 if __name__ == '__main__':
   test_utils.main()

@@ -126,6 +126,12 @@ costs given a placement.
     macro_pins. Use PlaceNode to place nodes into placement grid cells.
 -   `update_node_coords(node_index: int, x: float, y: float) -> Status` : Uses a
     node index to update x, y coordinates of a node.
+-   `save_placement_pnr(
+          output_file: str, original_netlist: str,
+          metis_groups_file: str, eda_tool: str, project: str) -> Status` :
+    Generates placement tcl file. Supported EDA tools: dct, innovus, icc2.
+    original_netlist and metis_groups_file are needed for writing standard cell
+    locations. For macro placements only, set as empty.
 
 Example code of interacting with `PlacementCost` to query proxy costs:
 
