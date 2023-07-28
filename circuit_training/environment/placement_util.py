@@ -285,6 +285,8 @@ def create_placement_cost(
   plc.set_congestion_grid(congestion_grid_cols, congestion_grid_rows)
   plc.set_overlap_threshold(overlap_threshold)
   plc.set_canvas_boundary_check(boundary_check)
+  # It is better to make the shape of soft macros square for
+  # analytical std cell placers like FD and DREAMPlace.
   plc.make_soft_macros_square()
   if init_placement:
     plc.restore_placement(init_placement)

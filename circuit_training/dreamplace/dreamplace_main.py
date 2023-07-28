@@ -31,11 +31,6 @@ _RUN_FD_AS_BASELINE = flags.DEFINE_bool(
     False,
     'If True, run FD and report proxy cost and run time, as a baseline.',
 )
-_DP_MAKE_SOFT_MACROS_SQUARE_FLAG = flags.DEFINE_bool(
-    'dp_make_soft_macros_square_flag',
-    True,
-    'If true, make soft macros square for dreamplace.',
-)
 _DP_HARD_MACRO_MOVABLE = flags.DEFINE_bool(
     'dp_hard_macro_movable',
     False,
@@ -73,7 +68,6 @@ def main(argv):
   # NOTE(hqzhu): pass args of netlist info to load_plc instead of using flags.
   plc = dreamplace_util.load_plc(
       netlist_file=_NETLIST_FILE.value,
-      make_soft_macros_square_flag=_DP_MAKE_SOFT_MACROS_SQUARE_FLAG.value,
       output_dir=_OUTPUT_DIR.value,
       init_placement=_INIT_PLACEMENT.value,
   )

@@ -44,15 +44,13 @@ def print_and_save_result(
 
 
 def load_plc(
-    netlist_file, make_soft_macros_square_flag, output_dir, init_placement=None
+    netlist_file, output_dir, init_placement=None
 ):
   """Loads the netlist and initial plc."""
   t = time.time()
   plc = util.create_placement_cost(
       netlist_file=netlist_file, init_placement=init_placement
   )
-  if make_soft_macros_square_flag:
-    plc.make_soft_macros_square()
   duration = time.time() - t
   print_and_save_result(
       plc, duration, 'Loading initial PLC', 'dreamplace_initial', output_dir

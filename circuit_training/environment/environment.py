@@ -136,7 +136,6 @@ class CircuitEnv(object):
       is_eval: bool = False,
       save_best_cost: bool = False,
       output_plc_file: Text = '',
-      make_soft_macros_square: bool = True,
       cd_finetune: bool = False,
       cd_plc_file: Text = 'ppo_cd_placement.plc',
       train_step: Optional[tf.Variable] = None,
@@ -165,8 +164,6 @@ class CircuitEnv(object):
       save_best_cost: Boolean, if set, saves the palcement if its cost is better
         than the previously saved palcement.
       output_plc_file: The path to save the final placement.
-      make_soft_macros_square: If True, make the shape of soft macros square
-        before using analytical std cell placers like FD.
       cd_finetune: If True, runs coordinate descent to finetune macro
         orientations. Supposed to run in eval only, not training.
       cd_plc_file: Name of the CD fine-tuned plc file, the file will be save in
@@ -193,7 +190,6 @@ class CircuitEnv(object):
     self._save_best_cost = save_best_cost
     self._output_plc_file = output_plc_file
     self._output_plc_dir = os.path.dirname(output_plc_file)
-    self._make_soft_macros_square = make_soft_macros_square
     self._cd_finetune = cd_finetune
     self._cd_plc_file = cd_plc_file
     self._train_step = train_step
@@ -207,11 +203,6 @@ class CircuitEnv(object):
     self._save_partial_placement = save_partial_placement
 
     self._observation_config = observation_config.ObservationConfig()
-
-    if self._make_soft_macros_square:
-      # It is better to make the shape of soft macros square before using
-      # analytical std cell placers like FD.
-      self._plc.make_soft_macros_square()
 
     self._grid_cols, self._grid_rows = self._plc.get_grid_num_columns_rows()
     self._canvas_width, self._canvas_height = (
