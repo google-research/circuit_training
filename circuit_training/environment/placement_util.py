@@ -220,8 +220,10 @@ def create_placement_cost(
     boundary_check: Do a boundary check during node placement.
     horizontal_routes_per_micron: Horizontal route capacity per micros.
     vertical_routes_per_micron: Vertical route capacity per micros.
-    macro_horizontal_routing_allocation: Macro horizontal routing allocation.
-    macro_vertical_routing_allocation: Macro vertical routing allocation.
+    macro_horizontal_routing_allocation: Horizontal routing allocation reserved
+      for macros which are not available for routing.
+    macro_vertical_routing_allocation: Vertical routing allocation reserved for
+      macros which are not available for routing.
     routes_per_congestion_grid: Number of routes that passes through the
       congestion grid. This is used to calculate the congestion grid size base
       on the technology info.
