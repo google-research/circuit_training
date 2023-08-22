@@ -56,9 +56,9 @@ def create_actor_net(
         name='projection_layer',
     )
 
-  def create_dist(logits_and_mask):
+  def create_dist(features):
     # Apply mask onto the logits such that infeasible actions will not be taken.
-    logits, mask = logits_and_mask.values()
+    _, logits, mask = features.values()
 
     if mask.shape.rank < logits.shape.rank:
       mask = tf.expand_dims(mask, -2)
@@ -77,6 +77,7 @@ def create_actor_net(
   return sequential.Sequential(
       [
           nest_map.NestMap({
+              'augmented_features': no_op_layer(),
               'graph_embedding': tf.keras.Sequential(
                   [tf.keras.layers.Flatten()]
                   + [dense(num_units) for num_units in fc_layer_units]
