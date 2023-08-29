@@ -42,6 +42,15 @@ _NUM_NETLISTS = flags.DEFINE_integer(
     1,
     'Used in env and weight initialization, does not impact action sampling.',
 )
+_BUFFER_MIN_SIZE = flags.DEFINE_integer(
+    'buffer_min_size',
+    1,
+    'How many episodes buffer must contain before the learner begins sampling',
+)
+_SAMPLE_LIMIT = flags.DEFINE_integer(
+    'sample_limit', 1,
+    'The maximum number of times each episode is sampled during training.'
+)
 
 FLAGS = flags.FLAGS
 
@@ -50,7 +59,11 @@ def main(_):
   # Create the path for the serialized collect policy.
   root_dir = os.path.join(FLAGS.root_dir, str(FLAGS.global_seed))
   ppo_reverb_server_lib.start_reverb_server(
-      root_dir, FLAGS.replay_buffer_capacity, FLAGS.port, _NUM_NETLISTS.value
+      root_dir, FLAGS.replay_buffer_capacity, FLAGS.port,
+      num_netlists=_NUM_NETLISTS.value,
+      buffer_min_size=_BUFFER_MIN_SIZE.value,
+      sample_limit=_SAMPLE_LIMIT.value,
+
   )
 
 

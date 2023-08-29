@@ -27,7 +27,12 @@ from tf_agents.utils import common
 
 
 def start_reverb_server(
-    root_dir: str, replay_buffer_capacity: int, port: int, num_netlists: int = 1
+    root_dir: str,
+    replay_buffer_capacity: int,
+    port: int,
+    num_netlists: int = 1,
+    buffer_min_size: int = 1,
+    sample_limit: int = 1,
 ):
   """todo."""
   collect_policy_saved_model_path = os.path.join(
@@ -87,9 +92,9 @@ def start_reverb_server(
             remover=reverb.selectors.MinHeap(),
             # Menger sets this to 8, but empirically 1 learns better
             # consistently.
-            rate_limiter=reverb.rate_limiters.MinSize(1),
+            rate_limiter=reverb.rate_limiters.MinSize(buffer_min_size),
             max_size=replay_buffer_capacity,
-            max_times_sampled=1,
+            max_times_sampled=sample_limit,
             signature=replay_buffer_signature,
         )
     ]
