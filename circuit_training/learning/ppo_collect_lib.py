@@ -14,7 +14,8 @@
 # limitations under the License.
 """Library for PPO collect job."""
 import os
-from typing import Any, Callable
+import time
+from typing import Any, Callable, Optional
 from absl import logging
 from circuit_training.learning import agent
 from circuit_training.learning import static_feature_cache
@@ -31,7 +32,15 @@ from tf_agents.train.utils import train_utils
 from tf_agents.utils import common
 
 
-@gin.configurable(allowlist=['write_summaries_task_threshold'])
+# If we have not collected in this many seconds, run another episode. This
+# prevents the training loop from being stuck when using a collector
+# max_episodes_per_model limit, since various workers (including the Reverb
+# server) can be preempted.
+COLLECT_AT_LEAST_EVERY_SECONDS = 10 * 60
+
+
+@gin.configurable(allowlist=['write_summaries_task_threshold',
+                             'max_episodes_per_model'])
 def collect(
     task: int,
     root_dir: str,
@@ -44,6 +53,7 @@ def collect(
     summary_subdir: str = '',
     write_summaries_task_threshold: int = 1,
     netlist_index: int = 0,
+    max_episodes_per_model: Optional[int] = None,
 ):
   """Collects experience using a policy updated after every episode."""
   # Create the environment.
@@ -119,9 +129,29 @@ def collect(
       observers=observers,
   )
 
+  model_to_num_episodes = {}
+  last_collection_ts = 0
   # Run the experience collection loop.
   while True:
-    collect_actor.run()
+    if model_id.numpy() not in model_to_num_episodes:
+      model_to_num_episodes[model_id.numpy()] = 0
+
+    if (
+        max_episodes_per_model is None
+        or model_to_num_episodes[model_id.numpy()] < max_episodes_per_model
+        or time.time() - last_collection_ts > COLLECT_AT_LEAST_EVERY_SECONDS
+    ):
+      logging.info('Collecting at model_id: %d', model_id.numpy())
+      last_collection_ts = time.time()
+      collect_actor.run()
+
+      # Clear old models.
+      for k in list(model_to_num_episodes):
+        if k != model_id.numpy():
+          del model_to_num_episodes[k]
+
+      model_to_num_episodes[model_id.numpy()] += 1
+
     variable_container.update(variables)
-    logging.info('Collecting at step: %d', train_step.numpy())
-    logging.info('Collecting at model_id: %d', model_id.numpy())
+    logging.info('Current step: %d', train_step.numpy())
+    logging.info('Current model_id: %d', model_id.numpy())
