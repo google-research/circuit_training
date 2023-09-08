@@ -11048,6 +11048,11 @@ class PlcClientTest(test_utils.TestCase):
     self.assertEqual(plc.get_blockages(), [])
     self.assertEqual(plc.get_ref_node_id(13), -1)
     self.assertEqual(plc.get_node_weight(0), 1.0)
+    self.assertEqual(plc.get_fake_nets(), [])
+    self.assertEqual(plc.get_fake_net_cost(), 0.0)
+    plc.add_fake_net(0.1, [1, 2])
+    self.assertEqual(plc.get_fake_nets(), [(0.1, [1, 2])])
+    self.assertEqual(plc.get_fake_net_cost(), 0.03472222328186035)
     initial_placement = os.path.join(self.create_tempdir(), 'initial.plc')
     self.assertTrue(plc.save_placement(initial_placement, 'Info'))
     self.assertTrue(os.path.exists(initial_placement))
@@ -11056,6 +11061,7 @@ class PlcClientTest(test_utils.TestCase):
         plc.save_placement_pnr(pnr_tcl, '', '', 'innovus', 'circuit_training')
     )
     self.assertTrue(os.path.exists(pnr_tcl))
+
 
 if __name__ == '__main__':
   test_utils.main()

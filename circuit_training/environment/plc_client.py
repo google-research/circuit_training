@@ -114,6 +114,13 @@ class PlacementCost(object):
           )
         elif '__tuple__' in output:  # Tuple
           output = tuple(output['items'])
+      elif isinstance(output, list):
+        if (
+            len(output) > 0
+            and isinstance(output[0], dict)
+            and '__tuple__' in output[0]
+        ):  # List of tuples
+          output = [tuple(o['items']) for o in output]
       return output
 
     return f
