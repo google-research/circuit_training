@@ -43,7 +43,7 @@ class ObservationExtractorTest(test_utils.TestCase):
     super(ObservationExtractorTest, self).setUp()
 
     self._observation_config = observation_config.ObservationConfig(
-        max_num_edges=8, max_num_nodes=6, max_grid_size=10
+        max_num_edges=8, max_num_nodes=6, max_grid_size=3
     )
 
     # Macros name                      : M0, M1, Grp_2
@@ -56,7 +56,7 @@ class ObservationExtractorTest(test_utils.TestCase):
         netlist_file=netlist_file, init_placement=''
     )
     plc.set_canvas_size(300, 200)
-    plc.set_placement_grid(9, 4)
+    plc.set_placement_grid(3, 2)
     plc.unplace_all_nodes()
     # Manually adds I/O port locations, this step is not needed for real
     # netlists.
@@ -64,6 +64,10 @@ class ObservationExtractorTest(test_utils.TestCase):
     plc.update_node_coords('P1', 150, 199.5)  # Top
     plc.update_port_sides()
     plc.snap_ports_to_edges()
+    # Manually adds fake net, this step is not needed for real
+    # netlists.
+    plc.add_fake_net(0.1, [1, 2])  # P1 <-> M0
+    plc.add_fake_net(0.2, [2, 3])  # M0 <-> M1
     self.extractor = observation_extractor.ObservationExtractor(
         plc=plc, observation_config=self._observation_config, netlist_index=0
     )
@@ -122,9 +126,14 @@ class ObservationExtractorTest(test_utils.TestCase):
     )
     self.assertAllClose(
         dynamic_obs['locations_y'],
-        np.asarray([100.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
+        np.asarray([100.0, 100.0, 100.0, 200.0, 200.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(dynamic_obs['is_node_placed'], [0, 0, 0, 1, 1, 0])
+    # The max corresponds to the closest grid to P1.
+    self.assertAllClose(
+        dynamic_obs['fake_net_heatmap'],
+        [0.0, 0.292893, 0.0, 0.292893, 1.0, 0.292893, 0.0, 0.0, 0.0],
+    )
     self.assertAllClose(
         dynamic_obs['mask'],
         [0]
@@ -170,9 +179,14 @@ class ObservationExtractorTest(test_utils.TestCase):
     )
     self.assertAllClose(
         all_obs['locations_y'],
-        np.asarray([100.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
+        np.asarray([100.0, 100.0, 100.0, 200.0, 200.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(all_obs['is_node_placed'], [0, 0, 0, 1, 1, 0])
+    # The max corresponds to the closest grid to P1.
+    self.assertAllClose(
+        all_obs['fake_net_heatmap'],
+        [0.0, 0.292893, 0.0, 0.292893, 1.0, 0.292893, 0.0, 0.0, 0.0],
+    )
     self.assertAllClose(
         all_obs['mask'],
         [0]
@@ -223,10 +237,15 @@ class ObservationExtractorTest(test_utils.TestCase):
     )
     self.assertAllClose(
         all_obs1['locations_y'],
-        np.asarray([120.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
+        np.asarray([120.0, 100.0, 100.0, 200.0, 200.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(all_obs1['is_node_placed'], [1, 0, 0, 1, 1, 0])
     self.assertAllClose(all_obs1['current_node'], [1])
+    # The max corresponds to the closest grid to M0.
+    self.assertAllClose(
+        all_obs1['fake_net_heatmap'],
+        [0.0, 0.292893, 0.0, 0.292893, 1.0, 0.292893, 0.0, 0.0, 0.0],
+    )
 
     self.extractor.plc.update_node_coords('M1', 200, 150)
     all_obs2 = self.extractor.get_all_features(
@@ -238,11 +257,19 @@ class ObservationExtractorTest(test_utils.TestCase):
     )
     self.assertAllClose(
         all_obs2['locations_y'],
-        np.asarray([120.0, 150.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
+        np.asarray([120.0, 150.0, 100.0, 200.0, 200.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(all_obs2['is_node_placed'], [1, 1, 0, 1, 1, 0])
     self.assertAllClose(all_obs2['current_node'], [2])
     self.assertEqual(all_obs2['netlist_index'][0], 0)
+    self.assertAllClose(
+        all_obs2['fake_net_heatmap'],
+        [0]
+        * (
+            self._observation_config.max_grid_size
+            * self._observation_config.max_grid_size
+        ),
+    )
 
     # Also, ensure `all_obs1` is not modified.
     self.assertAllClose(
@@ -251,7 +278,7 @@ class ObservationExtractorTest(test_utils.TestCase):
     )
     self.assertAllClose(
         all_obs1['locations_y'],
-        np.asarray([120.0, 100.0, 100.0, 125.0, 200.0, 0.0]) / 500.0,
+        np.asarray([120.0, 100.0, 100.0, 200.0, 200.0, 0.0]) / 500.0,
     )
     self.assertAllEqual(all_obs1['is_node_placed'], [1, 0, 0, 1, 1, 0])
     self.assertAllClose(all_obs1['current_node'], [1])
@@ -273,7 +300,7 @@ class ObservationExtractorTest(test_utils.TestCase):
     )
     self.assertAllClose(
         all_obs['locations_y'],
-        np.asarray([100.0, 100.0, 100.0, 125.0, 200, 0.0]) / 500.0,
+        np.asarray([100.0, 100.0, 100.0, 200.0, 200, 0.0]) / 500.0,
     )
 
 

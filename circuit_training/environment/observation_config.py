@@ -70,6 +70,7 @@ DYNAMIC_OBSERVATIONS = (
     'locations_y',
     'is_node_placed',
     'current_node',
+    'fake_net_heatmap',
     'mask',
 ) + NETLIST_INDEX
 
@@ -108,6 +109,12 @@ class ObservationConfig(object):
         ),
         'current_node': gym.spaces.Box(
             low=0, high=self.max_num_nodes - 1, shape=(1,), dtype=np.int32
+        ),
+        'fake_net_heatmap': gym.spaces.Box(
+            low=0.0,
+            high=1.0,
+            shape=(self.max_grid_size**2,),
+            dtype=np.float32,
         ),
         'mask': gym.spaces.Box(
             low=0, high=1, shape=(self.max_grid_size**2,), dtype=np.int32
@@ -180,6 +187,12 @@ class ObservationConfig(object):
         'canvas_height': gym.spaces.Box(low=0, high=1, shape=(1,)),
         'current_node': gym.spaces.Box(
             low=0, high=self.max_num_nodes - 1, shape=(1,), dtype=np.int32
+        ),
+        'fake_net_heatmap': gym.spaces.Box(
+            low=0.0,
+            high=1.0,
+            shape=(self.max_grid_size**2,),
+            dtype=np.float32,
         ),
         'mask': gym.spaces.Box(
             low=0, high=1, shape=(self.max_grid_size**2,), dtype=np.int32
