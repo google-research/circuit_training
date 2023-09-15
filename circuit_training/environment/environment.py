@@ -17,6 +17,7 @@
 import datetime
 import math
 import os
+import time
 from typing import Any, Callable, Dict, Optional, Text, Tuple
 
 from absl import logging
@@ -36,6 +37,10 @@ from tf_agents.environments import wrappers
 
 ObsType = Dict[Text, np.ndarray]
 InfoType = Dict[Text, float]
+
+
+DREAMPLACE_RUNTIME = 'dreamplace_runtime'
+TOTAL_EPISODE_RUNTIME = 'total_episode_runtime'
 
 
 class InfeasibleActionError(ValueError):
@@ -466,8 +471,11 @@ class CircuitEnv(object):
     Returns:
       A tuple for placement cost and info.
     """
+    total_time = 0.
     if self._done:
+      start_time = time.time()
       self.analytical_placer()
+      total_time = time.time() - start_time
     # Only evaluates placement cost when all nodes are placed.
     # All samples in the episode receive the same reward equal to final cost.
     # This is realized by setting intermediate steps cost as zero, and
@@ -475,6 +483,7 @@ class CircuitEnv(object):
     cost, info = self._cost_info_fn(
         plc=self._plc, done=self._done, infeasible_state=infeasible_state  # pytype: disable=wrong-keyword-args  # trace-all-classes
     )
+    info[DREAMPLACE_RUNTIME] = total_time
 
     # Only saves placement in eval.
     # Happens when the episode is done, when RL places all nodes, or we want to
@@ -484,6 +493,8 @@ class CircuitEnv(object):
           self._done and self._save_partial_placement
       ):
         self._save_placement(cost)
+
+    info[TOTAL_EPISODE_RUNTIME] = time.time() - self._episode_start_time
 
     return -cost, info
 
@@ -499,6 +510,7 @@ class CircuitEnv(object):
     self._done = False
     self._current_mask = self._get_mask()
     self._observation_extractor.reset()
+    self._episode_start_time = time.time()
     return self._get_obs()
 
   def translate_to_original_canvas(self, action: int) -> int:
