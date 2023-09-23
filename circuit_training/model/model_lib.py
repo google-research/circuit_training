@@ -112,7 +112,7 @@ class CircuitTrainingModel(tf.keras.layers.Layer):
     )
 
     seed = tfp.util.SeedStream(self._seed, salt='kernel_initializer_seed')
-    kernel_initializer = tf.keras.initializers.glorot_uniform(
+    kernel_initializer = tf.keras.initializers.glorot_normal(
         seed=seed() % sys.maxsize
     )
 
