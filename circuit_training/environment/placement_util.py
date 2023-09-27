@@ -24,6 +24,7 @@ from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 from absl import logging
 from circuit_training.environment import plc_client
+import gin
 import numpy as np
 
 import tensorflow.io.gfile as gfile
@@ -189,6 +190,7 @@ def fix_port_coordinates(plc: plc_client.PlacementCost) -> None:
 # 7nm technology (https://en.wikichip.org/wiki/7_nm_lithography_process)
 # with an arbitrary, yet reasonable, assumption of 18% of the tracks for
 # the power grids.
+@gin.configurable
 def create_placement_cost(
     netlist_file: str,
     init_placement: Optional[str] = None,
@@ -206,6 +208,7 @@ def create_placement_cost(
     routes_per_congestion_grid: int = 1000,
     blockages: Optional[List[List[float]]] = None,
     fixed_macro_names_regex: Optional[List[str]] = None,
+    legacy_congestion_grid: bool = False,
 ) -> plc_client.PlacementCost:
   """Creates a placement_cost object.
 
@@ -230,6 +233,8 @@ def create_placement_cost(
     blockages: List of blockages.
     fixed_macro_names_regex: A list of macro names regex that should be fixed in
       the placement.
+    legacy_congestion_grid: If set, use the placement grid size for
+      congestion grid.
 
   Returns:
     A PlacementCost object.
@@ -265,6 +270,8 @@ def create_placement_cost(
     plc.set_canvas_size(canvas_width, canvas_height)
   if grid_cols and grid_rows:
     plc.set_placement_grid(grid_cols, grid_rows)
+    if legacy_congestion_grid:
+      plc.set_congestion_grid(grid_cols, grid_rows)
 
   plc.set_project_name('circuit_training')
   plc.set_block_name(block_name or 'unset_block')
@@ -276,15 +283,17 @@ def create_placement_cost(
   )
   plc.set_congestion_smooth_range(congestion_smooth_range)
 
-  congestion_grid_size = (
-      2.0
-      * routes_per_congestion_grid
-      / (horizontal_routes_per_micron + vertical_routes_per_micron)
-  )
-  canvas_width, canvas_height = plc.get_canvas_width_height()
-  congestion_grid_cols = max(1, int(canvas_width / congestion_grid_size))
-  congestion_grid_rows = max(1, int(canvas_height / congestion_grid_size))
-  plc.set_congestion_grid(congestion_grid_cols, congestion_grid_rows)
+  if not legacy_congestion_grid:
+    congestion_grid_size = (
+        2.0
+        * routes_per_congestion_grid
+        / (horizontal_routes_per_micron + vertical_routes_per_micron)
+    )
+    canvas_width, canvas_height = plc.get_canvas_width_height()
+    congestion_grid_cols = max(1, int(canvas_width / congestion_grid_size))
+    congestion_grid_rows = max(1, int(canvas_height / congestion_grid_size))
+    plc.set_congestion_grid(congestion_grid_cols, congestion_grid_rows)
+
   plc.set_overlap_threshold(overlap_threshold)
   plc.set_canvas_boundary_check(boundary_check)
   # It is better to make the shape of soft macros square for
