@@ -148,7 +148,6 @@ class CircuitEnv(object):
       node_order: Text = 'descending_size_macro_first',
       save_snapshot: bool = True,
       save_partial_placement: bool = False,
-      use_mix_sized_dreamplace: bool = False,
   ):
     """Creates a CircuitEnv.
 
@@ -181,8 +180,6 @@ class CircuitEnv(object):
       save_snapshot: If true, save the snapshot placement.
       save_partial_placement: If true, eval also saves the placement even if RL
         does not place all nodes when an episode is done.
-      use_mix_sized_dreamplace: If true, use mix_sized_dreamplace.plc to
-        initialize the default locations in the observation.
     """
     self._global_seed = global_seed
     if not netlist_file:
@@ -251,38 +248,26 @@ class CircuitEnv(object):
           self._plc, dreamplace_params, hard_macro_order
       )
 
-      if use_mix_sized_dreamplace:
-        mix_sized_dreamplace_file = os.path.join(
-            os.path.dirname(self._plc.get_source_filename()),
-            'mix_sized_dreamplace.plc',
-        )
-        assert tf.io.gfile.exists(
-            mix_sized_dreamplace_file
-        ), 'mix_sized_dreamplace.plc is missing.'
-        logging.info(
-            'Using mix_sized_dreamplace.plc to initialize the locations.'
-        )
-        self._plc.restore_placement(mix_sized_dreamplace_file)
-        self._plc.set_initial_placement_filename(init_placement)
-      else:
-        logging.info('Run DP mix-sized to initialize the locations.')
-        # Making all macros movable for a mixed-size.
-        self._dreamplace.placedb_plc.update_num_non_movable_macros(
-            plc=self._plc, num_non_movable_macros=0
-        )
-        converged = self._dreamplace.place()
-        self._dreamplace.placedb_plc.write_movable_locations_to_plc(self._plc)
-        if not converged:
-          logging.warning("Initial DREAMPlace mixed-size didn't converge.")
+      # Call dreamplace mixed-size before making ObservationExtractor, so we
+      # use its placement as the initial location in the features.
+      logging.info('Run DP mix-sized to initialize the locations.')
+      # Making all macros movable for a mixed-size.
+      self._dreamplace.placedb_plc.update_num_non_movable_macros(
+          plc=self._plc, num_non_movable_macros=0
+      )
+      converged = self._dreamplace.place()
+      self._dreamplace.placedb_plc.write_movable_locations_to_plc(self._plc)
+      if not converged:
+        logging.warning("Initial DREAMPlace mixed-size didn't converge.")
 
       self._dp_mixed_macro_locations = {
           m: self._plc.get_node_location(m) for m in hard_macro_order
       }
+    else:  # fd
+      # Unplace all nodes before making ObservationExtractor, so the default
+      # location (center of canvas) is used for the movable nodes.
+      self._plc.unplace_all_nodes()
 
-    # We call ObservationExtractor before reset(), so we use the
-    # initial placement in the static features (location_x and location_y).
-    # We call it after initializing with DREAMPlace mix-sized call, so we use
-    # its location in case DREAMPlace is enebaled.
     self._observation_extractor = observation_extractor.ObservationExtractor(
         plc=self._plc,
         observation_config=self._observation_config,
@@ -471,7 +456,7 @@ class CircuitEnv(object):
     Returns:
       A tuple for placement cost and info.
     """
-    total_time = 0.
+    total_time = 0.0
     if self._done:
       start_time = time.time()
       self.analytical_placer()
