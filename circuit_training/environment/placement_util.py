@@ -256,6 +256,10 @@ def create_placement_cost(
       netlist_file, macro_macro_x_spacing, macro_macro_y_spacing
   )
 
+  # It is better to make the shape of soft macros square for
+  # analytical std cell placers like FD and DREAMPlace.
+  plc.make_soft_macros_square()
+
   blockages = blockages or get_blockages_from_comments(
       [netlist_file, init_placement]
   )
@@ -296,9 +300,6 @@ def create_placement_cost(
 
   plc.set_overlap_threshold(overlap_threshold)
   plc.set_canvas_boundary_check(boundary_check)
-  # It is better to make the shape of soft macros square for
-  # analytical std cell placers like FD and DREAMPlace.
-  plc.make_soft_macros_square()
   if init_placement:
     plc.restore_placement(init_placement)
     fix_port_coordinates(plc)
