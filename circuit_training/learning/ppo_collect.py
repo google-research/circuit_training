@@ -37,7 +37,7 @@ flags.DEFINE_string(
 )
 _STD_CELL_PLACER_MODE = flags.DEFINE_string(
     'std_cell_placer_mode',
-    'fd',
+    'dreamplace',
     (
         'Options for fast std cells placement: `fd` (uses the '
         'force-directed algorithm), `dreamplace` (uses DREAMPlace '

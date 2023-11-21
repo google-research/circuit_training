@@ -321,6 +321,7 @@ $ docker run --network host -d -e "GOOGLE_APPLICATION_CREDENTIALS=/workspace/clo
      --rm -it -v $(pwd):/workspace -w /workspace/ circuit_training:core  \
      python3.9 -m circuit_training.learning.eval \
        --root_dir=${ROOT_DIR} \
+       --std_cell_placer_mode=dreamplace \
        --variable_container_server_address=${REVERB_SERVER} \
        --netlist_file=${NETLIST_FILE} \
        --init_placement=${INIT_PLACEMENT} \
