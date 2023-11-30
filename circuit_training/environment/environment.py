@@ -264,9 +264,18 @@ class CircuitEnv(object):
           m: self._plc.get_node_location(m) for m in hard_macro_order
       }
     else:  # fd
-      # Unplace all nodes before making ObservationExtractor, so the default
-      # location (center of canvas) is used for the movable nodes.
-      self._plc.unplace_all_nodes()
+      # Call fd mixed-size before making ObservationExtractor, so we
+      # use its placement as the initial location in the features.
+      placement_util.fd_placement_schedule(
+          plc=self._plc,
+          num_steps=(100, 100, 100),
+          io_factor=1.0,
+          move_distance_factors=(1.0, 2.0, 2.0),
+          attract_factor=(1.0e2, 1.0e-3, 1.0e-5),
+          repel_factor=(0.0, 1.0e5, 1.0e6),
+          use_current_loc=False,
+          move_macros=True,
+      )
 
     self._observation_extractor = observation_extractor.ObservationExtractor(
         plc=self._plc,

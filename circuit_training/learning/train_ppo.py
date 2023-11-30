@@ -264,12 +264,6 @@ def try_load_checkpoint(
 
   # If not loads from root_dir, loads from the input arguments.
   if not load_from_root_dir:
-    if policy_saved_model_dir:
-      raise ValueError(
-          'policy_saved_model_dir: '
-          f'{policy_saved_model_dir} cannot both be set.'
-      )
-
     if bool(policy_saved_model_dir) != bool(policy_checkpoint_dir):
       raise ValueError(
           f'Please make sure policy_saved_model_dir: {policy_saved_model_dir} '
@@ -333,10 +327,11 @@ def main(_):
 
   with strategy.scope():
     actor_net, value_net = create_models_lib.create_models_fn(
-        'generalization',
-        observation_tensor_spec,
-        action_tensor_spec,
-        cache.get_all_static_features(),
+        rl_architecture='generalization',
+        observation_tensor_spec=observation_tensor_spec,
+        action_tensor_spec=action_tensor_spec,
+        static_features=cache.get_all_static_features(),
+        use_model_tpu=use_model_tpu,
         seed=_GLOBAL_SEED.value,
     )
 

@@ -26,6 +26,7 @@ def create_models_fn(
     observation_tensor_spec: types.NestedTensorSpec,
     action_tensor_spec: types.NestedTensorSpec,
     static_features: Dict[str, np.ndarray],
+    use_model_tpu: bool = False,
     seed: int = 0,
 ) -> tuple[Any, Any]:
   """Creates actor/value networks.
@@ -35,6 +36,7 @@ def create_models_fn(
     observation_tensor_spec: Env observation spec.
     action_tensor_spec: Env action spec.
     static_features: Env static features.
+    use_model_tpu: Use TPU model.
     seed: Random seed.
 
   Returns:
@@ -45,7 +47,7 @@ def create_models_fn(
         observation_tensor_spec,
         action_tensor_spec,
         static_features,
-        use_model_tpu=False,
+        use_model_tpu=use_model_tpu,
         seed=seed,
     )
   else:
