@@ -309,8 +309,7 @@ $  python3 -mpip install pyunpack>=0.1.2 \
       scipy>=1.1.0 \
       numpy>=1.15.4 \
       torch==1.13.1 \
-      shapely>=1.7.0 \
-      tf_keras>=2.15.0
+      shapely>=1.7.0
 
 ```
 
