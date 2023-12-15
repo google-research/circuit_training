@@ -101,13 +101,13 @@ Before following the instructions set the following variables and clone the
 repo:
 
 ```shell
-$ export CT_VERSION=0.0.3
+$ export CT_VERSION=0.0.4
 # Currently supports python3.9, python3.10, and python3.11
 # The docker is python3.9 only.
 $ export PYTHON_VERSION=python3.9
-$ export DREAMPLACE_PATTERN=dreamplace_20230414_2835324_${PYTHON_VERSION}.tar.gz
+$ export DREAMPLACE_PATTERN=dreamplace_20231214_c5a83e5_${PYTHON_VERSION}.tar.gz
 # If the verson of TF-Agents in the table is not current, change this command to
-# match the version tf-agenst that matches the branch of Circuit Training used. 
+# match the version tf-agenst that matches the branch of Circuit Training used.
 $ export TF_AGENTS_PIP_VERSION=tf-agents[reverb]
 
 # Clone the Repo and checkout the desired branch.
@@ -358,7 +358,8 @@ used at the time the branch was cut.
 Release | Branch / Tag                                                              | TF-Agents                 | DREAMPlace                       | PL
 ------- | ------------------------------------------------------------------------- | ------------------------- | -------------------------------- | -------------- |
 HEAD    | [main](https://github.com/google-research/circuit-training)               | tf-agents-nightly[reverb] |
-0.0.3   | [v0.0.3](https://github.com/google-research/circuit_training/tree/v0.0.3) | tf-agents[reverb]~=0.16.0 | dreamplace_20230414_b31e8af_python3.9.tar.gz | [placement cost binary](https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main_0.0.3)
+0.0.4   | [v0.0.4](https://github.com/google-research/circuit_training/tree/r0.0.4) | tf-agents[reverb]~=0.19.0 | dreamplace_20231214_c5a83e5_python3.9.tar.gz | [plc_wrapper_main_0.0.4](https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main_0.0.4)
+0.0.3   | [v0.0.3](https://github.com/google-research/circuit_training/tree/r0.0.3) | tf-agents[reverb]~=0.16.0 | dreamplace_20230414_b31e8af_python3.9.tar.gz | [plc_wrapper_main_0.0.3](https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main_0.0.3)
 0.0.2   | [v0.0.2](https://github.com/google-research/circuit_training/tree/v0.0.2) | tf-agents[reverb]~=0.16.0 |
 
 

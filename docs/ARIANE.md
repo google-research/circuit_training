@@ -133,7 +133,7 @@ the circuit training repo root is located at `$HOME/run_ct/circuit_training` on
 the host systems.
 
 ```shell
-$ export CT_VERSION=0.0.3
+$ export CT_VERSION=0.0.4
 $ git clone https://github.com/google-research/circuit_training.git
 $ git -C $(pwd)/circuit_training checkout r${CT_VERSION}
 ```
@@ -158,7 +158,7 @@ $ export TF_AGENTS_PIP_VERSION=tf-agents[reverb]
 $ export CT_VERSION=0.0.3
 # The docker is python3.9 only.
 $ export PYTHON_VERSION=python3.9
-$ export DREAMPLACE_PATTERN=dreamplace_20230414_2835324_${PYTHON_VERSION}.tar.gz
+$ export DREAMPLACE_PATTERN=dreamplace_20231214_c5a83e5_${PYTHON_VERSION}.tar.gz
 ## These variables are used at runtime and passed to the docker container.
 $ export REVERB_PORT=8008
 $ export REVERB_SERVER="<IP Address of the Reverb Server>:${REVERB_PORT}"

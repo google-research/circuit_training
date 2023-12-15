@@ -12,14 +12,14 @@ period of time. The usage is as follows:
 ### Common setup for both paths
 
 ```shell
-$ export CT_VERSION=0.0.3
+$ export CT_VERSION=0.0.4
 $ git clone https://github.com/google-research/circuit_training.git
 $ git -C $(pwd)/circuit_training checkout r${CT_VERSION}
 
 $ export REPO_ROOT=$(pwd)/circuit_training
 $ export TF_AGENTS_PIP_VERSION=tf-agents[reverb]
 $ export PYTHON_VERSION=python3.9
-$ export DREAMPLACE_PATTERN=dreamplace_20230414_2835324_${PYTHON_VERSION}.tar.gz
+$ export DREAMPLACE_PATTERN=dreamplace_20231214_c5a83e5_${PYTHON_VERSION}.tar.gz
 $ mkdir -p ${REPO_ROOT}/logs
 ```
 
