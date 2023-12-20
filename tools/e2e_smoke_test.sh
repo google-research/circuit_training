@@ -39,6 +39,9 @@ INIT_PLACEMENT=./circuit_training/environment/test_data/ariane/initial.plc
 NUM_COLLECT_JOBS=4
 USE_GPU=False
 
+# Using keras-2
+export TF_USE_LEGACY_KERAS=1
+
 # Internal variables.
 TIME_WAITING=0
 SLEEP_TIME=60

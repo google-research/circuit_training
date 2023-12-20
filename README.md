@@ -161,6 +161,8 @@ These commands install TF-Agents and the placement cost binary.
 ```shell
 # Installs TF-Agents with stable versions of Reverb and TensorFlow 2.x.
 $  pip install $TF_AGENTS_PIP_VERSION
+# Using keras-2
+$ export TF_USE_LEGACY_KERAS=1
 # Copies the placement cost binary to /usr/local/bin and makes it executable.
 $  sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main_${CT_VERSION} \
      -o  /usr/local/bin/plc_wrapper_main
@@ -248,6 +250,8 @@ These commands install TF-Agents and the placement cost binary.
 ```shell
 # Installs TF-Agents with stable versions of Reverb and TensorFlow 2.x.
 $  pip install tf-agents-nightly[reverb]
+# Using keras-2
+$ export TF_USE_LEGACY_KERAS=1
 # Copies the placement cost binary to /usr/local/bin and makes it executable.
 $  sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main \
      -o  /usr/local/bin/plc_wrapper_main
