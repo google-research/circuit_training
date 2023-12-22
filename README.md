@@ -161,6 +161,7 @@ These commands install TF-Agents and the placement cost binary.
 ```shell
 # Installs TF-Agents with stable versions of Reverb and TensorFlow 2.x.
 $  pip install $TF_AGENTS_PIP_VERSION
+$  pip install tf-keras
 # Using keras-2
 $ export TF_USE_LEGACY_KERAS=1
 # Copies the placement cost binary to /usr/local/bin and makes it executable.
@@ -250,6 +251,7 @@ These commands install TF-Agents and the placement cost binary.
 ```shell
 # Installs TF-Agents with stable versions of Reverb and TensorFlow 2.x.
 $  pip install tf-agents-nightly[reverb]
+$  pip install tf-keras
 # Using keras-2
 $ export TF_USE_LEGACY_KERAS=1
 # Copies the placement cost binary to /usr/local/bin and makes it executable.
