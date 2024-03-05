@@ -43,9 +43,7 @@ def print_and_save_result(
   logging.info('**************************************************\n')
 
 
-def load_plc(
-    netlist_file, output_dir, init_placement=None
-):
+def load_plc(netlist_file, output_dir, init_placement=None):
   """Loads the netlist and initial plc."""
   t = time.time()
   plc = util.create_placement_cost(
@@ -110,7 +108,7 @@ def get_dreamplace_params(
   else:
     params.num_bins_x = 128
     params.num_bins_y = 128
-    logging.warn(
+    logging.warning(
         'Niether bin size or canvas size is provided, '
         'use the default num_bins: 128x128.'
     )
