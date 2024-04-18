@@ -74,7 +74,7 @@ def get_dreamplace_params(
     # The target density should be customized for each project. We set it to a
     # pessimistic value because it gives us the most similar std cell placements
     # compared to PNR placements of EDA tools.
-    target_density: float = 0.85,
+    target_density: float = 0.45,
     learning_rate: float = 0.01,
     canvas_width: Optional[float] = None,
     canvas_height: Optional[float] = None,
