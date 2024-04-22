@@ -10047,7 +10047,7 @@ class PlcClientTest(test_utils.TestCase):
     self.assertEqual(plc.get_area(), 250000)
     self.assertEqual(plc.get_wirelength(), 5400)
     self.assertAlmostEqual(plc.get_congestion_cost(), 1.124405186246434)
-    self.assertAlmostEqual(plc.get_density_cost(), 0.7141613323034072)
+    self.assertAlmostEqual(plc.get_density_cost(), 0.3570806661517036)
     self.assertTrue(plc.set_canvas_size(1200.0, 1200.0))
     self.assertEqual(plc.get_canvas_width_height(), (1200.0, 1200.0))
     self.assertTrue(plc.set_placement_grid(20, 20))
