@@ -363,6 +363,9 @@ class CircuitEnv(object):
         mask, (self._observation_config.max_grid_size**2,)
     ).astype(np.int32)
 
+  def _set_current_mask(self, mask: np.ndarray) -> None:
+    self._current_mask = mask
+
   def _get_obs(self) -> ObsType:
     """Returns the observation."""
     if self._current_node > 0:
