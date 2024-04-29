@@ -61,7 +61,9 @@ class ObservationExtractorTest(test_utils.TestCase):
     # Manually adds I/O port locations, this step is not needed for real
     # netlists.
     plc.update_node_coords('P0', 0.5, 100)  # Left
+    plc.fix_node_coord('P0')
     plc.update_node_coords('P1', 150, 199.5)  # Top
+    plc.fix_node_coord('P1')
     plc.update_port_sides()
     plc.snap_ports_to_edges()
     # Manually adds fake net, this step is not needed for real
@@ -135,6 +137,14 @@ class ObservationExtractorTest(test_utils.TestCase):
         [0.0, 0.292893, 0.0, 0.292893, 1.0, 0.292893, 0.0, 0.0, 0.0],
     )
     self.assertAllClose(
+        dynamic_obs['packing_heatmap'],
+        [0]
+        * (
+            self._observation_config.max_grid_size
+            * self._observation_config.max_grid_size
+        ),
+    )
+    self.assertAllClose(
         dynamic_obs['mask'],
         [0]
         * (
@@ -188,6 +198,14 @@ class ObservationExtractorTest(test_utils.TestCase):
         [0.0, 0.292893, 0.0, 0.292893, 1.0, 0.292893, 0.0, 0.0, 0.0],
     )
     self.assertAllClose(
+        all_obs['packing_heatmap'],
+        [0]
+        * (
+            self._observation_config.max_grid_size
+            * self._observation_config.max_grid_size
+        ),
+    )
+    self.assertAllClose(
         all_obs['mask'],
         [0]
         * (
@@ -215,6 +233,7 @@ class ObservationExtractorTest(test_utils.TestCase):
         previous_node_index=0, current_node_index=1, mask=mask
     )
     self.extractor.reset()
+    self.extractor.plc.unplace_all_nodes()
     initial_obs_after_reset = self.extractor.get_all_features(
         previous_node_index=-1, current_node_index=0, mask=mask
     )
@@ -245,6 +264,14 @@ class ObservationExtractorTest(test_utils.TestCase):
     self.assertAllClose(
         all_obs1['fake_net_heatmap'],
         [0.0, 0.292893, 0.0, 0.292893, 1.0, 0.292893, 0.0, 0.0, 0.0],
+    )
+    self.assertAllClose(
+        all_obs1['packing_heatmap'],
+        [0]
+        * (
+            self._observation_config.max_grid_size
+            * self._observation_config.max_grid_size
+        ),
     )
 
     self.extractor.plc.update_node_coords('M1', 200, 150)

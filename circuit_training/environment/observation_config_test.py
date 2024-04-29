@@ -73,6 +73,7 @@ class ObservationConfigTest(test_utils.TestCase):
         'is_node_placed',
         'current_node',
         'fake_net_heatmap',
+        'packing_heatmap',
         'mask',
         'netlist_index',
     )
