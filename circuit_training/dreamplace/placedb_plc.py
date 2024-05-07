@@ -26,6 +26,7 @@ class PlacedbPlc(object):
 
   def __init__(self, plc, params, hard_macro_order=None):
     self.params = params
+    self.initial_target_density = params.target_density
     self.converter = plc_converter.PlcConverter()
     self.placedb = self.converter.convert(plc, hard_macro_order)
     self.placedb(self.params)
@@ -57,6 +58,9 @@ class PlacedbPlc(object):
       self.converter.update_num_non_movable_macros(
           self.placedb, plc, num_non_movable_macros
       )
+      # Reseting target density, since it might have been updated in previous
+      # initialization.
+      self.params.target_density = self.initial_target_density
       self.placedb(self.params)
 
   def write_movable_locations_to_plc(self, plc):
