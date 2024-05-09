@@ -89,7 +89,7 @@ def main(_):
       init_placement=FLAGS.init_placement,
       global_seed=FLAGS.global_seed,
       std_cell_placer_mode=_STD_CELL_PLACER_MODE.value,
-      netlist_index=0,
+      netlist_index=_NETLIST_INDEX.value,
   )
 
   ppo_collect_lib.collect(
