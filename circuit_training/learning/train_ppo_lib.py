@@ -137,6 +137,7 @@ def compute_total_training_step(
         'num_iterations',
         'num_episodes_per_iteration',
         'init_learning_rate',
+        'policy_save_interval',
     ]
 )
 def train(
@@ -165,6 +166,7 @@ def train(
     # num_replicas.
     num_episodes_per_iteration: int = 256,
     init_learning_rate: float = 0.004,
+    policy_save_interval: int = 1000,
     num_netlists: int = 1,
     debug_summaries: bool = False,
 ) -> None:
@@ -195,6 +197,7 @@ def train(
     num_episodes_per_iteration: This is the number of episodes we train in each
       epoch.
     init_learning_rate: Initial learning rate.
+    policy_save_interval: How often policies are saved.
     num_netlists: Number of netlits to train used for normalizing advantage. If
       larger than 1, the advantage will be normalize first across the netlists
       then on the entire batch.
@@ -257,8 +260,8 @@ def train(
       saved_model_dir,
       tf_agent,
       train_step,
-      start=-num_episodes_per_iteration,
-      interval=num_episodes_per_iteration,
+      start=-policy_save_interval,
+      interval=policy_save_interval,
   )
 
   # Create the variable container.

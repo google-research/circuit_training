@@ -144,8 +144,7 @@ class EnvironmentTest(test_utils.TestCase):
     env = environment.CircuitEnv(
         netlist_file=netlist_file,
         init_placement=init_placement,
-        is_eval=True,
-        save_best_cost=True,
+        save_placement=True,
         output_plc_file=output_plc_file,
         cd_finetune=True,
         train_step=train_step,
