@@ -133,12 +133,17 @@ class Grouping:
     # Goes through each macro, put each macro's pins into a separate group.
     for netlist_node in self._meta_netlist.node:
       if netlist_node.type == mnds.Type.MACRO and not netlist_node.soft_macro:
+        has_pins = False
         for pin_ind in netlist_node.output_indices:
           self.set_node_group(pin_ind, group_index)
+          has_pins = True
 
         for pin_ind in netlist_node.input_indices:
           self.set_node_group(pin_ind, group_index)
-        group_index += 1
+          has_pins = True
+
+        if has_pins:
+          group_index += 1
 
     # Goes through I/O's.
     # Most netlists will not have side constraints for ports, infer from the
