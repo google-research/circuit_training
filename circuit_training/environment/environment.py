@@ -18,7 +18,7 @@ import datetime
 import math
 import os
 import time
-from typing import Any, Callable, Protocol
+from typing import Any, Callable, Optional, Protocol
 
 from absl import logging
 from circuit_training.dreamplace import dreamplace_core
@@ -151,7 +151,7 @@ class CircuitEnv(object):
       output_plc_file: str = '',
       cd_finetune: bool = False,
       cd_plc_file: str = 'ppo_cd_placement.plc',
-      train_step: tf.Variable | None = None,
+      train_step: Optional[tf.Variable] = None,
       output_all_features: bool = False,
       node_order: str = 'descending_size_macro_first',
       save_snapshot: bool = True,
