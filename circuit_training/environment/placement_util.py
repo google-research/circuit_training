@@ -108,7 +108,7 @@ def extract_attribute_from_comments(
 
 
 def get_blockages_from_comments(
-    filenames: Union[str, List[str]]
+    filenames: Union[str, List[str]],
 ) -> Optional[List[List[float]]]:
   """Returns list of blockages if they exist in the file's comments section."""
   for filename in filenames:
@@ -233,8 +233,8 @@ def create_placement_cost(
     blockages: List of blockages.
     fixed_macro_names_regex: A list of macro names regex that should be fixed in
       the placement.
-    legacy_congestion_grid: If set, use the placement grid size for
-      congestion grid.
+    legacy_congestion_grid: If set, use the placement grid size for congestion
+      grid.
 
   Returns:
     A PlacementCost object.
@@ -572,8 +572,9 @@ def extract_blockages_from_file(
           raise ValueError(
               f'Illegal blockage ury {ury} > canvas height {canvas_height}'
           )
-        # Set 1.0 blockage rate so no macros or stdcells are allowed.
-        blockages.append([llx, lly, urx, ury, 1.0])
+        # Set 0.99 blockage rate so no macros or stdcells are allowed.
+        # 1.0 is reserved for rectilinear blockages.
+        blockages.append([llx, lly, urx, ury, 0.99])
   except IOError:
     logging.error('Could not read file %s', filename)
   return blockages
@@ -734,6 +735,7 @@ def create_blockages_by_spacing_constraints(
     canvas_height: float,
     macro_boundary_x_spacing: float = 0,
     macro_boundary_y_spacing: float = 0,
+    rectilinear_blockages: Optional[List[List[float]]] = None,
 ) -> List[List[float]]:
   """Create blockages using macro-to-boundary spacing constraints."""
   blockages = []
@@ -741,11 +743,11 @@ def create_blockages_by_spacing_constraints(
   blockage_rate = 0.1
   if macro_boundary_x_spacing:
     assert 0 < macro_boundary_x_spacing <= canvas_width
-    # Left horizontal
+    # Left vertical
     blockages.append(
         [0, 0, macro_boundary_x_spacing, canvas_height, blockage_rate]
     )
-    # Right horizontal
+    # Right vertical
     blockages.append([
         canvas_width - macro_boundary_x_spacing,
         0,
@@ -755,11 +757,11 @@ def create_blockages_by_spacing_constraints(
     ])
   if macro_boundary_y_spacing:
     assert 0 < macro_boundary_y_spacing <= canvas_height
-    # Bottom vertical
+    # Bottom horizontal
     blockages.append(
         [0, 0, canvas_width, macro_boundary_y_spacing, blockage_rate]
     )
-    # Top vertical
+    # Top horizontal
     blockages.append([
         0,
         canvas_height - macro_boundary_y_spacing,
@@ -767,4 +769,40 @@ def create_blockages_by_spacing_constraints(
         canvas_height,
         blockage_rate,
     ])
+  for rectilinear_blockage in rectilinear_blockages or []:
+    minx, miny, maxx, maxy, _ = rectilinear_blockage
+    if macro_boundary_x_spacing:
+      # Left Vertical
+      blockages.append([
+          max(minx - macro_boundary_x_spacing, 0),
+          max(miny - macro_boundary_y_spacing, 0),
+          minx,
+          min(maxy + macro_boundary_y_spacing, canvas_height),
+          blockage_rate,
+      ])
+      # Right Vertical
+      blockages.append([
+          maxx,
+          max(miny - macro_boundary_y_spacing, 0),
+          min(maxx + macro_boundary_x_spacing, canvas_width),
+          min(maxy + macro_boundary_y_spacing, canvas_height),
+          blockage_rate,
+      ])
+    if macro_boundary_y_spacing:
+      # Bottom horizental
+      blockages.append([
+          max(minx - macro_boundary_x_spacing, 0),
+          max(miny - macro_boundary_y_spacing, 0),
+          min(maxx + macro_boundary_x_spacing, canvas_width),
+          miny,
+          blockage_rate,
+      ])
+      # Top horizental
+      blockages.append([
+          max(minx - macro_boundary_x_spacing, 0),
+          maxy,
+          min(maxx + macro_boundary_x_spacing, canvas_width),
+          min(maxy + macro_boundary_y_spacing, canvas_height),
+          blockage_rate,
+      ])
   return blockages

@@ -376,6 +376,21 @@ class PlacementUtilTest(test_utils.TestCase):
     ]
     self.assertEqual(blockages, expected_blockages)
 
+    blockages = placement_util.create_blockages_by_spacing_constraints(
+        10, 20, 1, 2, [(0, 0, 3, 3, 1.0)]
+    )
+    expected_blockages = [
+        [0, 0, 1, 20, 0.1],
+        [9, 0, 10, 20, 0.1],
+        [0, 0, 10, 2, 0.1],
+        [0, 18, 10, 20, 0.1],
+        [0, 0, 0, 5, 0.1],
+        [3, 0, 4, 5, 0.1],
+        [0, 0, 4, 0, 0.1],
+        [0, 3, 4, 5, 0.1],
+    ]
+    self.assertEqual(blockages, expected_blockages)
+
 
 if __name__ == '__main__':
   test_utils.main()

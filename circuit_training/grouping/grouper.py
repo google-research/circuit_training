@@ -445,8 +445,8 @@ def add_blockage(
   """
   blockage_file = FLAGS.blockage_file
 
+  w, h = plc.get_canvas_width_height()
   if blockage_file:
-    w, h = plc.get_canvas_width_height()
     blockages = placement_util.extract_blockages_from_file(blockage_file, w, h)
     for blockage in blockages:
       logging.info('Blockage: %s', blockage)
@@ -456,8 +456,15 @@ def add_blockage(
   macro_boundary_x_spacing = FLAGS.macro_boundary_x_spacing
   macro_boundary_y_spacing = FLAGS.macro_boundary_y_spacing
   if macro_boundary_x_spacing or macro_boundary_y_spacing:
+    rectilinear_blockages = [
+        blockage for blockage in plc.get_blockages() if blockage[4] >= 1.0
+    ]
     blockages = placement_util.create_blockages_by_spacing_constraints(
-        w, h, macro_boundary_x_spacing, macro_boundary_y_spacing
+        w,
+        h,
+        macro_boundary_x_spacing,
+        macro_boundary_y_spacing,
+        rectilinear_blockages,
     )
     for blockage in blockages:
       logging.info('Macro-to-boundary spacing blockage: %s', blockage)
