@@ -1,9 +1,9 @@
 <!--* freshness: {
   owner: 'wenjiej'
-  owner: 'tobyboyd'
+  owner: 'esonghori'
   owner: 'sguada'
   owner: 'morpheus-core'
-  reviewed: '2023-01-14'
+  reviewed: '2024-07-16'
   review_interval: '12 months'
 } *-->
 
@@ -597,7 +597,8 @@ If you use this code, please cite both:
   title = {{Circuit Training}: An open-source framework for generating chip
   floor plans with distributed deep reinforcement learning.},
   author = {Guadarrama, Sergio and Yue, Summer and Boyd, Toby and Jiang, Joe
-  Wenjie and Songhori, Ebrahim and Tam, Terence and Mirhoseini, Azalia},
+  Wenjie and Songhori, Ebrahim and Tam, Terence, Goldie, Anna and Mirhoseini,
+  Azalia},
   howpublished = {\url{https://github.com/google_research/circuit_training}},
   url = "https://github.com/google_research/circuit_training",
   year = 2021,
