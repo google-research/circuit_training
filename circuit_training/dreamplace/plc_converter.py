@@ -18,6 +18,7 @@ Convention:
  - indices of macros, ports, and pins in plc is named "_index" and "_indices".
  - indices of nodes, pins, and nets in PlaceDB is named "_id" and "ids".
 """
+
 import pickle
 
 from absl import logging
@@ -155,11 +156,13 @@ def convert_nodes(db, plc, hard_macro_order):
     db.node_x.append(x - db.original_node_size_x[-1] / 2)
     db.node_y.append(y - db.original_node_size_y[-1] / 2)
 
-  # if the blockage rate is 1, translate it into a dummy fixed node.
+  # if the blockage rate is larger than 0.99 (1.0 for rectilinear blockages and
+  # 0.99 for stdcell blockages), translate it into a dummy fixed node. Macro
+  # blockages (rate==0.1) are ignored.
   num_blockage_dummy_node = 0
   for b in plc.get_blockages():
     # b is a tupe of (minx, miny, maxx, maxy, blockage_rate)
-    if b[4] == 1:
+    if b[4] >= 0.99:
       dummy_node_name = 'blockage_dummy_node_' + str(num_blockage_dummy_node)
       db.node_names.append(dummy_node_name)
       db.node_name2id_map[dummy_node_name] = (
