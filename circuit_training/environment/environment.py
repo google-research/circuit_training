@@ -156,6 +156,7 @@ class CircuitEnv(object):
       node_order: str = 'descending_size_macro_first',
       save_snapshot: bool = True,
       save_partial_placement: bool = False,
+      mixed_size_dp_at_infeasible: bool = True,
   ):
     """Creates a CircuitEnv.
 
@@ -188,6 +189,8 @@ class CircuitEnv(object):
       save_snapshot: If true, save the snapshot placement.
       save_partial_placement: If true, eval also saves the placement even if RL
         does not place all nodes when an episode is done.
+      mixed_size_dp_at_infeasible: If true, run mixed size DP at infeasible
+        states. Only effective when std_cell_placer_mode is 'dreamplace'.
     """
     self._global_seed = global_seed
     if not netlist_file:
@@ -211,6 +214,7 @@ class CircuitEnv(object):
     )
     self._save_snapshot = save_snapshot
     self._save_partial_placement = save_partial_placement
+    self._mixed_size_dp_at_infeasible = mixed_size_dp_at_infeasible
 
     self._observation_config = observation_config.ObservationConfig()
 
@@ -597,22 +601,25 @@ class CircuitEnv(object):
     self._current_mask = self._get_mask()
 
     if not self._done and not np.any(self._current_mask):
+      self._done = True
       logging.info(
           'Actions took before becoming infeasible: %s', self._current_actions
       )
-      if self._std_cell_placer_mode == 'dreamplace':
+      if (
+          self._std_cell_placer_mode == 'dreamplace'
+          and self._mixed_size_dp_at_infeasible
+      ):
         logging.info(
             'Using DREAMPlace mixed-size placer for the rest of the macros and'
             ' std cell clusters.'
         )
-        self._done = True
         cost, info = self.call_analytical_placer_and_get_cost(
             infeasible_state=True
         )
-        return self.reset(), cost, True, info
+        return self._get_obs(), cost, True, info
       else:
         info = {cost: -1.0 for cost in COST_COMPONENTS}
-        return self.reset(), self.INFEASIBLE_REWARD, True, info
+        return self._get_obs(), self.INFEASIBLE_REWARD, True, info
 
     cost, info = self.call_analytical_placer_and_get_cost()
 
