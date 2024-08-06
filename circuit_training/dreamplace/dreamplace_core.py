@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """A soft macro placer using Dreamplace."""
+
 import time
 
 from absl import logging
@@ -48,11 +49,7 @@ class SoftMacroPlacer:
     )
     metrics = nonlinear_place(self.params, self.placedb_plc.placedb)
     logging.info('Last Dreamplace metric: %s', str(metrics[-1][-1][-1]))
-    total_iterations = sum(
-        [stage['iteration'] for stage in self.params.global_place_stages]
-    )
-
-    return (metrics[-1][-1][-1].iteration) < total_iterations
+    return metrics[-1][-1][-1].overflow < (self.params.stop_overflow * 1.1)
 
   def place(self) -> bool:
     @timeout_decorator.timeout(
