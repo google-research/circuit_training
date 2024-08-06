@@ -245,20 +245,7 @@ class CircuitEnv(object):
     self._saved_cost = np.inf
 
     if self._std_cell_placer_mode == 'dreamplace':
-      canvas_width, canvas_height = self._plc.get_canvas_width_height()
-      dreamplace_params = dreamplace_util.get_dreamplace_params(
-          canvas_width=canvas_width,
-          canvas_height=canvas_height,
-      )
-      # Dreamplace requires that movable nodes appear first
-      # and then fixed nodes.
-      # Since the first node to be placed (becoming fixed) is the first node in
-      # _sorted_node_indices, we reverse the order and send it to dreamplace.
-      hard_macro_order = self._sorted_node_indices[: self._num_hard_macros]
-      hard_macro_order = hard_macro_order[::-1]
-      self._dreamplace = dreamplace_core.SoftMacroPlacer(
-          self._plc, dreamplace_params, hard_macro_order
-      )
+      self._dreamplace = self.create_dreamplace()
 
       # Call dreamplace mixed-size before making ObservationExtractor, so we
       # use its placement as the initial location in the features.
@@ -273,7 +260,8 @@ class CircuitEnv(object):
         logging.warning("Initial DREAMPlace mixed-size didn't converge.")
 
       self._dp_mixed_macro_locations = {
-          m: self._plc.get_node_location(m) for m in hard_macro_order
+          m: self._plc.get_node_location(m)
+          for m in self._sorted_node_indices[: self._num_hard_macros]
       }
     else:  # fd
       # Call fd mixed-size before making ObservationExtractor, so we
@@ -328,6 +316,23 @@ class CircuitEnv(object):
   def macro_names(self) -> list[str]:
     macro_ids = self._sorted_node_indices[: self._num_hard_macros]
     return [self._plc.get_node_name(m) for m in macro_ids]
+
+  def create_dreamplace(self) -> dreamplace_core.SoftMacroPlacer:
+    """Creates the SoftMacroPlacer."""
+    canvas_width, canvas_height = self._plc.get_canvas_width_height()
+    dreamplace_params = dreamplace_util.get_dreamplace_params(
+        canvas_width=canvas_width,
+        canvas_height=canvas_height,
+    )
+    # Dreamplace requires that movable nodes appear first
+    # and then fixed nodes.
+    # Since the first node to be placed (becoming fixed) is the first node in
+    # _sorted_node_indices, we reverse the order and send it to dreamplace.
+    hard_macro_order = self._sorted_node_indices[: self._num_hard_macros]
+    hard_macro_order = hard_macro_order[::-1]
+    return dreamplace_core.SoftMacroPlacer(
+        self._plc, dreamplace_params, hard_macro_order
+    )
 
   def get_static_obs(self):
     """Get the static observation for the environment.
