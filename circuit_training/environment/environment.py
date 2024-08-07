@@ -157,6 +157,7 @@ class CircuitEnv(object):
       save_snapshot: bool = True,
       save_partial_placement: bool = False,
       mixed_size_dp_at_infeasible: bool = True,
+      dp_target_density: float = 0.425,
   ):
     """Creates a CircuitEnv.
 
@@ -191,6 +192,7 @@ class CircuitEnv(object):
         does not place all nodes when an episode is done.
       mixed_size_dp_at_infeasible: If true, run mixed size DP at infeasible
         states. Only effective when std_cell_placer_mode is 'dreamplace'.
+      dp_target_density: Target density parameter in DREAMPlace.
     """
     self._global_seed = global_seed
     if not netlist_file:
@@ -245,7 +247,9 @@ class CircuitEnv(object):
     self._saved_cost = np.inf
 
     if self._std_cell_placer_mode == 'dreamplace':
-      self._dreamplace = self.create_dreamplace()
+      self._dreamplace = self.create_dreamplace(
+          dp_target_density=dp_target_density
+      )
 
       # Call dreamplace mixed-size before making ObservationExtractor, so we
       # use its placement as the initial location in the features.
@@ -317,10 +321,13 @@ class CircuitEnv(object):
     macro_ids = self._sorted_node_indices[: self._num_hard_macros]
     return [self._plc.get_node_name(m) for m in macro_ids]
 
-  def create_dreamplace(self) -> dreamplace_core.SoftMacroPlacer:
+  def create_dreamplace(
+      self, dp_target_density: float,
+  ) -> dreamplace_core.SoftMacroPlacer:
     """Creates the SoftMacroPlacer."""
     canvas_width, canvas_height = self._plc.get_canvas_width_height()
     dreamplace_params = dreamplace_util.get_dreamplace_params(
+        target_density=dp_target_density,
         canvas_width=canvas_width,
         canvas_height=canvas_height,
     )
