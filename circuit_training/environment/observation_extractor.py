@@ -443,7 +443,7 @@ class ObservationExtractor(object):
         features['locations_y'] / self.half_perimeter
     ).astype(np.float32)
 
-  def _grid_l2_distance(self, loc1: int, loc2: int) -> float:
+  def _grid_l2_distance(self, loc1: np.ndarray, loc2: np.ndarray) -> np.ndarray:
     """Returns the l2 distance between loc1 and loc2.
 
     Args:
@@ -459,11 +459,10 @@ class ObservationExtractor(object):
     r2 = loc2 // self.num_cols
     c2 = loc2 % self.num_cols
 
-    return math.sqrt(
+    return np.sqrt(
         ((c1 - c2) * self.grid_width) ** 2 + ((r1 - r2) * self.grid_height) ** 2
     )
 
-  # NOTE(esonghori): Consider moving this feature to C++ code.
   def get_fake_net_heatmap(self, current_node_index: int) -> np.ndarray:
     """Returns the fake net heatmap for the current node.
 
@@ -489,17 +488,25 @@ class ObservationExtractor(object):
       return zero_heatmap
     related_fake_nets = self.fake_net_dict[current_node_id]
 
-    heatmap = np.zeros((self.num_rows, self.num_cols), dtype=np.float32)
-    for l in range(self.num_rows * self.num_cols):
-      cost = 0.0
-      for related_node in related_fake_nets:
-        if self.plc.is_node_placed(related_node):
-          related_node_loc = self.plc.get_grid_cell_of_node(related_node)
-          cost += related_fake_nets[related_node] * self._grid_l2_distance(
-              related_node_loc, l
-          )
-      # Use negative cost, so the smallest cost becomes 1.0 after normalization.
-      heatmap[(l // self.num_cols, l % self.num_cols)] = -cost
+    all_locations = np.arange(self.num_rows * self.num_cols)
+
+    placed_nodes = [
+        node for node in related_fake_nets if self.plc.is_node_placed(node)
+    ]
+    related_node_locs = np.array(
+        [self.plc.get_grid_cell_of_node(node) for node in placed_nodes]
+    )
+    weights = np.array([related_fake_nets[node] for node in placed_nodes])
+    costs = np.sum(
+        weights[:, np.newaxis]
+        * self._grid_l2_distance(
+            related_node_locs[:, np.newaxis], all_locations
+        ),
+        axis=0,
+    )
+
+    # Use negative cost, so the smallest cost becomes 1.0 after normalization.
+    heatmap = -costs.reshape(self.num_rows, self.num_cols)
 
     # Normalize between 0 and 1.
     h_min = np.min(heatmap)
