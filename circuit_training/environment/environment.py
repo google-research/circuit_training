@@ -133,7 +133,7 @@ def cost_info_function(
 class CircuitEnv(object):
   """Defines the CircuitEnv class."""
 
-  INFEASIBLE_REWARD = -1.0
+  INFEASIBLE_REWARD = -4.0
 
   def __init__(
       self,
