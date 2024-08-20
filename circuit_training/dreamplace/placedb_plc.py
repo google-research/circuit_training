@@ -17,6 +17,7 @@
 In this file, we do not conduct placement as it will needs torch library.
 Realistic placement is done in dreamplace_core.
 """
+
 from absl import logging
 from circuit_training.dreamplace import plc_converter
 
@@ -72,8 +73,14 @@ class PlacedbPlc(object):
       # DREAMPlace uses lower left position, while plc uses centered position.
       plc.update_node_coords(
           node_index,
-          self.placedb.node_x[node_id] + self.placedb.node_size_x[node_id] / 2,
-          self.placedb.node_y[node_id] + self.placedb.node_size_y[node_id] / 2,
+          float(
+              self.placedb.node_x[node_id]
+              + self.placedb.node_size_x[node_id] / 2
+          ),
+          float(
+              self.placedb.node_y[node_id]
+              + self.placedb.node_size_y[node_id] / 2
+          ),
       )
 
   def update_net_weights(self, plc):
