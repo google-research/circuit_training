@@ -19,6 +19,7 @@ Convention:
  - indices of nodes, pins, and nets in PlaceDB is named "_id" and "ids".
 """
 
+import math
 import pickle
 
 from absl import logging
@@ -413,23 +414,10 @@ def convert_to_ndarray(db):
   db.macro_mask = np.array(db.macro_mask, dtype=np.uint8)
 
 
-def initialize_placedb_region_attributes(db):
-  """Initialize the region-related attributes in PlaceDB instance.
-
-  Args:
-    db: The PlaceDB instance.  Assume there is no region constraints in the plc
-      format.
-  """
-  db.regions = []
-  db.flat_region_boxes = np.array([], dtype=db.dtype)
-  db.flat_region_boxes_start = np.array([0], dtype=np.int32)
-  db.node2fence_region_map = np.array([], dtype=np.int32)
-
-
 class PlcConverter(object):
   """Class that converts a plc into a Dreamplace PlaceDB."""
 
-  def __init__(self):
+  def __init__(self, regioning=False):
     # List of movable node (except hard macros) indices in plc.
     self._soft_macro_and_stdcell_indices = None
     # List of hard macros in plc.
@@ -442,6 +430,7 @@ class PlcConverter(object):
     self._node_index_to_node_id_map = None
     # List of pin index in plc to pin id in PlaceDB.
     self._pin_id_to_pin_index = None
+    self._regioning = regioning
 
   @property
   def soft_macro_and_stdcell_indices(self):
@@ -510,7 +499,7 @@ class PlcConverter(object):
 
     convert_canvas(db, plc)
     (
-        physical_node_indices,
+        self._physical_node_indices,
         self._node_index_to_node_id_map,
         self._soft_macro_and_stdcell_indices,
         self._hard_macro_indices,
@@ -518,14 +507,14 @@ class PlcConverter(object):
         self._num_blockage_dummy_node,
     ) = convert_nodes(db, plc, hard_macro_order)
     self._driver_pin_indices, self._pin_id_to_pin_index = convert_pins_and_nets(
-        db, plc, physical_node_indices, self._node_index_to_node_id_map
+        db, plc, self._physical_node_indices, self._node_index_to_node_id_map
     )
 
     db.total_space_area = (
         db.xh * db.yh - blockage_area(plc) - self.non_movable_macro_area(plc)
     )
     convert_to_ndarray(db)
-    initialize_placedb_region_attributes(db)
+    self.initialize_placedb_region_attributes(db, plc)
     return db
 
   def convert_and_dump(self, plc, path_to_placedb, hard_macro_order=None):
@@ -590,3 +579,66 @@ class PlcConverter(object):
     db.node_size_y = db.original_node_size_y
     db.num_movable_pins = None
     db.num_non_movable_macros = num_non_movable_macros
+    self.initialize_placedb_region_attributes(db, plc)
+
+  def initialize_placedb_region_attributes(self, db, plc):
+    """Initialize the region-related attributes in PlaceDB instance.
+
+    Args:
+      db: The PlaceDB instance.  Assume there is no region constraints in the
+        plc format.
+    """
+    if self._regioning:
+      # A region is an array of BB.
+      region_to_id = {}
+      next_region_id = 0
+      movable_node_indices = self._physical_node_indices[:-db.num_terminals]
+      # Ignores macro region constraints for now.
+      db.node2fence_region_map = np.full(
+          len(movable_node_indices),
+          PlaceDB.INT_MAX,
+          dtype=np.int32,
+      )
+      w, h = plc.get_canvas_width_height()
+      # Setting region as exact canvas size causes a problem.
+      w, h = math.floor(w), math.floor(h)
+      for n in movable_node_indices:
+        areas = plc.get_area_constraint(n)
+        if not areas:
+          # No area constraints. Set region as the entire canvas.
+          areas = (0, 0, w, h)
+        # Areas is a flatten list of BBs.
+        # Different orders of same BBs will be treated as different regions.
+        assert len(areas) % 4 == 0
+        region = tuple(areas)
+        if region not in region_to_id.keys():
+          region_to_id[region] = next_region_id
+          next_region_id += 1
+
+        db.node2fence_region_map[self._node_index_to_node_id_map[n]] = (
+            region_to_id[region]
+        )
+
+      # next_region_id is total number of regions.
+      db_regions = np.empty(next_region_id, dtype=object)
+      for region, rid in region_to_id.items():
+        db_regions[rid] = region
+      for i, region in enumerate(db_regions):
+        db_regions[i] = np.array(region).reshape(-1, 4)
+
+      # Finish region initialization.
+      db.regions = db_regions
+      db.flat_region_boxes = np.array([], dtype=db.dtype)
+      db.flat_region_boxes_start = np.array([0], dtype=np.int32)
+      for region in db_regions:
+        for box in region:
+          db.flat_region_boxes = np.append(db.flat_region_boxes, box)
+        db.flat_region_boxes_start = np.append(
+            db.flat_region_boxes_start, len(db.flat_region_boxes)
+        )
+    else:
+      db.regions = []
+      db.flat_region_boxes = np.array([], dtype=db.dtype)
+      db.flat_region_boxes_start = np.array([0], dtype=np.int32)
+      db.node2fence_region_map = np.array([], dtype=np.int32)
+

@@ -28,7 +28,7 @@ class PlacedbPlc(object):
   def __init__(self, plc, params, hard_macro_order=None):
     self.params = params
     self.initial_target_density = params.target_density
-    self.converter = plc_converter.PlcConverter()
+    self.converter = plc_converter.PlcConverter(regioning=params.regioning)
     self.placedb = self.converter.convert(plc, hard_macro_order)
     self.placedb(self.params)
 

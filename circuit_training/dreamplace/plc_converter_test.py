@@ -59,7 +59,10 @@ class PlcConverterTest(test_utils.TestCase):
     plc = placement_util.create_placement_cost(
         netlist_file=netlist_file, init_placement=init_placement
     )
-    converter = plc_converter.PlcConverter()
+    converter = plc_converter.PlcConverter(regioning=True)
+    grp_2 = plc.get_node_index('Grp_2')
+    plc.add_area_constraint([grp_2], [0, 0, 400, 400])
+    plc.add_area_constraint([grp_2], [400, 400, 500, 500])
     placedb = converter.convert(plc)
     placedb(self.get_params_for_test(plc))
 
@@ -277,15 +280,20 @@ class PlcConverterTest(test_utils.TestCase):
         ],
     )
 
-    self.assert_array_of_array_equal(placedb.regions, [])
-    np.testing.assert_array_equal(
-        placedb.flat_region_boxes, np.array([], dtype=np.float32)
+    self.assert_array_of_array_equal(
+        placedb.regions, np.array([[[0, 0, 400, 400], [400, 400, 500, 500]]])
     )
     np.testing.assert_array_equal(
-        placedb.flat_region_boxes_start, np.array([0], dtype=np.int32)
+        placedb.flat_region_boxes,
+        np.array([0, 0, 400, 400, 400, 400, 500, 500], dtype=np.float32),
     )
     np.testing.assert_array_equal(
-        placedb.node2fence_region_map, np.array([], dtype=np.int32)
+        placedb.flat_region_boxes_start, np.array([0, 8], dtype=np.int32)
+    )
+    print('placedb.node2fence_region_map: ', placedb.node2fence_region_map)
+    np.testing.assert_array_equal(
+        placedb.node2fence_region_map,
+        np.array([0], dtype=np.int32),
     )
 
   def test_mixed_size_with_changing_hard_macro(self):
