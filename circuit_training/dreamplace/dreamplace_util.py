@@ -87,6 +87,7 @@ def get_dreamplace_params(
     routability_opt_flag: bool = False,
     num_threads: int = 8,
     deterministic_flag: bool = False,
+    regioning: bool = False,
 ):
   """Returns the parameters to config Dreamplace."""
   params = Params.Params()
@@ -129,8 +130,7 @@ def get_dreamplace_params(
   params.gpu = gpu
   params.result_dir = result_dir
   params.stop_overflow = stop_overflow
-  # disable fence region feature
-  params.regioning = False
+  params.regioning = regioning
 
   # routability optimization flags:
   params.routability_opt_flag = routability_opt_flag

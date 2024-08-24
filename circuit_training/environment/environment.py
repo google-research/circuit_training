@@ -322,7 +322,9 @@ class CircuitEnv(object):
     return [self._plc.get_node_name(m) for m in macro_ids]
 
   def create_dreamplace(
-      self, dp_target_density: float,
+      self,
+      dp_target_density: float,
+      regioning: bool = False,
   ) -> dreamplace_core.SoftMacroPlacer:
     """Creates the SoftMacroPlacer."""
     canvas_width, canvas_height = self._plc.get_canvas_width_height()
@@ -330,6 +332,7 @@ class CircuitEnv(object):
         target_density=dp_target_density,
         canvas_width=canvas_width,
         canvas_height=canvas_height,
+        regioning=regioning,
     )
     # Dreamplace requires that movable nodes appear first
     # and then fixed nodes.
