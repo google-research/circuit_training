@@ -592,7 +592,7 @@ class PlcConverter(object):
       # A region is an array of BB.
       region_to_id = {}
       next_region_id = 0
-      movable_node_indices = self._physical_node_indices[:-db.num_terminals]
+      movable_node_indices = self._physical_node_indices[: -db.num_terminals]
       # Ignores macro region constraints for now.
       db.node2fence_region_map = np.full(
           len(movable_node_indices),
@@ -604,13 +604,13 @@ class PlcConverter(object):
       w, h = math.floor(w), math.floor(h)
       for n in movable_node_indices:
         areas = plc.get_area_constraint(n)
+        for area in areas:
+          assert len(area) == 4
         if not areas:
           # No area constraints. Set region as the entire canvas.
-          areas = (0, 0, w, h)
-        # Areas is a flatten list of BBs.
-        # Different orders of same BBs will be treated as different regions.
-        assert len(areas) % 4 == 0
-        region = tuple(areas)
+          areas = [[0, 0, w, h]]
+
+        region = tuple(sorted([tuple(area) for area in areas]))
         if region not in region_to_id.keys():
           region_to_id[region] = next_region_id
           next_region_id += 1
@@ -624,7 +624,7 @@ class PlcConverter(object):
       for region, rid in region_to_id.items():
         db_regions[rid] = region
       for i, region in enumerate(db_regions):
-        db_regions[i] = np.array(region).reshape(-1, 4)
+        db_regions[i] = np.array(region)
 
       # Finish region initialization.
       db.regions = db_regions
@@ -641,4 +641,3 @@ class PlcConverter(object):
       db.flat_region_boxes = np.array([], dtype=db.dtype)
       db.flat_region_boxes_start = np.array([0], dtype=np.int32)
       db.node2fence_region_map = np.array([], dtype=np.int32)
-
