@@ -592,7 +592,7 @@ class PlcConverter(object):
       # A region is an array of BB.
       region_to_id = {}
       next_region_id = 0
-      movable_node_indices = self._physical_node_indices[: -db.num_terminals]
+      movable_node_indices = self._physical_node_indices[:db.num_movable_nodes]
       # Ignores macro region constraints for now.
       db.node2fence_region_map = np.full(
           len(movable_node_indices),
