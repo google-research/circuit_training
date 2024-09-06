@@ -144,9 +144,11 @@ class CoordinateDescentPlacer(object):
 
     if self._use_stdcell_placer and self._stdcell_placer == 'dreamplace':
       canvas_width, canvas_height = self.plc.get_canvas_width_height()
+      regioning = self.plc.has_area_constraint()
       dreamplace_params = dreamplace_util.get_dreamplace_params(
           canvas_width=canvas_width,
           canvas_height=canvas_height,
+          regioning=regioning,
       )
       self._dreamplace = dreamplace_core.SoftMacroPlacer(
           self.plc, dreamplace_params

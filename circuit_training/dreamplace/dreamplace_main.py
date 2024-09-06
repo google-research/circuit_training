@@ -72,9 +72,11 @@ def main(argv):
       init_placement=_INIT_PLACEMENT.value,
   )
   canvas_width, canvas_height = plc.get_canvas_width_height()
+  regioning = plc.has_area_constraint()
   dp_params = dreamplace_util.get_dreamplace_params(
       canvas_width=canvas_width,
       canvas_height=canvas_height,
+      regioning=regioning,
       gpu=_DP_GPU.value,
   )
   if _DP_GPU.value:

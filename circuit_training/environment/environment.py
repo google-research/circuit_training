@@ -324,10 +324,10 @@ class CircuitEnv(object):
   def create_dreamplace(
       self,
       dp_target_density: float,
-      regioning: bool = False,
   ) -> dreamplace_core.SoftMacroPlacer:
     """Creates the SoftMacroPlacer."""
     canvas_width, canvas_height = self._plc.get_canvas_width_height()
+    regioning = self._plc.has_area_constraint()
     dreamplace_params = dreamplace_util.get_dreamplace_params(
         target_density=dp_target_density,
         canvas_width=canvas_width,
