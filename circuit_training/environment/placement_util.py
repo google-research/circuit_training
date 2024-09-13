@@ -518,6 +518,47 @@ def get_ordered_node_indices(
     rng.shuffle(hard_macro_indices)
     logging.info('ordered hard macros: %s', hard_macro_indices)
     ordered_indices = hard_macro_indices + soft_macro_indices
+  elif mode == 'fake_net_topological':
+    fake_net_adj = {}
+
+    for fake_net in plc.get_fake_nets():
+      weight = fake_net[0]
+      if weight <= 0:
+        continue
+      node_0 = fake_net[1][0]
+      node_1 = fake_net[1][1]
+      if node_0 not in hard_macro_indices or node_1 not in hard_macro_indices:
+        continue
+      fake_net_adj[(node_0, node_1)] = weight
+      fake_net_adj[(node_1, node_0)] = weight
+
+    # Measures the closness of the non-visited macros to the visited macros.
+    closeness = {n: 0.0 for n in hard_macro_indices}
+
+    # Start with the largest macro.
+    source = max(hard_macro_indices, key=macro_area)
+    visited_nodes = [source]
+    last_node = source
+    del closeness[last_node]
+
+    while len(visited_nodes) < len(hard_macro_indices):
+      # Update the closeness using the connection of the non-visited nodes and
+      # the lates visited node.
+      for node in hard_macro_indices:
+        if node in visited_nodes:
+          continue
+        if (node, last_node) in fake_net_adj:
+          closeness[node] += fake_net_adj[(node, last_node)]
+
+      # Pick the clossest node, if break up the equality with macro area.
+      last_node = max(closeness, key=lambda n: (closeness[n], macro_area(n)))
+      visited_nodes.append(last_node)
+      del closeness[last_node]
+
+    ordered_indices = (
+        visited_nodes + sorted(soft_macro_indices, key=macro_area)[::-1]
+    )
+
   else:
     raise ValueError('{} is an unsupported node placement mode.'.format(mode))
 
