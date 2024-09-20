@@ -84,7 +84,7 @@ def extract_attribute_from_comments(
   """Parses the files' comments section, tries to extract the attribute.
 
   Args:
-    attribute: attribute to look for (case sensetive).
+    attribute: attribute to look for (case sensitive).
     filenames: List of protobuf file or a plc file.
 
   Returns:
@@ -504,12 +504,35 @@ def get_ordered_node_indices(
     w, h = plc.get_node_width_height(idx)
     return w * h
 
+  canvas_width, canvas_height = plc.get_canvas_width_height()
+
+  def distance_to_edge(idx):
+    x, y = plc.get_node_location(idx)
+    return min(
+        x, y, canvas_width - x - canvas_width, canvas_height - y - canvas_height
+    )
+
   # Make sure node order is consistent across all collectors, if random.
   logging.info('node_order: %s', mode)
-  if mode == 'descending_size_macro_first':
-    ordered_indices = (
-        sorted(hard_macro_indices, key=macro_area)[::-1]
-        + sorted(soft_macro_indices, key=macro_area)[::-1]
+  if mode == 'legalization_order':
+    # Order the macros by distance to the edge and then soft macros by size.
+    ordered_indices = sorted(
+        hard_macro_indices,
+        key=distance_to_edge,
+    ) + sorted(
+        soft_macro_indices,
+        key=macro_area,
+        reverse=True,
+    )
+  elif mode == 'descending_size_macro_first':
+    ordered_indices = sorted(
+        hard_macro_indices,
+        key=macro_area,
+        reverse=True,
+    ) + sorted(
+        soft_macro_indices,
+        key=macro_area,
+        reverse=True,
     )
   elif mode == 'random':
     rng.shuffle(macro_indices)
