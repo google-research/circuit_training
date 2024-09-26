@@ -3,7 +3,7 @@
   owner: 'esonghori'
   owner: 'sguada'
   owner: 'morpheus-core'
-  reviewed: '2024-07-16'
+  reviewed: '2024-08-14'
   review_interval: '12 months'
 } *-->
 
@@ -23,7 +23,7 @@ pp.207-212.
 
 Our hope is that *Circuit Training* will foster further collaborations between
 academia and industry, and enable advances in deep reinforcement learning for
-Electronic Design Automation, as well as, general combinatorial and decision
+Electronic Design Automation, as well as general combinatorial and decision
 making optimization problems. Capable of optimizing chip blocks with hundreds of
 macros, *Circuit Training* automatically generates floor plans in hours, whereas
 baseline methods often require human experts in the loop and can take months.
@@ -41,6 +41,8 @@ scaling to 100s of actors.
 <a href='#QuickStart'>Quick start</a><br>
 <a href='#Testing'>Testing</a><br>
 <a href='#Releases'>Releases</a><br>
+<a href='#PreTrainedModelCheckpoint'>Pre-Trained Model Checkpoint</a><br>
+<a href='#HowToUseTheCheckpoint'>How to use the checkpoint</a><br>
 <a href='#Results'>Results</a><br>
 <a href='#FAQ'>FAQ</a><br>
 <a href='#Contributing'>How to contribute</a><br>
@@ -326,7 +328,8 @@ $  python3 -mpip install pyunpack>=0.1.2 \
 The best quick start is to run the
 [end2end smoke test](https://github.com/google-research/circuit_training/tree/main/tools#end-to-end-smoke-test)
 and then look at the full distributed example
-[Circuit training for Ariane RISC-V](./docs/ARIANE.md).
+[Circuit training for Ariane RISC-V](./docs/ARIANE.md). For the pre-training
+on multiple netlists see [Pre-Training Instruction](./docs/PRETRAINING.md).
 
 <a id='Testing'></a>
 
@@ -368,6 +371,53 @@ HEAD    | [main](https://github.com/google-research/circuit-training)           
 0.0.3   | [v0.0.3](https://github.com/google-research/circuit_training/tree/r0.0.3) | tf-agents[reverb]~=0.16.0 | dreamplace_20230414_b31e8af_python3.9.tar.gz | [plc_wrapper_main_0.0.3](https://storage.googleapis.com/rl-infra-public/circuit-training/placement_cost/plc_wrapper_main_0.0.3)
 0.0.2   | [v0.0.2](https://github.com/google-research/circuit_training/tree/v0.0.2) | tf-agents[reverb]~=0.16.0 |
 
+<a id='PreTrainedModelCheckpoint'></a>
+
+## Pre-Trained Model Checkpoint
+
+Unlike prior approaches, our method is a learning-based approach, meaning that
+it becomes better and faster as it sees and solves more instances of the chip
+placement problem. This pre-training step significantly improves its speed,
+reliability, and placement quality, as discussed in the original Nature article
+and a follow-up study at ISPD 2022 ([Summer Yue, Ebrahim Songhori, Joe Jiang,
+Toby Boyd, Anna Goldie, Azalia Mirhoseini, Sergio Guadarrama. Scalability and
+Generalization of Circuit Training for Chip Floorplanning. ISPD, 2022.`]
+(https://dl.acm.org/doi/abs/10.1145/3505170.3511478)).
+
+We release a model checkpoint pre-trained on 20 TPU blocks, which can
+serve as a starting point for model training and fine-tuning purposes. Please
+note that, like any other deep learning models (such as large language and
+vision models), increasing the number of training examples and using
+in-distribution data during pre-training will improve the quality of results.
+Therefore, for best results, we strongly recommend
+[pre-training on your own chip blocks](./docs/PRETRAINING.md), as these will
+represent the most relevant placement experience for the RL agent.
+
+Obviously, not performing any pre-training, i.e., training from scratch,
+removes the RL agent's ability to learn from prior experience.
+
+
+<a id='HowToUseTheCheckpoint'></a>
+
+### How to use the checkpoint
+
+First, download and untar the checkpoint:
+
+```shell
+sudo curl https://storage.googleapis.com/rl-infra-public/circuit-training/tpu_checkpoint_20240815.tar.gz -o $PWD/tpu_checkpoint_20240815.tar.gz
+tar -xvf tpu_checkpoint_20240815.tar.gz
+CHECKPOINT_DIR=$PWD/tpu_checkpoint_20240815/
+```
+
+Then, set the following flags in the train binary to the provided checkpoint
+directory:
+
+```shell
+python3.9 -m circuit_training.learning.train_ppo \
+  ... \
+  --policy_checkpoint_dir=${CHECKPOINT_DIR} \
+  --policy_saved_model_dir=${CHECKPOINT_DIR}
+```
 
 <a id='Results'></a>
 
@@ -578,7 +628,7 @@ If you use this code, please cite both:
 ```
 @article{mirhoseini2021graph,
   title={A graph placement methodology for fast chip design},
-  author={Mirhoseini, Azalia and Goldie, Anna and Yazgan, Mustafa and Jiang, Joe
+  author={Mirhoseini*, Azalia and Goldie*, Anna and Yazgan, Mustafa and Jiang, Joe
   Wenjie and Songhori, Ebrahim and Wang, Shen and Lee, Young-Joon and Johnson,
   Eric and Pathak, Omkar and Nazi, Azade and Pak, Jiwoo and Tong, Andy and
   Srinivasa, Kavya and Hang, William and Tuncer, Emre and V. Le, Quoc and
@@ -603,6 +653,26 @@ If you use this code, please cite both:
   url = "https://github.com/google_research/circuit_training",
   year = 2021,
   note = "[Online; accessed 21-December-2021]"
+}
+```
+
+In addition, if you used the open-sourced checkpoint, please also cite:
+
+```
+@misc{AlphaChipCheckpoint2024,
+  title = {A Pre-Trained Checkpoint for {AlphaChip}},
+  author = {Jiang, Joe Wenjie and Songhori, Ebrahim and Mirhoseini, Azalia and
+  Goldie, Anna and Guadarrama, Sergio and Yue, Summer and
+  Boyd, Toby and Tam, Terence, and Wu, Guanhang and Lee, Kuang-Huei and
+  Zhuang, Vincent and Yazgan, Mustafa and and Wang, Shen and Lee, Young-Joon and
+  Johnson, Eric and Pathak, Omkar and Nazi, Azade and Pak, Jiwoo and
+  Tong, Andy and Srinivasa, Kavya and Hang, William and Tuncer, Emre and
+  V. Le, Quoc and Laudon, James and Ho, Richard and Carpenter, Roger and
+  Dean, Jeff},
+  howpublished = {\url{https://github.com/google-research/circuit_training/?tab=readme-ov-file#PreTrainedModelCheckpoint}},
+  url = "https://github.com/google-research/circuit_training/?tab=readme-ov-file#PreTrainedModelCheckpoint",
+  year = 2024,
+  note = "[Online; accessed 25-September-2024]"
 }
 ```
 
