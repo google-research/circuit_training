@@ -7,11 +7,11 @@
   review_interval: '12 months'
 } *-->
 
-# Circuit Training: An open-source framework for generating chip floor plans with distributed deep reinforcement learning.
+# AlphaChip: An open-source framework for generating chip floorplans with distributed deep reinforcement learning.
 
-*Circuit Training* is an open-source framework for generating chip floor plans
-with distributed deep reinforcement learning. This framework reproduces the
-methodology published in the Nature 2021 paper:
+*AlphaChip* is an open-source framework
+for generating chip floorplans with distributed deep reinforcement learning.
+This framework reproduces the methodology published in the Nature 2021 paper:
 
 *[A graph placement methodology for fast chip design.](https://www.nature.com/articles/s41586-021-03544-w)
 Azalia Mirhoseini, Anna Goldie, Mustafa Yazgan, Joe Wenjie Jiang, Ebrahim
@@ -21,14 +21,15 @@ James Laudon, Richard Ho, Roger Carpenter & Jeff Dean, 2021. Nature, 594(7862),
 pp.207-212.
 [[PDF]](https://www.nature.com/articles/s41586-021-03544-w.epdf?sharing_token=tYaxh2mR5EozfsSL0WHZLdRgN0jAjWel9jnR3ZoTv0PW0K0NmVrRsFPaMa9Y5We9O4Hqf_liatg-lvhiVcYpHL_YQpqkurA31sxqtmA-E1yNUWVMMVSBxWSp7ZFFIWawYQYnEXoBE4esRDSWqubhDFWUPyI5wK_5B_YIO-D_kS8%3D)*
 
-Our hope is that *Circuit Training* will foster further collaborations between
-academia and industry, and enable advances in deep reinforcement learning for
-Electronic Design Automation, as well as general combinatorial and decision
-making optimization problems. Capable of optimizing chip blocks with hundreds of
-macros, *Circuit Training* automatically generates floor plans in hours, whereas
-baseline methods often require human experts in the loop and can take months.
+AlphaChip--one of the first reinforcement learning approaches used to solve a
+real-world engineering problem--has led to a proliferation of research in AI
+for chips over the past few years. It is now used to design layouts for chips
+across Alphabet and outside, and has been extended to various stages of the
+design process, including logic synthesis, macro selection, timing optimization,
+and more! We hope that researchers will continue building on top of AlphaChip
+methodologies and open-source framework. Please see our [blogpost](https://deepmind.google/discover/blog/how-alphachip-transformed-computer-chip-design/) for more information.
 
-Circuit training is built on top of
+AlphaChip is built on top of
 [TF-Agents](https://github.com/tensorflow/agents) and
 [TensorFlow 2.x](https://www.tensorflow.org/) with support for eager execution,
 distributed training across multiple GPUs, and distributed data collection
@@ -72,19 +73,19 @@ scaling to 100s of actors.
     [script](https://github.com/TILOS-AI-Institute/MacroPlacement/tree/main/CodeElements/FormatTranslators)
     to convert LEF/DEF and Bookshelf to the
     [Netlist Protocol Buffer](https://github.com/google-research/circuit_training/blob/main/docs/NETLIST_FORMAT.md)
-    used as the input for circuit training.
+    used as the input for AlphaChip.
 
 <a id='Installation'></a>
 
 ## Installation
 
-> :warning: Circuit Training only supports Linux based OSes.
+> :warning: AlphaChip only supports Linux based OSes.
 
-> :warning: Circuit Training requires Python 3.9 or greater.
+> :warning: AlphaChip requires Python 3.9 or greater.
 
 ## Stable
 
-Circuit Training is a reseach project. We are not currently creating PyPi
+AlphaChip is a research project. We are not currently creating PyPi
 builds. Stable in this instance is relative to HEAD and means that the code
 was tested at this point in time and branched. With upstream libraires
 constantly changing; older branches may end up rotting faster than expected.
@@ -109,7 +110,7 @@ $ export CT_VERSION=0.0.4
 $ export PYTHON_VERSION=python3.9
 $ export DREAMPLACE_PATTERN=dreamplace_20231214_c5a83e5_${PYTHON_VERSION}.tar.gz
 # If the verson of TF-Agents in the table is not current, change this command to
-# match the version tf-agenst that matches the branch of Circuit Training used.
+# match the version tf-agenst that matches the branch of AlphaChip used.
 $ export TF_AGENTS_PIP_VERSION=tf-agents[reverb]
 
 # Clone the Repo and checkout the desired branch.
@@ -120,7 +121,7 @@ $  git -C $(pwd)/circuit_training checkout r${CT_VERSION}
 ### Using the docker
 
 Do not forget to do the [prelimary setup](#preliminary-setup). The cleanest way
-to use Circuit Training is to use the docker, these commands will create a
+to use AlphaChip is to use the docker, these commands will create a
 docker with all the dependencies needed:
 
 ```shell
@@ -143,7 +144,7 @@ $ docker run --rm -v ${REPO_ROOT}:/workspace --workdir /workspace circuit_traini
 
 Do not forget to do the [prelimary setup](#preliminary-setup).
 
-Circuit Training installation steps:
+AlphaChip installation steps:
 
 *   Install our DREAMPlace binary.
 *   Install TF-Agents and The Placement Cost Binary
@@ -214,8 +215,8 @@ $  git clone https://github.com/google-research/circuit_training.git
 
 ### Using the docker
 
-Do not forget to do the [prelimary setup](#preliminary-setup). The cleanest way
-to use Circuit Training is to use docker, these commands will create an image
+Do not forget to do the [preliminary setup](#preliminary-setup). The cleanest way
+to use AlphaChip is to use docker, these commands will create an image
 with all the dependencies needed:
 
 ```shell
@@ -234,7 +235,7 @@ $ docker run --rm -v ${REPO_ROOT}:/workspace --workdir /workspace circuit_traini
 
 ### Install locally
 
-Circuit Training installation steps:
+AlphaChip installation steps:
 
 *   Install our DREAMPlace binary.
 *   Install TF-Agents Nightly and the placement cost binary
@@ -328,7 +329,8 @@ $  python3 -mpip install pyunpack>=0.1.2 \
 The best quick start is to run the
 [end2end smoke test](https://github.com/google-research/circuit_training/tree/main/tools#end-to-end-smoke-test)
 and then look at the full distributed example
-[Circuit training for Ariane RISC-V](./docs/ARIANE.md). For the pre-training
+[AlphaChip for Ariane RISC-V](./docs/ARIANE.md).
+For the pre-training
 on multiple netlists see [Pre-Training Instruction](./docs/PRETRAINING.md).
 
 <a id='Testing'></a>
@@ -601,8 +603,8 @@ to these principles.
 ## Main Contributors
 
 We would like to recognize the following individuals for their code
-contributions, discussions, and other work to make the release of the Circuit
-Training library possible.
+contributions, discussions, and other work to make the release of the AlphaChip
+library possible.
 
 *   Sergio Guadarrama
 *   Summer Yue
