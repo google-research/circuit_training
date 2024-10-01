@@ -431,15 +431,12 @@ model cannot be shared at this time.
 ### Ariane RISC-V CPU
 
 View the full details of the Ariane experiment on our
-[details page](./docs/ARIANE.md). With this code we are able to get comparable
-or better results training from scratch as fine-tuning a pre-trained model. At
-the time the paper was published, training from a pre-trained model resulted in
-better results than training from scratch for the Ariane RISC-V. Improvements to
-the code have also resulted in 50% less GPU resources needed and a 2x walltime
-speedup even in training from scratch. Below are the mean and standard deviation
-for 3 different seeds run 3 times each. This is slightly different than what was
-used in the paper (8 runs each with a different seed), but better captures the
-different sources of variability.
+[details page](./docs/ARIANE.md). Improvements to the code have also resulted
+in 50% less GPU resources needed and a 2x walltime speedup even in training
+from scratch. Below are the mean and standard deviation for 3 different seeds
+run 3 times each. This is slightly different than what was used in the paper
+(8 runs each with a different seed), but better captures the different sources
+of variability.
 
  Metric  | Proxy Wirelength | Proxy Congestion | Proxy Density
 -------- | ---------------- | ---------------- | -------------
