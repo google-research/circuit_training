@@ -85,6 +85,7 @@ class PlacedbPlc(object):
 
   def update_net_weights(self, plc):
     """Update net weights in placedb according to the input plc."""
+    assert self.placedb.net_weights is not None
     for net_id, pin_index in enumerate(self.converter.driver_pin_indices):
       new_weight = plc.get_node_weight(pin_index)
       self.placedb.net_weights[net_id] = new_weight
