@@ -543,7 +543,7 @@ def get_ordered_node_indices(
     ordered_indices = hard_macro_indices + soft_macro_indices
   elif mode == 'fake_net_topological':
     fake_net_adj = {}
-
+    has_fake_net = {n: False for n in hard_macro_indices}
     for fake_net in plc.get_fake_nets():
       weight = fake_net[0]
       if weight <= 0:
@@ -554,6 +554,8 @@ def get_ordered_node_indices(
         continue
       fake_net_adj[(node_0, node_1)] = weight
       fake_net_adj[(node_1, node_0)] = weight
+      has_fake_net[node_0] = True
+      has_fake_net[node_1] = True
 
     # Measures the closness of the non-visited macros to the visited macros.
     closeness = {n: 0.0 for n in hard_macro_indices}
@@ -573,8 +575,12 @@ def get_ordered_node_indices(
         if (node, last_node) in fake_net_adj:
           closeness[node] += fake_net_adj[(node, last_node)]
 
-      # Pick the clossest node, if break up the equality with macro area.
-      last_node = max(closeness, key=lambda n: (closeness[n], macro_area(n)))
+      # Pick the clossest node, break up the equality with having fake net and
+      # then macro area.
+      last_node = max(
+          closeness,
+          key=lambda n: (closeness[n], has_fake_net[n], macro_area(n)),
+      )
       visited_nodes.append(last_node)
       del closeness[last_node]
 
