@@ -544,24 +544,30 @@ def get_ordered_node_indices(
   elif mode == 'fake_net_topological':
     fake_net_adj = {}
     has_fake_net = {n: False for n in hard_macro_indices}
+    closeness_to_port = {n: 0.0 for n in hard_macro_indices}
     for fake_net in plc.get_fake_nets():
       weight = fake_net[0]
       if weight <= 0:
         continue
       node_0 = fake_net[1][0]
       node_1 = fake_net[1][1]
-      if node_0 not in hard_macro_indices or node_1 not in hard_macro_indices:
-        continue
-      fake_net_adj[(node_0, node_1)] = weight
-      fake_net_adj[(node_1, node_0)] = weight
-      has_fake_net[node_0] = True
-      has_fake_net[node_1] = True
+      if node_0 in hard_macro_indices and node_1 in hard_macro_indices:
+        fake_net_adj[(node_0, node_1)] = weight
+        fake_net_adj[(node_1, node_0)] = weight
+        has_fake_net[node_0] = True
+        has_fake_net[node_1] = True
+      elif node_0 in hard_macro_indices:
+        closeness_to_port[node_0] += weight
+      elif node_1 in hard_macro_indices:
+        closeness_to_port[node_1] += weight
 
     # Measures the closness of the non-visited macros to the visited macros.
     closeness = {n: 0.0 for n in hard_macro_indices}
 
-    # Start with the largest macro.
-    source = max(hard_macro_indices, key=macro_area)
+    # Start with the closest macro to port, if equal then area of the macro.
+    source = max(
+        hard_macro_indices, key=lambda n: (closeness_to_port[n], macro_area(n))
+    )
     visited_nodes = [source]
     last_node = source
     del closeness[last_node]
