@@ -29,6 +29,9 @@ import numpy as np
 import tensorflow.io.gfile as gfile
 
 
+EPSILON = 1e-3
+
+
 def blockage_area(plc):
   return np.sum([(b[2] - b[0]) * (b[3] - b[1]) for b in plc.get_blockages()])
 
@@ -601,7 +604,7 @@ class PlcConverter(object):
       )
       w, h = plc.get_canvas_width_height()
       # Setting region as exact canvas size causes a problem.
-      w, h = math.floor(w), math.floor(h)
+      w, h = w - EPSILON, h - EPSILON
       for n in movable_node_indices:
         areas = plc.get_area_constraint(n)
         for area in areas:
