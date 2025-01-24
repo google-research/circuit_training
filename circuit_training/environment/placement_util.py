@@ -476,10 +476,32 @@ def fd_placement_schedule(
   )
 
 
+def read_node_order_file(
+    plc: plc_client.PlacementCost, node_order_file: str
+) -> List[int]:
+  """Reads the node order from a file."""
+  with gfile.GFile(node_order_file, 'r') as f:
+    node_order = [plc.get_node_index(line.strip()) for line in f.readlines()]
+  return node_order
+
+
+def save_node_order_file(
+    plc: plc_client.PlacementCost,
+    node_order: List[int],
+    node_order_file: str,
+) -> None:
+  """Saves the node order to a file."""
+  with gfile.GFile(node_order_file, 'w') as f:
+    for node_index in node_order:
+      if not plc.is_node_soft_macro(node_index):
+        f.write(plc.get_node_name(node_index) + '\n')
+
+
 def get_ordered_node_indices(
     mode: str,
     plc: plc_client.PlacementCost,
     seed: int = 111,
+    node_order_file: str = '',
     exclude_fixed_nodes: bool = True,
 ) -> List[int]:
   """Returns an ordering of node indices according to the specified mode.
@@ -488,6 +510,7 @@ def get_ordered_node_indices(
     mode: node ordering mode
     plc: placement cost object
     seed: RNG seed used for random order.
+    node_order_file: path to the node order file.
     exclude_fixed_nodes: Whether fixed nodes should be excluded.
 
   Returns:
@@ -501,6 +524,8 @@ def get_ordered_node_indices(
   soft_macro_indices = [m for m in macro_indices if plc.is_node_soft_macro(m)]
 
   def macro_area(idx):
+    if idx not in hard_macro_indices:
+      return 0.0
     w, h = plc.get_node_width_height(idx)
     return w * h
 
@@ -543,39 +568,40 @@ def get_ordered_node_indices(
     ordered_indices = hard_macro_indices + soft_macro_indices
   elif mode == 'fake_net_topological':
     fake_net_adj = {}
-    has_fake_net = {n: False for n in hard_macro_indices}
-    closeness_to_port = {n: 0.0 for n in hard_macro_indices}
-    for fake_net in plc.get_fake_nets():
+    fake_nets = plc.get_fake_nets()
+    nodes = (
+        set([nm[0] for _, nm in fake_nets])
+        .union(set([nm[1] for _, nm in fake_nets]))
+        .union(set(hard_macro_indices))
+    )
+    is_port = {n: n not in hard_macro_indices for n in nodes}
+    macro_with_fake_net = {n: False for n in nodes}
+    for fake_net in fake_nets:
       weight = fake_net[0]
       if weight <= 0:
         continue
       node_0 = fake_net[1][0]
       node_1 = fake_net[1][1]
-      if node_0 in hard_macro_indices and node_1 in hard_macro_indices:
-        fake_net_adj[(node_0, node_1)] = weight
-        fake_net_adj[(node_1, node_0)] = weight
-        has_fake_net[node_0] = True
-        has_fake_net[node_1] = True
-      elif node_0 in hard_macro_indices:
-        closeness_to_port[node_0] += weight
-      elif node_1 in hard_macro_indices:
-        closeness_to_port[node_1] += weight
+      fake_net_adj[(node_0, node_1)] = weight
+      fake_net_adj[(node_1, node_0)] = weight
+      if node_0 in hard_macro_indices:
+        macro_with_fake_net[node_0] = True
+      if node_1 in hard_macro_indices:
+        macro_with_fake_net[node_1] = True
 
     # Measures the closness of the non-visited macros to the visited macros.
-    closeness = {n: 0.0 for n in hard_macro_indices}
+    closeness = {n: 0.0 for n in nodes}
 
     # Start with the closest macro to port, if equal then area of the macro.
-    source = max(
-        hard_macro_indices, key=lambda n: (closeness_to_port[n], macro_area(n))
-    )
+    source = max(nodes, key=lambda n: (is_port[n], macro_area(n)))
     visited_nodes = [source]
     last_node = source
     del closeness[last_node]
 
-    while len(visited_nodes) < len(hard_macro_indices):
+    while len(visited_nodes) < len(nodes):
       # Update the closeness using the connection of the non-visited nodes and
       # the lates visited node.
-      for node in hard_macro_indices:
+      for node in nodes:
         if node in visited_nodes:
           continue
         if (node, last_node) in fake_net_adj:
@@ -585,15 +611,16 @@ def get_ordered_node_indices(
       # then macro area.
       last_node = max(
           closeness,
-          key=lambda n: (closeness[n], has_fake_net[n], macro_area(n)),
+          key=lambda n: (closeness[n], macro_with_fake_net[n], macro_area(n)),
       )
       visited_nodes.append(last_node)
       del closeness[last_node]
 
-    ordered_indices = (
-        visited_nodes + sorted(soft_macro_indices, key=macro_area)[::-1]
-    )
-
+    ordered_indices = [
+        n for n in visited_nodes if n in hard_macro_indices
+    ] + sorted(soft_macro_indices, key=macro_area)[::-1]
+  elif mode == 'file':
+    ordered_indices = read_node_order_file(plc, node_order_file)
   else:
     raise ValueError('{} is an unsupported node placement mode.'.format(mode))
 

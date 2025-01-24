@@ -154,6 +154,7 @@ class CircuitEnv(object):
       train_step: Optional[tf.Variable] = None,
       output_all_features: bool = False,
       node_order: str = 'descending_size_macro_first',
+      node_order_file: str = '',
       save_snapshot: bool = True,
       save_partial_placement: bool = False,
       mixed_size_dp_at_infeasible: bool = True,
@@ -233,9 +234,17 @@ class CircuitEnv(object):
     self._num_hard_macros = len(self._hard_macro_indices)
     logging.info('***Num node to place***:%s', self._num_hard_macros)
 
-    self._sorted_node_indices = placement_util.get_ordered_node_indices(
-        mode=self._node_order, plc=self._plc, seed=self._global_seed
-    )
+    if node_order_file:
+      self._sorted_node_indices = placement_util.get_ordered_node_indices(
+          mode='file',
+          plc=self._plc,
+          seed=self._global_seed,
+          node_order_file=node_order_file,
+      )
+    else:
+      self._sorted_node_indices = placement_util.get_ordered_node_indices(
+          mode=self._node_order, plc=self._plc, seed=self._global_seed
+      )
 
     # Generate a map from actual macro_index to its position in
     # self.macro_indices. Needed because node adjacency matrix is in the same
