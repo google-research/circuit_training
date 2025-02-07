@@ -273,7 +273,7 @@ tox -e py39-nightly -- circuit_training/grouping/grouping_test.py
 
 ## Install DREAMPlace
 
-DREAMPlace is **not** provided as a PyPi package and needs to be compilede. We 
+DREAMPlace is **not** provided as a PyPi package and needs to be compiled. We 
 provide compiled versions of DREAMPlace taken from our
 [branch](https://github.com/esonghori/DREAMPlace/tree/circuit_training) for a
 range of Python versions built for our docker image (Ubuntu 20.4). We also use
