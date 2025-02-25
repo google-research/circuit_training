@@ -19,7 +19,6 @@ Convention:
  - indices of nodes, pins, and nets in PlaceDB is named "_id" and "ids".
 """
 
-import math
 import pickle
 
 from absl import logging
@@ -32,8 +31,16 @@ import tensorflow.io.gfile as gfile
 EPSILON = 1e-3
 
 
-def blockage_area(plc):
-  return np.sum([(b[2] - b[0]) * (b[3] - b[1]) for b in plc.get_blockages()])
+def get_relevent_blockages(plc):
+  # Ignoring macro blockages (rate==0.1) while keeping rectilinear blockages
+  # (rate==1.0) and stdcell blockages (rate==0.99).
+  return [b for b in plc.get_blockages() if b[4] >= 0.99]
+
+
+def unplaceable_area(plc):
+  return np.sum(
+      [(b[2] - b[0]) * (b[3] - b[1]) for b in get_relevent_blockages(plc)]
+  )
 
 
 def np_array_of_array(py_list_of_list, dtype):
@@ -160,24 +167,20 @@ def convert_nodes(db, plc, hard_macro_order):
     db.node_x.append(x - db.original_node_size_x[-1] / 2)
     db.node_y.append(y - db.original_node_size_y[-1] / 2)
 
-  # if the blockage rate is larger than 0.99 (1.0 for rectilinear blockages and
-  # 0.99 for stdcell blockages), translate it into a dummy fixed node. Macro
-  # blockages (rate==0.1) are ignored.
   num_blockage_dummy_node = 0
-  for b in plc.get_blockages():
+  for b in get_relevent_blockages(plc):
     # b is a tupe of (minx, miny, maxx, maxy, blockage_rate)
-    if b[4] >= 0.99:
-      dummy_node_name = 'blockage_dummy_node_' + str(num_blockage_dummy_node)
-      db.node_names.append(dummy_node_name)
-      db.node_name2id_map[dummy_node_name] = (
-          len(physical_node_indices) + num_blockage_dummy_node
-      )
-      db.node_x.append(b[0])
-      db.node_y.append(b[1])
-      db.original_node_size_x.append(b[2] - b[0])
-      db.original_node_size_y.append(b[3] - b[1])
-      db.node_orient.append(b'N')
-      num_blockage_dummy_node += 1
+    dummy_node_name = 'blockage_dummy_node_' + str(num_blockage_dummy_node)
+    db.node_names.append(dummy_node_name)
+    db.node_name2id_map[dummy_node_name] = (
+        len(physical_node_indices) + num_blockage_dummy_node
+    )
+    db.node_x.append(b[0])
+    db.node_y.append(b[1])
+    db.original_node_size_x.append(b[2] - b[0])
+    db.original_node_size_y.append(b[3] - b[1])
+    db.node_orient.append(b'N')
+    num_blockage_dummy_node += 1
 
   db.num_physical_nodes = len(physical_node_indices) + num_blockage_dummy_node
 
@@ -514,7 +517,7 @@ class PlcConverter(object):
     )
 
     db.total_space_area = (
-        db.xh * db.yh - blockage_area(plc) - self.non_movable_macro_area(plc)
+        db.xh * db.yh - unplaceable_area(plc) - self.non_movable_macro_area(plc)
     )
     convert_to_ndarray(db)
     self.initialize_placedb_region_attributes(db, plc)
@@ -573,7 +576,7 @@ class PlcConverter(object):
     db.macro_mask = np.array(macro_mask, dtype=np.uint8)
     db.total_space_area = (
         db.xh * db.yh
-        - blockage_area(plc)
+        - unplaceable_area(plc)
         - self.non_movable_macro_area(plc, num_non_movable_macros)
     )
     # These parameters are changed after calling to PlaceDB.__call__,
@@ -595,7 +598,7 @@ class PlcConverter(object):
       # A region is an array of BB.
       region_to_id = {}
       next_region_id = 0
-      movable_node_indices = self._physical_node_indices[:db.num_movable_nodes]
+      movable_node_indices = self._physical_node_indices[: db.num_movable_nodes]
       # Ignores macro region constraints for now.
       db.node2fence_region_map = np.full(
           len(movable_node_indices),
