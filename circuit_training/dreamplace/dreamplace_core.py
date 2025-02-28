@@ -49,6 +49,7 @@ class SoftMacroPlacer:
     )
     metrics = nonlinear_place(self.params, self.placedb_plc.placedb)
     logging.info('Last Dreamplace metric: %s', str(metrics[-1][-1][-1]))
+    print('Last Dreamplace metric: ', metrics[-1][-1][-1])
     total_iterations = sum(
         [stage['iteration'] for stage in self.params.global_place_stages]
     )

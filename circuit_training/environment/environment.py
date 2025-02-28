@@ -159,6 +159,7 @@ class CircuitEnv(object):
       save_partial_placement: bool = False,
       mixed_size_dp_at_infeasible: bool = True,
       dp_target_density: float = 0.425,
+      dp_regioning: bool | None = None,
   ):
     """Creates a CircuitEnv.
 
@@ -194,6 +195,8 @@ class CircuitEnv(object):
       mixed_size_dp_at_infeasible: If true, run mixed size DP at infeasible
         states. Only effective when std_cell_placer_mode is 'dreamplace'.
       dp_target_density: Target density parameter in DREAMPlace.
+      dp_regioning: If set, use for regioning in DREAMPlace, if not set, use
+        regioning is set only if there are mutliple power domains.
     """
     self._global_seed = global_seed
     if not netlist_file:
@@ -257,7 +260,8 @@ class CircuitEnv(object):
 
     if self._std_cell_placer_mode == 'dreamplace':
       self._dreamplace = self.create_dreamplace(
-          dp_target_density=dp_target_density
+          dp_target_density=dp_target_density,
+          regioning=dp_regioning,
       )
 
       # Call dreamplace mixed-size before making ObservationExtractor, so we
@@ -333,10 +337,16 @@ class CircuitEnv(object):
   def create_dreamplace(
       self,
       dp_target_density: float,
+      regioning: bool | None = None,
   ) -> dreamplace_core.SoftMacroPlacer:
     """Creates the SoftMacroPlacer."""
     canvas_width, canvas_height = self._plc.get_canvas_width_height()
-    regioning = self._plc.has_area_constraint()
+    if regioning is None:
+      regioning = self._plc.has_area_constraint()
+    elif regioning:
+      # Even if user set regioning to True, we still enable it only when there
+      # are multiple power domains.
+      regioning = self._plc.has_area_constraint()
     dreamplace_params = dreamplace_util.get_dreamplace_params(
         target_density=dp_target_density,
         canvas_width=canvas_width,
